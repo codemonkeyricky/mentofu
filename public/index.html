@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathMaster Pro - Educational Platform</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Add Chart.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Add Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Add Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Nunito:wght@400;500;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header with Navigation -->
+        <header>
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-brain"></i>
+                    <h1>MathMaster<span class="logo-highlight">Pro</span></h1>
+                </div>
+                <div class="user-info" id="user-info">
+                    <!-- User info will be dynamically inserted -->
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <!-- Authentication Screen -->
+            <div id="auth-screen" class="screen active">
+                <div class="welcome-card">
+                    <div class="card-header">
+                        <i class="fas fa-graduation-cap welcome-icon"></i>
+                        <h2>Welcome to MathMaster Pro</h2>
+                    </div>
+                    <p class="welcome-subtitle">Track your progress, improve your skills, and achieve learning
+                        milestones</p>
+
+                    <div class="auth-options">
+                        <div class="feature-card">
+                            <i class="fas fa-chart-line feature-icon"></i>
+                            <h3>Progress Tracking</h3>
+                            <p>Monitor your improvement with detailed analytics</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fas fa-trophy feature-icon"></i>
+                            <h3>Achievements</h3>
+                            <p>Earn badges and rewards for your learning</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fas fa-gamepad feature-icon"></i>
+                            <h3>Interactive Learning</h3>
+                            <p>Engaging quizzes that make learning fun</p>
+                        </div>
+                    </div>
+
+                    <div class="auth-buttons">
+                        <button id="login-btn" class="btn btn-primary btn-large">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </button>
+                        <button id="register-btn" class="btn btn-secondary btn-large">
+                            <i class="fas fa-user-plus"></i> Register
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Login Screen -->
+            <div id="login-screen" class="screen">
+                <div class="auth-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-sign-in-alt"></i> Welcome Back</h2>
+                        <p class="card-subtitle">Enter your credentials to continue</p>
+                    </div>
+                    <form id="login-form" class="auth-form">
+                        <div class="form-group">
+                            <label for="login-username" class="form-label">
+                                <i class="fas fa-user"></i> Username
+                            </label>
+                            <input type="text" id="login-username" class="form-input" required
+                                placeholder="Enter your username">
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password" class="form-label">
+                                <i class="fas fa-lock"></i> Password
+                            </label>
+                            <input type="password" id="login-password" class="form-input" required
+                                placeholder="Enter your password">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fas fa-sign-in-alt"></i> Sign In
+                        </button>
+                    </form>
+                    <div class="auth-footer">
+                        <p>Don't have an account? <a href="#" id="show-register" class="auth-link">Create one here</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Register Screen -->
+            <div id="register-screen" class="screen">
+                <div class="auth-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-user-plus"></i> Create Account</h2>
+                        <p class="card-subtitle">Join our learning community</p>
+                    </div>
+                    <form id="register-form" class="auth-form">
+                        <div class="form-group">
+                            <label for="register-username" class="form-label">
+                                <i class="fas fa-user"></i> Username
+                            </label>
+                            <input type="text" id="register-username" class="form-input" required
+                                placeholder="Choose a username">
+                        </div>
+                        <div class="form-group">
+                            <label for="register-password" class="form-label">
+                                <i class="fas fa-lock"></i> Password
+                            </label>
+                            <input type="password" id="register-password" class="form-input" required
+                                placeholder="Create a secure password">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fas fa-user-plus"></i> Register Account
+                        </button>
+                    </form>
+                    <div class="auth-footer">
+                        <p>Already have an account? <a href="#" id="show-login" class="auth-link">Sign in here</a></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Start Screen -->
+            <div id="start-screen" class="screen">
+                <div class="dashboard">
+                    <div class="dashboard-header">
+                        <h2><i class="fas fa-home"></i> Learning Dashboard</h2>
+                        <p class="dashboard-subtitle">Welcome back, <span id="username-display">Student</span>!</p>
+                    </div>
+
+                    <!-- Stats Overview -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>Total Quizzes</h3>
+                                <p class="stat-value" id="total-quizzes">0</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>Average Score</h3>
+                                <p class="stat-value" id="average-score">0%</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quiz Selection -->
+                    <div class="quiz-selection">
+                        <h3><i class="fas fa-play-circle"></i> Start New Quiz</h3>
+                        <div class="quiz-cards">
+                            <div class="quiz-card math-card">
+                                <div class="quiz-icon">
+                                    <i class="fas fa-times"></i>
+                                </div>
+                                <h4>Multiplication</h4>
+                                <p>Practice multiplication</p>
+                                <button id="start-math-btn" class="btn btn-outline">Start Quiz</button>
+                            </div>
+                            <div class="quiz-card math-card">
+                                <div class="quiz-icon">
+                                    <i class="fas fa-divide"></i>
+                                </div>
+                                <h4>Division</h4>
+                                <p>Master division problems</p>
+                                <button id="start-math-2-btn" class="btn btn-outline">Start Quiz</button>
+                            </div>
+                            <div class="quiz-card math-card">
+                                <div class="quiz-icon">
+                                    <i class="fas fa-chart-pie"></i>
+                                </div>
+                                <h4>Fractions</h4>
+                                <p>Understand fractions</p>
+                                <button id="start-math-3-btn" class="btn btn-outline">Start Quiz</button>
+                            </div>
+                            <div class="quiz-card words-card">
+                                <div class="quiz-icon">
+                                    <i class="fas fa-spell-check"></i>
+                                </div>
+                                <h4>Spelling</h4>
+                                <p>Improve spelling skills</p>
+                                <button id="start-words-btn" class="btn btn-outline">Start Quiz</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="quick-actions">
+                        <button id="reports-btn" class="btn btn-secondary">
+                            <i class="fas fa-chart-bar"></i> View Reports
+                        </button>
+                        <button id="logout-btn" class="btn btn-logout">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quiz Screen -->
+            <div id="quiz-screen" class="screen">
+                <div class="quiz-header">
+                    <div class="quiz-info">
+                        <div class="quiz-title">
+                            <h3 id="quiz-title">Multiplication Quiz</h3>
+                            <p id="quiz-description">Test your multiplication skills</p>
+                        </div>
+                        <div class="timer" id="quiz-timer">
+                            <i class="fas fa-clock"></i> <span id="timer-value">00:00</span>
+                        </div>
+                    </div>
+
+                    <div class="progress-container">
+                        <div class="progress-info">
+                            <span id="question-number">Question 1 of 10</span>
+                            <span class="progress-percent" id="progress-percent">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div id="progress-fill" class="progress-fill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="questions-container" class="questions-container">
+                    <!-- Questions will be dynamically inserted here -->
+                </div>
+
+                <div class="quiz-controls">
+                    <button id="submit-btn" class="btn btn-primary btn-large">
+                        <i class="fas fa-paper-plane"></i> Submit Answers
+                    </button>
+                </div>
+            </div>
+
+            <!-- Simple Words Screen -->
+            <div id="simple-words-screen" class="screen">
+                <div class="quiz-header">
+                    <div class="quiz-info">
+                        <div class="quiz-title">
+                            <h3>Spelling Quiz</h3>
+                            <p>Listen and type the words</p>
+                        </div>
+                        <div class="timer" id="words-timer">
+                            <i class="fas fa-clock"></i> <span id="words-timer-value">00:00</span>
+                        </div>
+                    </div>
+
+                    <div class="progress-container">
+                        <div class="progress-info">
+                            <span id="word-number">Word 1 of 10</span>
+                            <span class="progress-percent" id="words-progress-percent">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div id="word-progress-fill" class="progress-fill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="words-container" class="questions-container">
+                    <!-- Words will be dynamically inserted here -->
+                </div>
+
+                <div class="quiz-controls">
+                    <button id="submit-words-btn" class="btn btn-primary btn-large">
+                        <i class="fas fa-paper-plane"></i> Submit Answers
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Screen -->
+            <div id="results-screen" class="screen">
+                <div class="results-card">
+                    <div class="results-header">
+                        <div class="results-icon">
+                            <i class="fas fa-medal"></i>
+                        </div>
+                        <h2>Quiz Complete!</h2>
+                        <p class="results-subtitle">Great effort! Here are your results</p>
+                    </div>
+
+                    <div id="score-display" class="score-display">
+                        <!-- Score will be displayed here -->
+                    </div>
+
+                    <div class="results-breakdown" id="results-breakdown">
+                        <!-- Results breakdown will be dynamically inserted here -->
+                    </div>
+
+                    <div class="results-actions">
+                        <button id="restart-btn" class="btn btn-primary">
+                            <i class="fas fa-redo"></i> Try Again
+                        </button>
+                        <button id="dashboard-btn" class="btn btn-secondary">
+                            <i class="fas fa-home"></i> Back to Dashboard
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Screen -->
+            <div id="reports-screen" class="screen">
+                <div class="dashboard">
+                    <div class="dashboard-header">
+                        <h2><i class="fas fa-chart-bar"></i> Performance Reports</h2>
+                        <p class="dashboard-subtitle">Track your learning progress over time</p>
+                    </div>
+
+                    <div class="reports-summary">
+                        <div class="summary-card">
+                            <h3><i class="fas fa-chart-line"></i> Performance Overview</h3>
+                            <canvas id="performance-chart"></canvas>
+                        </div>
+                        <div class="summary-card">
+                            <h3><i class="fas fa-trophy"></i> Recent Achievements</h3>
+                            <div class="achievements-list" id="achievements-list">
+                                <!-- Achievements will be dynamically inserted here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="reports-container">
+                        <!-- Reports will be dynamically inserted here -->
+                    </div>
+
+                    <div class="reports-actions">
+                        <button id="back-to-start-btn" class="btn btn-primary">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <i class="fas fa-brain"></i>
+                    <span>MathMaster Pro</span>
+                </div>
+                <p class="footer-tagline">Empowering young minds through interactive learning</p>
+                <p class="footer-copyright">© 2024 MathMaster Pro Educational Platform. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/main.js" defer></script>
+    <script src="js/modules/auth.js" defer></script>
+    <script src="js/modules/quiz-base.js" defer></script>
+    <script src="js/modules/math-quiz.js" defer></script>
+    <script src="js/modules/division-quiz.js" defer></script>
+    <script src="js/modules/fraction-quiz.js" defer></script>
+    <script src="js/modules/spelling-quiz.js" defer></script>
+    <script src="js/modules/quiz-manager.js" defer></script>
+    <script src="js/modules/ui.js" defer></script>
+    <script src="js/modules/events.js" defer></script>
+</body>
+
+</html>
