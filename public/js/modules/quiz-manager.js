@@ -8,6 +8,7 @@ class QuizManager {
         this.mathQuiz = new MathQuiz(mathMasterPro);
         this.divisionQuiz = new DivisionQuiz(mathMasterPro);
         this.fractionQuiz = new FractionQuiz(mathMasterPro);
+        this.bodmasQuiz = new BODMASQuiz(mathMasterPro);
         this.spellingQuiz = new SpellingQuiz(mathMasterPro);
     }
 
@@ -21,6 +22,8 @@ class QuizManager {
                 return await this.divisionQuiz.startQuiz();
             case 'math-3':
                 return await this.fractionQuiz.startQuiz();
+            case 'math-4':
+                return await this.bodmasQuiz.startQuiz();
             case 'words':
                 return await this.spellingQuiz.startQuiz();
             default:
@@ -37,6 +40,8 @@ class QuizManager {
                 return await this.divisionQuiz.submitAnswers();
             case 'math-3':
                 return await this.fractionQuiz.submitAnswers();
+            case 'math-4':
+                return await this.bodmasQuiz.submitAnswers();
             default:
                 console.error('Invalid quiz type for submission:', this.currentQuizType);
                 this.mathMasterPro.showNotification('Invalid quiz type for submission', 'error');
@@ -60,6 +65,8 @@ class QuizManager {
                 return this.divisionQuiz.restartQuiz();
             case 'math-3':
                 return this.fractionQuiz.restartQuiz();
+            case 'math-4':
+                return this.bodmasQuiz.restartQuiz();
             case 'words':
                 return this.spellingQuiz.restartQuiz();
             default:

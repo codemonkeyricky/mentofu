@@ -14,6 +14,7 @@ class QuizBase {
             'math': { icon: 'fa-calculator', text: 'Start Math Quiz' },
             'math-2': { icon: 'fa-divide', text: 'Start Division Quiz' },
             'math-3': { icon: 'fa-chart-pie', text: 'Start Fraction Comparison' },
+            'math-4': { icon: 'fa-calculator', text: 'Start BODMAS Quiz' },
             'words': { icon: 'fa-book', text: 'Start Words Quiz' }
         };
 
@@ -26,6 +27,7 @@ class QuizBase {
             { btn: this.mathMasterPro.startMathBtn, icon: 'fa-calculator', text: 'Start Math Quiz' },
             { btn: this.mathMasterPro.startMath2Btn, icon: 'fa-divide', text: 'Start Division Quiz' },
             { btn: this.mathMasterPro.startMath3Btn, icon: 'fa-chart-pie', text: 'Start Fraction Comparison' },
+            { btn: this.mathMasterPro.startMath4Btn, icon: 'fa-calculator', text: 'Start BODMAS Quiz' },
             { btn: this.mathMasterPro.startWordsBtn, icon: 'fa-book', text: 'Start Words Quiz' },
             { btn: this.mathMasterPro.submitBtn, icon: 'fa-paper-plane', text: 'Submit Answers' },
             { btn: this.mathMasterPro.submitWordsBtn, icon: 'fa-paper-plane', text: 'Submit Answers' }

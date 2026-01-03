@@ -37,6 +37,7 @@ class MathMasterPro {
         this.startMathBtn = document.getElementById('start-math-btn');
         this.startMath2Btn = document.getElementById('start-math-2-btn');
         this.startMath3Btn = document.getElementById('start-math-3-btn');
+        this.startMath4Btn = document.getElementById('start-math-4-btn');
         this.startWordsBtn = document.getElementById('start-words-btn');
         this.reportsBtn = document.getElementById('reports-btn');
         this.submitBtn = document.getElementById('submit-btn');
@@ -123,6 +124,7 @@ class MathMasterPro {
         this.startMathBtn?.addEventListener('click', () => this.quizManager.startQuiz('math'));
         this.startMath2Btn?.addEventListener('click', () => this.quizManager.startQuiz('math-2'));
         this.startMath3Btn?.addEventListener('click', () => this.quizManager.startQuiz('math-3'));
+        this.startMath4Btn?.addEventListener('click', () => this.quizManager.startQuiz('math-4'));
         this.startWordsBtn?.addEventListener('click', () => this.quizManager.startQuiz('words'));
 
         this.reportsBtn?.addEventListener('click', () => {
