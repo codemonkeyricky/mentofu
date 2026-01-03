@@ -1,5 +1,5 @@
 import { Session, Question } from './session.types';
-import { generateQuestions, generateDivisionQuestions, generateFractionComparisonQuestions } from '../utils/question.generator';
+import { generateQuestions, generateDivisionQuestions, generateFractionComparisonQuestions, generateBODMASQuestions } from '../utils/question.generator';
 import { generateSimpleWords } from '../utils/simple.words.generator';
 import { SimpleWordsSession } from './simple.words.types';
 import { DatabaseService } from '../database/database.service';
@@ -64,6 +64,38 @@ class SessionService {
   public createDivisionSession(userId: string): Session {
     const sessionId = generateUUID();
     const questions = generateDivisionQuestions(10);
+
+    const session: Session = {
+      id: sessionId,
+      userId: userId,
+      questions: questions,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    this.sessions.set(sessionId, session);
+
+    // Set up cleanup for expired sessions
+    const timeout = setTimeout(() => {
+      this.deleteSession(sessionId);
+    }, this.SESSION_TTL);
+
+    // Store the timeout so we can clear it later
+    this.sessionTimeouts.set(sessionId, timeout);
+
+    // Save session metadata to database if database service is available
+    if (this.databaseService) {
+      // We'll save a placeholder or just ensure that when answers are submitted,
+      // the score will be properly tracked. The key is that we need to make sure
+      // there's a way for /session/all to return session information.
+    }
+
+    return session;
+  }
+
+  public createBODMASession(userId: string): Session {
+    const sessionId = generateUUID();
+    const questions = generateBODMASQuestions(10);
 
     const session: Session = {
       id: sessionId,
@@ -229,6 +261,47 @@ class SessionService {
       case 3: return '=';
       default: return '';
     }
+  }
+
+  public validateBODMASAnswers(sessionId: string, userId: string, userAnswers: (number | string)[]): { score: number; total: number } {
+    const session = this.sessions.get(sessionId);
+
+    if (!session) {
+      throw new Error('Session not found');
+    }
+
+    // Verify that the session belongs to the user
+    if (session.userId !== userId) {
+      throw new Error('Unauthorized access to session');
+    }
+
+    let correctCount = 0;
+
+    // Compare each user answer with the correct answer
+    for (let i = 0; i < session.questions.length; i++) {
+      // Check if this is a MathQuestion (regular math question)
+      if ('question' in session.questions[i] && typeof session.questions[i].question === 'string') {
+        // For BODMAS questions, convert both values to strings for comparison since API sends them as strings
+        if (String(userAnswers[i]) === String(session.questions[i].answer)) {
+          correctCount++;
+        }
+      } else {
+        // For fraction comparison questions, we should not be calling this function with them
+        throw new Error('Invalid question type for validateBODMASAnswers');
+      }
+    }
+
+    const result = {
+      score: correctCount,
+      total: session.questions.length
+    };
+
+    // Save the score to database if database service is available
+    if (this.databaseService) {
+      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, 'math');
+    }
+
+    return result;
   }
 
   public validateFractionComparisonAnswers(sessionId: string, userId: string, userAnswers: (number | string)[]): { score: number; total: number } {
