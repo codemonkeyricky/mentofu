@@ -561,5 +561,97 @@ describe('Integration Tests', () => {
       expect(validateResponse.body).toHaveProperty('score', questions.length - 1);
       expect(validateResponse.body).toHaveProperty('total', questions.length);
     });
+
+    it('should create and validate BODMAS math quiz session correctly', async () => {
+      // Register and login a user
+      const username = 'bodmasuser' + Date.now();
+      const registerResponse = await request(app)
+        .post('/auth/register')
+        .send({
+          username: username,
+          password: 'bodmaspassword123'
+        });
+      const loginResponse = await request(app)
+        .post('/auth/login')
+        .send({
+          username: username,
+          password: 'bodmaspassword123'
+        });
+      const userToken = loginResponse.body.token;
+      // Create a BODMAS math quiz session
+      const sessionResponse = await request(app)
+        .get('/session/simple-math-4')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+      expect(sessionResponse.body).toHaveProperty('sessionId');
+      expect(sessionResponse.body).toHaveProperty('questions');
+      expect(Array.isArray(sessionResponse.body.questions)).toBe(true);
+      // Verify that questions are BODMAS expressions
+      const questions = sessionResponse.body.questions;
+      expect(questions.length).toBe(10);
+      for (const question of questions) {
+        // Check that the question is a string expression
+        expect(typeof question.question).toBe('string');
+        // Should contain at least one operation
+        expect(question.question).toMatch(/[\+\-\*\/]/);
+      }
+      // Validate answers with correct answers
+      const sessionId = sessionResponse.body.sessionId;
+      const userAnswers = questions.map((q: any) => q.answer);
+      const validateResponse = await request(app)
+        .post('/session/simple-math-4')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          sessionId: sessionId,
+          answers: userAnswers
+        })
+        .expect(200);
+      expect(validateResponse.body).toHaveProperty('score', questions.length);
+      expect(validateResponse.body).toHaveProperty('total', questions.length);
+    });
+
+    it('should correctly grade BODMAS math quiz with some incorrect answers', async () => {
+      // Register and login a user
+      const username = 'partialbodmasuser' + Date.now();
+      const registerResponse = await request(app)
+        .post('/auth/register')
+        .send({
+          username: username,
+          password: 'partialbodmaspassword123'
+        });
+      const loginResponse = await request(app)
+        .post('/auth/login')
+        .send({
+          username: username,
+          password: 'partialbodmaspassword123'
+        });
+      const userToken = loginResponse.body.token;
+      // Create a BODMAS math quiz session
+      const sessionResponse = await request(app)
+        .get('/session/simple-math-4')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+      const sessionId = sessionResponse.body.sessionId;
+      const questions = sessionResponse.body.questions;
+      // Provide some incorrect answers to test partial scoring
+      const userAnswers = questions.map((q: any, index: number) => {
+        // For the first question, provide a wrong answer; for others, correct answers
+        if (index === 0) {
+          return q.answer + 1; // Wrong answer
+        }
+        return q.answer;
+      });
+      const validateResponse = await request(app)
+        .post('/session/simple-math-4')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          sessionId: sessionId,
+          answers: userAnswers
+        })
+        .expect(200);
+      // Should have 1 less score since first answer is wrong
+      expect(validateResponse.body).toHaveProperty('score', questions.length - 1);
+      expect(validateResponse.body).toHaveProperty('total', questions.length);
+    });
   });
 });

@@ -227,6 +227,245 @@ sessionRouter.get('/simple-math-3', authenticate, (req: Request, res: Response) 
 
 /**
  * @swagger
+ * /session/simple-math-4:
+ *   get:
+ *     summary: Create new BODMAS math quiz session with questions
+ *     tags: [Sessions]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Session created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 sessionId:
+ *                   type: string
+ *                   example: "12345"
+ *                 questions:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         example: "q1"
+ *                       question:
+ *                         type: string
+ *                         example: "What is 2 + 3 * 4?"
+ *                       answer:
+ *                         type: number
+ *                         example: 14
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: "Failed to create BODMAS session"
+ *                     code:
+ *                       type: string
+ *                       example: "BODMAS_SESSION_CREATION_FAILED"
+ */
+// GET /session/simple-math-4 - Create new BODMAS math quiz session with questions
+sessionRouter.get('/simple-math-4', authenticate, (req: Request, res: Response) => {
+  try {
+    // Get user from auth middleware
+    const user = (req as any).user;
+
+    const session = sessionService.createBODMASession(user.userId);
+
+    res.status(200).json({
+      sessionId: session.id,
+      questions: session.questions
+    });
+  } catch (error) {
+    console.error('Error creating BODMAS session:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to create BODMAS session',
+        code: 'BODMAS_SESSION_CREATION_FAILED'
+      }
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /session/simple-math-4:
+ *   post:
+ *     summary: Validate BODMAS quiz answers and return score
+ *     tags: [Sessions]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - sessionId
+ *               - answers
+ *             properties:
+ *               sessionId:
+ *                 type: string
+ *                 example: "12345"
+ *               answers:
+ *                 type: array
+ *                 items:
+ *                   type: number
+ *                 example: [14, 8, 3]
+ *     responses:
+ *       200:
+ *         description: Score calculated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 score:
+ *                   type: number
+ *                   example: 2
+ *                 total:
+ *                   type: number
+ *                   example: 3
+ *       400:
+ *         description: Missing session ID or answers
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: "Session ID is required"
+ *                     code:
+ *                       type: string
+ *                       example: "MISSING_SESSION_ID"
+ *       403:
+ *         description: Unauthorized access to session
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: "Unauthorized access to session"
+ *                     code:
+ *                       type: string
+ *                       example: "UNAUTHORIZED_ACCESS"
+ *       404:
+ *         description: Session not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: "Session not found"
+ *                     code:
+ *                       type: string
+ *                       example: "SESSION_NOT_FOUND"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: "Failed to process BODMAS answers"
+ *                     code:
+ *                       type: string
+ *                       example: "BODMAS_ANSWER_PROCESSING_FAILED"
+ */
+// POST /session/simple-math-4 - Validate BODMAS quiz answers and return score
+sessionRouter.post('/simple-math-4', authenticate, (req: Request, res: Response) => {
+  try {
+    const { sessionId, answers } = req.body;
+    // Get user from auth middleware
+    const user = (req as any).user;
+
+    // Validate input
+    if (!sessionId) {
+      return res.status(400).json({
+        error: {
+          message: 'Session ID is required',
+          code: 'MISSING_SESSION_ID'
+        }
+      });
+    }
+
+    if (!answers || !Array.isArray(answers)) {
+      return res.status(400).json({
+        error: {
+          message: 'Answers array is required',
+          code: 'MISSING_ANSWERS'
+        }
+      });
+    }
+
+    const result = sessionService.validateBODMASAnswers(sessionId, user.userId, answers);
+
+    res.status(200).json({
+      score: result.score,
+      total: result.total
+    });
+  } catch (error: any) {
+    if (error.message === 'Session not found') {
+      return res.status(404).json({
+        error: {
+          message: 'Session not found',
+          code: 'SESSION_NOT_FOUND'
+        }
+      });
+    }
+
+    if (error.message === 'Unauthorized access to session') {
+      return res.status(403).json({
+        error: {
+          message: 'Unauthorized access to session',
+          code: 'UNAUTHORIZED_ACCESS'
+        }
+      });
+    }
+
+    console.error('Error processing BODMAS answers:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to process BODMAS answers',
+        code: 'BODMAS_ANSWER_PROCESSING_FAILED'
+      }
+    });
+  }
+});
+
+/**
+ * @swagger
  * /session/simple-math-3:
  *   post:
  *     summary: Validate fraction comparison quiz answers and return score
@@ -386,6 +625,172 @@ sessionRouter.post('/simple-math-3', authenticate, (req: Request, res: Response)
       error: {
         message: 'Failed to process fraction comparison answers',
         code: 'FRACTION_COMPARISON_ANSWER_PROCESSING_FAILED'
+      }
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /session/simple-math-4:
+ *   post:
+ *     summary: Validate BODMAS quiz answers and return score
+ *     tags: [Sessions]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - sessionId
+ *               - answers
+ *             properties:
+ *               sessionId:
+ *                 type: string
+ *                 example: "12345"
+ *               answers:
+ *                 type: array
+ *                 items:
+ *                   type: number
+ *                 example: [14, 8, 3]
+ *     responses:
+ *       200:
+ *         description: Score calculated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 score:
+ *                   type: number
+ *                   example: 2
+ *                 total:
+ *                   type: number
+ *                   example: 3
+ *       400:
+ *         description: Missing session ID or answers
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: "Session ID is required"
+ *                     code:
+ *                       type: string
+ *                       example: "MISSING_SESSION_ID"
+ *       403:
+ *         description: Unauthorized access to session
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: "Unauthorized access to session"
+ *                     code:
+ *                       type: string
+ *                       example: "UNAUTHORIZED_ACCESS"
+ *       404:
+ *         description: Session not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: "Session not found"
+ *                     code:
+ *                       type: string
+ *                       example: "SESSION_NOT_FOUND"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: "Failed to process BODMAS answers"
+ *                     code:
+ *                       type: string
+ *                       example: "BODMAS_ANSWER_PROCESSING_FAILED"
+ */
+// POST /session/simple-math-4 - Validate BODMAS quiz answers and return score
+sessionRouter.post('/simple-math-4', authenticate, (req: Request, res: Response) => {
+  try {
+    const { sessionId, answers } = req.body;
+    // Get user from auth middleware
+    const user = (req as any).user;
+
+    // Validate input
+    if (!sessionId) {
+      return res.status(400).json({
+        error: {
+          message: 'Session ID is required',
+          code: 'MISSING_SESSION_ID'
+        }
+      });
+    }
+
+    if (!answers || !Array.isArray(answers)) {
+      return res.status(400).json({
+        error: {
+          message: 'Answers array is required',
+          code: 'MISSING_ANSWERS'
+        }
+      });
+    }
+
+    const result = sessionService.validateBODMASAnswers(sessionId, user.userId, answers);
+
+    res.status(200).json({
+      score: result.score,
+      total: result.total
+    });
+  } catch (error: any) {
+    if (error.message === 'Session not found') {
+      return res.status(404).json({
+        error: {
+          message: 'Session not found',
+          code: 'SESSION_NOT_FOUND'
+        }
+      });
+    }
+
+    if (error.message === 'Unauthorized access to session') {
+      return res.status(403).json({
+        error: {
+          message: 'Unauthorized access to session',
+          code: 'UNAUTHORIZED_ACCESS'
+        }
+      });
+    }
+
+    console.error('Error processing BODMAS answers:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to process BODMAS answers',
+        code: 'BODMAS_ANSWER_PROCESSING_FAILED'
       }
     });
   }
