@@ -48,6 +48,9 @@ app.get('*', (req: Request, res: Response) => {
 // Export app for testing
 export { app };
 
+// Export for vercel deployment
+export default app;
+
 // Only start server if not in test environment
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, '0.0.0.0', () => {
