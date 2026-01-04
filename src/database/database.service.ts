@@ -17,7 +17,7 @@ export class DatabaseService {
 
     // Check if we're running in Vercel environment
     // Use POSTGRES_URL as the indicator for Vercel Postgres
-    this.isVercel = !!process.env.POSTGRES_URL;
+    this.isVercel = !!process.env.VERCEL;
     this.databaseType = this.isVercel ? 'vercel-postgres' : 'sqlite';
 
     // Initialize the appropriate database
