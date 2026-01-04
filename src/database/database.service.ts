@@ -3,32 +3,44 @@ import { User } from '../auth/auth.types';
 
 // Import Vercel Postgres for cloud deployment
 import { sql } from '@vercel/postgres';
+// Import NeonDatabase for serverless PostgreSQL
+import { neon } from '@neondatabase/serverless';
 
 export class DatabaseService {
   private db: any;
   private readonly databasePath: string;
   private readonly isVercel: boolean;
+  private readonly isNeon: boolean;
 
   // Store database type for runtime decision making
-  private readonly databaseType: 'sqlite' | 'vercel-postgres';
+  private readonly databaseType: 'sqlite' | 'vercel-postgres' | 'neon';
 
   constructor(databasePath: string = './quiz.db') {
     this.databasePath = databasePath;
 
-    // Check if we're running in Vercel environment
-    // Use POSTGRES_URL as the indicator for Vercel Postgres
+    // Check if we're running in Vercel environment or Neon environment
+    // Use POSTGRES_URL as the indicator for Vercel Postgres and Neon
     this.isVercel = !!process.env.VERCEL;
-    this.databaseType = this.isVercel ? 'vercel-postgres' : 'sqlite';
+    this.isNeon = !!process.env.DATABASE_URL && !this.isVercel;
+
+    if (this.isVercel) {
+      this.databaseType = 'vercel-postgres';
+    } else if (this.isNeon) {
+      this.databaseType = 'neon';
+    } else {
+      this.databaseType = 'sqlite';
+    }
 
     // Initialize the appropriate database
-      console.log('Using Vercel Postgres database');
-      // No initialization needed for Vercel Postgres
+    if (this.databaseType === 'sqlite') {
+      console.log('Using SQLite database for local development');
+      this.db = new sqlite.default(this.databasePath);
+      this.initSQLite();
+    } else {
+      console.log('Using PostgreSQL database (Vercel or Neon)');
+      // No initialization needed for Vercel Postgres or Neon
       this.db = null;
-    // } else {
-    //   console.log('Using SQLite database for local development');
-    //   this.db = new sqlite.default(this.databasePath);
-    //   this.initSQLite();
-    // }
+    }
   }
 
   private async initSQLite(): Promise<void> {
@@ -87,6 +99,38 @@ export class DatabaseService {
     }
   }
 
+  private async initNeon(): Promise<void> {
+    // Initialize tables in Neon if they don't exist
+    try {
+      const sql = neon(process.env.DATABASE_URL!);
+
+      await sql`
+        CREATE TABLE IF NOT EXISTS users (
+          id TEXT PRIMARY KEY,
+          username TEXT UNIQUE NOT NULL,
+          password_hash TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `;
+
+      await sql`
+        CREATE TABLE IF NOT EXISTS session_scores (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          session_id TEXT NOT NULL,
+          score INTEGER NOT NULL,
+          total INTEGER NOT NULL,
+          session_type TEXT NOT NULL,
+          completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+      `;
+    } catch (error) {
+      console.error('Error initializing Neon tables:', error);
+      throw error;
+    }
+  }
+
   public async createUser(user: Omit<User, 'createdAt'>): Promise<User> {
     if (this.databaseType === 'sqlite') {
       const stmt = this.db.prepare(`
@@ -109,10 +153,16 @@ export class DatabaseService {
       const createdUser = getUserStmt.get(user.id) as User;
       return createdUser;
     } else {
-      // Vercel Postgres implementation
+      // Vercel Postgres or Neon implementation
       try {
-        await this.initVercelPostgres(); // Ensure tables exist
-        
+        if (this.databaseType === 'vercel-postgres') {
+          await this.initVercelPostgres(); // Ensure tables exist
+        } else {
+          await this.initNeon(); // Ensure tables exist for Neon
+        }
+
+        const sql = this.databaseType === 'vercel-postgres' ? sql : neon(process.env.DATABASE_URL!);
+
         await sql`
           INSERT INTO users (id, username, password_hash)
           VALUES (${user.id}, ${user.username}, ${user.passwordHash})
@@ -124,11 +174,18 @@ export class DatabaseService {
           WHERE id = ${user.id}
         `;
 
-        if (result.rows.length === 0) {
-          throw new Error('Failed to create user');
+        if (this.databaseType === 'vercel-postgres') {
+          if (result.rows.length === 0) {
+            throw new Error('Failed to create user');
+          }
+          return result.rows[0] as User;
+        } else {
+          // For Neon, result is an array of rows
+          if (result.length === 0) {
+            throw new Error('Failed to create user');
+          }
+          return result[0] as User;
         }
-
-        return result.rows[0] as User;
       } catch (error: any) {
         // Handle unique constraint violation for Postgres
         if (error.message.includes('duplicate key') || error.code === '23505') {
@@ -145,14 +202,21 @@ export class DatabaseService {
       const user = stmt.get(username) as User | undefined;
       return user || null;
     } else {
-      // Vercel Postgres implementation
-      const result = await sql`
+      // Vercel Postgres or Neon implementation
+      const sqlClient = this.databaseType === 'vercel-postgres' ? sql : neon(process.env.DATABASE_URL!);
+
+      const result = await sqlClient`
         SELECT id, username, password_hash as "passwordHash", created_at as "createdAt"
         FROM users
         WHERE username = ${username}
       `;
 
-      return result.rows.length > 0 ? (result.rows[0] as User) : null;
+      if (this.databaseType === 'vercel-postgres') {
+        return result.rows.length > 0 ? (result.rows[0] as User) : null;
+      } else {
+        // For Neon, result is an array of rows
+        return result.length > 0 ? (result[0] as User) : null;
+      }
     }
   }
 
@@ -162,14 +226,21 @@ export class DatabaseService {
       const user = stmt.get(userId) as User | undefined;
       return user || null;
     } else {
-      // Vercel Postgres implementation
-      const result = await sql`
+      // Vercel Postgres or Neon implementation
+      const sqlClient = this.databaseType === 'vercel-postgres' ? sql : neon(process.env.DATABASE_URL!);
+
+      const result = await sqlClient`
         SELECT id, username, password_hash as "passwordHash", created_at as "createdAt"
         FROM users
         WHERE id = ${userId}
       `;
 
-      return result.rows.length > 0 ? (result.rows[0] as User) : null;
+      if (this.databaseType === 'vercel-postgres') {
+        return result.rows.length > 0 ? (result.rows[0] as User) : null;
+      } else {
+        // For Neon, result is an array of rows
+        return result.length > 0 ? (result[0] as User) : null;
+      }
     }
   }
 
@@ -181,7 +252,7 @@ export class DatabaseService {
     sessionType: 'math' | 'simple_words'
   ): Promise<void> {
     const scoreId = this.generateUUID();
-    
+
     if (this.databaseType === 'sqlite') {
       const stmt = this.db.prepare(`
         INSERT INTO session_scores (id, user_id, session_id, score, total, session_type)
@@ -194,9 +265,11 @@ export class DatabaseService {
         throw error;
       }
     } else {
-      // Vercel Postgres implementation
+      // Vercel Postgres or Neon implementation
+      const sqlClient = this.databaseType === 'vercel-postgres' ? sql : neon(process.env.DATABASE_URL!);
+
       try {
-        await sql`
+        await sqlClient`
           INSERT INTO session_scores (id, user_id, session_id, score, total, session_type)
           VALUES (${scoreId}, ${userId}, ${sessionId}, ${score}, ${total}, ${sessionType})
         `;
@@ -225,21 +298,35 @@ export class DatabaseService {
         total: result.total
       };
     } else {
-      // Vercel Postgres implementation
-      const result = await sql`
+      // Vercel Postgres or Neon implementation
+      const sqlClient = this.databaseType === 'vercel-postgres' ? sql : neon(process.env.DATABASE_URL!);
+
+      const result = await sqlClient`
         SELECT score, total
         FROM session_scores
         WHERE session_id = ${sessionId}
       `;
 
-      if (result.rows.length === 0) {
-        return null;
-      }
+      if (this.databaseType === 'vercel-postgres') {
+        if (result.rows.length === 0) {
+          return null;
+        }
 
-      return {
-        score: result.rows[0].score,
-        total: result.rows[0].total
-      };
+        return {
+          score: result.rows[0].score,
+          total: result.rows[0].total
+        };
+      } else {
+        // For Neon, result is an array of rows
+        if (result.length === 0) {
+          return null;
+        }
+
+        return {
+          score: result[0].score,
+          total: result[0].total
+        };
+      }
     }
   }
 
@@ -262,9 +349,11 @@ export class DatabaseService {
         completedAt: new Date(row.completed_at)
       }));
     } else {
-      // Vercel Postgres implementation
-      const result = await sql`
-        SELECT 
+      // Vercel Postgres or Neon implementation
+      const sqlClient = this.databaseType === 'vercel-postgres' ? sql : neon(process.env.DATABASE_URL!);
+
+      const result = await sqlClient`
+        SELECT
           session_id as "sessionId",
           score,
           total,
@@ -275,13 +364,24 @@ export class DatabaseService {
         ORDER BY completed_at DESC
       `;
 
-      return result.rows.map(row => ({
-        sessionId: row.sessionId,
-        score: row.score,
-        total: row.total,
-        sessionType: row.sessionType,
-        completedAt: new Date(row.completedAt)
-      }));
+      if (this.databaseType === 'vercel-postgres') {
+        return result.rows.map(row => ({
+          sessionId: row.sessionId,
+          score: row.score,
+          total: row.total,
+          sessionType: row.sessionType,
+          completedAt: new Date(row.completedAt)
+        }));
+      } else {
+        // For Neon, result is an array of rows
+        return result.map(row => ({
+          sessionId: row.sessionId,
+          score: row.score,
+          total: row.total,
+          sessionType: row.sessionType,
+          completedAt: new Date(row.completedAt)
+        }));
+      }
     }
   }
 
@@ -296,9 +396,11 @@ export class DatabaseService {
 
       return stmt.all(userId) as any[];
     } else {
-      // Vercel Postgres implementation
-      const result = await sql`
-        SELECT 
+      // Vercel Postgres or Neon implementation
+      const sqlClient = this.databaseType === 'vercel-postgres' ? sql : neon(process.env.DATABASE_URL!);
+
+      const result = await sqlClient`
+        SELECT
           id,
           user_id as "userId",
           session_id as "sessionId",
@@ -311,7 +413,12 @@ export class DatabaseService {
         ORDER BY completed_at DESC
       `;
 
-      return result.rows;
+      if (this.databaseType === 'vercel-postgres') {
+        return result.rows;
+      } else {
+        // For Neon, result is an array of rows
+        return result;
+      }
     }
   }
 
@@ -328,6 +435,6 @@ export class DatabaseService {
     if (this.databaseType === 'sqlite') {
       this.db.close();
     }
-    // Vercel Postgres connection is managed automatically
+    // Vercel Postgres and Neon connections are managed automatically
   }
 }

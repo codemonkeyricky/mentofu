@@ -12,9 +12,10 @@
     "cypress:run": "cypress run"
   },
   "dependencies": {
-    "@vercel/postgres": "^0.10.0",
+    "@neondatabase/serverless": "^1.0.2",
     "@types/bcrypt": "^6.0.0",
     "@types/pg": "^8.16.0",
+    "@vercel/postgres": "^0.10.0",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
     "better-sqlite3": "^9.4.3",
