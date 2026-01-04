@@ -3,7 +3,6 @@ import { generateQuestions, generateDivisionQuestions, generateFractionCompariso
 import { generateSimpleWords } from '../utils/simple.words.generator';
 import { SimpleWordsSession } from './simple.words.types';
 import { DatabaseService } from '../database/database.service';
-import { PostgresDatabaseService } from '../database/postgresql.database.service';
 
 // Simple UUID generator function
 function generateUUID(): string {
