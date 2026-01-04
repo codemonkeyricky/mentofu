@@ -5,7 +5,6 @@ import path from 'path';
 import { DatabaseService } from './database/database.service';
 import { sessionService } from './session/session.service';
 import listEndpoints from 'express-list-endpoints';
-import { specs, swaggerUi } from './swagger';
 
 const app: Application = express();
 const PORT: number = 4000;
@@ -19,9 +18,6 @@ sessionService.setDatabaseService(databaseService);
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
-
-// Swagger UI
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 // Routes
 app.use('/auth', authRouter);
