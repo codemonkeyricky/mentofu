@@ -17,15 +17,15 @@ class SessionService {
   private sessions: Map<string, Session> = new Map();
   private simpleWordsSessions: Map<string, SimpleWordsSession> = new Map();
   private readonly SESSION_TTL: number = 10 * 60 * 1000; // 10 minutes in milliseconds
-  private databaseService: DatabaseService | PostgresDatabaseService | null = null;
+  private databaseService: DatabaseService | null = null;
   private sessionTimeouts: Map<string, NodeJS.Timeout> = new Map();
   private simpleWordsSessionTimeouts: Map<string, NodeJS.Timeout> = new Map();
 
-  constructor(databaseService?: DatabaseService | PostgresDatabaseService) {
+  constructor(databaseService?: DatabaseService) {
     this.databaseService = databaseService || null;
   }
 
-  public setDatabaseService(databaseService: DatabaseService | PostgresDatabaseService): void {
+  public setDatabaseService(databaseService: DatabaseService): void {
     this.databaseService = databaseService;
   }
 
