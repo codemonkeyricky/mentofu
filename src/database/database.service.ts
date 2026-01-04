@@ -21,15 +21,14 @@ export class DatabaseService {
     this.databaseType = this.isVercel ? 'vercel-postgres' : 'sqlite';
 
     // Initialize the appropriate database
-    if (this.isVercel) {
       console.log('Using Vercel Postgres database');
       // No initialization needed for Vercel Postgres
       this.db = null;
-    } else {
-      console.log('Using SQLite database for local development');
-      this.db = new sqlite.default(this.databasePath);
-      this.initSQLite();
-    }
+    // } else {
+    //   console.log('Using SQLite database for local development');
+    //   this.db = new sqlite.default(this.databasePath);
+    //   this.initSQLite();
+    // }
   }
 
   private async initSQLite(): Promise<void> {
