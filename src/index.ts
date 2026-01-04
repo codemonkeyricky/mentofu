@@ -3,14 +3,15 @@ import { sessionRouter } from './session/session.controller';
 import { authRouter } from './auth/auth.controller';
 import path from 'path';
 import { DatabaseService } from './database/database.service';
+import { PostgresDatabaseService } from './database/postgresql.database.service';
 import { sessionService } from './session/session.service';
 import listEndpoints from 'express-list-endpoints';
 
 const app: Application = express();
 const PORT: number = 4000;
 
-// Initialize database service
-const databaseService = new DatabaseService();
+// Initialize database service - using PostgreSQL for Vercel persistent storage
+const databaseService = new PostgresDatabaseService();
 
 // Connect database service to session service
 sessionService.setDatabaseService(databaseService);

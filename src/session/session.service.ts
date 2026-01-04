@@ -3,6 +3,7 @@ import { generateQuestions, generateDivisionQuestions, generateFractionCompariso
 import { generateSimpleWords } from '../utils/simple.words.generator';
 import { SimpleWordsSession } from './simple.words.types';
 import { DatabaseService } from '../database/database.service';
+import { PostgresDatabaseService } from '../database/postgresql.database.service';
 
 // Simple UUID generator function
 function generateUUID(): string {
@@ -17,15 +18,15 @@ class SessionService {
   private sessions: Map<string, Session> = new Map();
   private simpleWordsSessions: Map<string, SimpleWordsSession> = new Map();
   private readonly SESSION_TTL: number = 10 * 60 * 1000; // 10 minutes in milliseconds
-  private databaseService: DatabaseService | null = null;
+  private databaseService: DatabaseService | PostgresDatabaseService | null = null;
   private sessionTimeouts: Map<string, NodeJS.Timeout> = new Map();
   private simpleWordsSessionTimeouts: Map<string, NodeJS.Timeout> = new Map();
 
-  constructor(databaseService?: DatabaseService) {
+  constructor(databaseService?: DatabaseService | PostgresDatabaseService) {
     this.databaseService = databaseService || null;
   }
 
-  public setDatabaseService(databaseService: DatabaseService): void {
+  public setDatabaseService(databaseService: DatabaseService | PostgresDatabaseService): void {
     this.databaseService = databaseService;
   }
 

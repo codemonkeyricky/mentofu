@@ -1,17 +1,38 @@
 import * as sqlite from 'better-sqlite3';
 import { User } from '../auth/auth.types';
 
+// Import Vercel Postgres for cloud deployment
+import { sql } from '@vercel/postgres';
+
 export class DatabaseService {
-  private db: any; // Using 'any' to avoid TypeScript compilation issues
+  private db: any;
   private readonly databasePath: string;
+  private readonly isVercel: boolean;
+  
+  // Store database type for runtime decision making
+  private readonly databaseType: 'sqlite' | 'vercel-postgres';
 
   constructor(databasePath: string = './quiz.db') {
     this.databasePath = databasePath;
-    this.db = new sqlite.default(this.databasePath);
-    this.init();
+    
+    // Check if we're running in Vercel environment
+    // Use POSTGRES_URL as the indicator for Vercel Postgres
+    this.isVercel = !!process.env.POSTGRES_URL;
+    this.databaseType = this.isVercel ? 'vercel-postgres' : 'sqlite';
+    
+    // Initialize the appropriate database
+    if (this.isVercel) {
+      console.log('Using Vercel Postgres database');
+      // No initialization needed for Vercel Postgres
+      this.db = null;
+    } else {
+      console.log('Using SQLite database for local development');
+      this.db = new sqlite.default(this.databasePath);
+      this.initSQLite();
+    }
   }
 
-  private init(): void {
+  private async initSQLite(): Promise<void> {
     // Create users table if it doesn't exist
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS users (
@@ -37,39 +58,120 @@ export class DatabaseService {
     `);
   }
 
-  public async createUser(user: Omit<User, 'createdAt'>): Promise<User> {
-    const stmt = this.db.prepare(`
-      INSERT INTO users (id, username, password_hash)
-      VALUES (?, ?, ?)
-    `);
-
+  private async initVercelPostgres(): Promise<void> {
+    // Initialize tables in Vercel Postgres if they don't exist
     try {
-      stmt.run(user.id, user.username, user.passwordHash);
-    } catch (error: any) {
-      // Re-throw SQLite constraint errors
-      if (error.message.includes('UNIQUE constraint failed') || error.message.includes('UNIQUE')) {
-        throw new Error('User already exists');
-      }
+      await sql`
+        CREATE TABLE IF NOT EXISTS users (
+          id TEXT PRIMARY KEY,
+          username TEXT UNIQUE NOT NULL,
+          password_hash TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `;
+
+      await sql`
+        CREATE TABLE IF NOT EXISTS session_scores (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          session_id TEXT NOT NULL,
+          score INTEGER NOT NULL,
+          total INTEGER NOT NULL,
+          session_type TEXT NOT NULL,
+          completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+      `;
+    } catch (error) {
+      console.error('Error initializing Vercel Postgres tables:', error);
       throw error;
     }
+  }
 
-    // Retrieve the created user with proper column mapping
-    const getUserStmt = this.db.prepare('SELECT id, username, password_hash as passwordHash, created_at as createdAt FROM users WHERE id = ?');
-    const createdUser = getUserStmt.get(user.id) as User;
+  public async createUser(user: Omit<User, 'createdAt'>): Promise<User> {
+    if (this.databaseType === 'sqlite') {
+      const stmt = this.db.prepare(`
+        INSERT INTO users (id, username, password_hash)
+        VALUES (?, ?, ?)
+      `);
 
-    return createdUser;
+      try {
+        stmt.run(user.id, user.username, user.passwordHash);
+      } catch (error: any) {
+        // Re-throw SQLite constraint errors
+        if (error.message.includes('UNIQUE constraint failed') || error.message.includes('UNIQUE')) {
+          throw new Error('User already exists');
+        }
+        throw error;
+      }
+
+      // Retrieve the created user with proper column mapping
+      const getUserStmt = this.db.prepare('SELECT id, username, password_hash as passwordHash, created_at as createdAt FROM users WHERE id = ?');
+      const createdUser = getUserStmt.get(user.id) as User;
+      return createdUser;
+    } else {
+      // Vercel Postgres implementation
+      try {
+        await this.initVercelPostgres(); // Ensure tables exist
+        
+        await sql`
+          INSERT INTO users (id, username, password_hash)
+          VALUES (${user.id}, ${user.username}, ${user.passwordHash})
+        `;
+
+        const result = await sql`
+          SELECT id, username, password_hash as "passwordHash", created_at as "createdAt"
+          FROM users
+          WHERE id = ${user.id}
+        `;
+
+        if (result.rows.length === 0) {
+          throw new Error('Failed to create user');
+        }
+
+        return result.rows[0] as User;
+      } catch (error: any) {
+        // Handle unique constraint violation for Postgres
+        if (error.message.includes('duplicate key') || error.code === '23505') {
+          throw new Error('User already exists');
+        }
+        throw error;
+      }
+    }
   }
 
   public async findUserByUsername(username: string): Promise<User | null> {
-    const stmt = this.db.prepare('SELECT id, username, password_hash as passwordHash, created_at as createdAt FROM users WHERE username = ?');
-    const user = stmt.get(username) as User | undefined;
-    return user || null;
+    if (this.databaseType === 'sqlite') {
+      const stmt = this.db.prepare('SELECT id, username, password_hash as passwordHash, created_at as createdAt FROM users WHERE username = ?');
+      const user = stmt.get(username) as User | undefined;
+      return user || null;
+    } else {
+      // Vercel Postgres implementation
+      const result = await sql`
+        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt"
+        FROM users
+        WHERE username = ${username}
+      `;
+
+      return result.rows.length > 0 ? (result.rows[0] as User) : null;
+    }
   }
 
   public async findUserById(userId: string): Promise<User | null> {
-    const stmt = this.db.prepare('SELECT id, username, password_hash as passwordHash, created_at as createdAt FROM users WHERE id = ?');
-    const user = stmt.get(userId) as User | undefined;
-    return user || null;
+    if (this.databaseType === 'sqlite') {
+      const stmt = this.db.prepare('SELECT id, username, password_hash as passwordHash, created_at as createdAt FROM users WHERE id = ?');
+      const user = stmt.get(userId) as User | undefined;
+      return user || null;
+    } else {
+      // Vercel Postgres implementation
+      const result = await sql`
+        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt"
+        FROM users
+        WHERE id = ${userId}
+      `;
+
+      return result.rows.length > 0 ? (result.rows[0] as User) : null;
+    }
   }
 
   public async saveSessionScore(
@@ -79,66 +181,139 @@ export class DatabaseService {
     total: number,
     sessionType: 'math' | 'simple_words'
   ): Promise<void> {
-    const stmt = this.db.prepare(`
-      INSERT INTO session_scores (id, user_id, session_id, score, total, session_type)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-
     const scoreId = this.generateUUID();
-    try {
-      stmt.run(scoreId, userId, sessionId, score, total, sessionType);
-    } catch (error: any) {
-      throw error;
+    
+    if (this.databaseType === 'sqlite') {
+      const stmt = this.db.prepare(`
+        INSERT INTO session_scores (id, user_id, session_id, score, total, session_type)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `);
+
+      try {
+        stmt.run(scoreId, userId, sessionId, score, total, sessionType);
+      } catch (error: any) {
+        throw error;
+      }
+    } else {
+      // Vercel Postgres implementation
+      try {
+        await sql`
+          INSERT INTO session_scores (id, user_id, session_id, score, total, session_type)
+          VALUES (${scoreId}, ${userId}, ${sessionId}, ${score}, ${total}, ${sessionType})
+        `;
+      } catch (error: any) {
+        throw error;
+      }
     }
   }
 
   public async getSessionScore(sessionId: string): Promise<{ score: number, total: number } | null> {
-    const stmt = this.db.prepare(`
-      SELECT score, total
-      FROM session_scores
-      WHERE session_id = ?
-    `);
+    if (this.databaseType === 'sqlite') {
+      const stmt = this.db.prepare(`
+        SELECT score, total
+        FROM session_scores
+        WHERE session_id = ?
+      `);
 
-    const result = stmt.get(sessionId);
+      const result = stmt.get(sessionId);
 
-    if (!result) {
-      return null;
+      if (!result) {
+        return null;
+      }
+
+      return {
+        score: result.score,
+        total: result.total
+      };
+    } else {
+      // Vercel Postgres implementation
+      const result = await sql`
+        SELECT score, total
+        FROM session_scores
+        WHERE session_id = ${sessionId}
+      `;
+
+      if (result.rows.length === 0) {
+        return null;
+      }
+
+      return {
+        score: result.rows[0].score,
+        total: result.rows[0].total
+      };
     }
-
-    return {
-      score: result.score,
-      total: result.total
-    };
   }
 
   public async getUserSessionScores(userId: string): Promise<Array<{ sessionId: string, score: number, total: number, sessionType: string, completedAt: Date }>> {
-    const stmt = this.db.prepare(`
-      SELECT session_id, score, total, session_type, completed_at
-      FROM session_scores
-      WHERE user_id = ?
-      ORDER BY completed_at DESC
-    `);
+    if (this.databaseType === 'sqlite') {
+      const stmt = this.db.prepare(`
+        SELECT session_id, score, total, session_type, completed_at
+        FROM session_scores
+        WHERE user_id = ?
+        ORDER BY completed_at DESC
+      `);
 
-    const results = stmt.all(userId) as any[];
+      const results = stmt.all(userId) as any[];
 
-    return results.map(row => ({
-      sessionId: row.session_id,
-      score: row.score,
-      total: row.total,
-      sessionType: row.session_type,
-      completedAt: new Date(row.completed_at)
-    }));
+      return results.map(row => ({
+        sessionId: row.session_id,
+        score: row.score,
+        total: row.total,
+        sessionType: row.session_type,
+        completedAt: new Date(row.completed_at)
+      }));
+    } else {
+      // Vercel Postgres implementation
+      const result = await sql`
+        SELECT 
+          session_id as "sessionId",
+          score,
+          total,
+          session_type as "sessionType",
+          completed_at as "completedAt"
+        FROM session_scores
+        WHERE user_id = ${userId}
+        ORDER BY completed_at DESC
+      `;
+
+      return result.rows.map(row => ({
+        sessionId: row.sessionId,
+        score: row.score,
+        total: row.total,
+        sessionType: row.sessionType,
+        completedAt: new Date(row.completedAt)
+      }));
+    }
   }
 
   public async getUserSessionHistory(userId: string): Promise<any[]> {
-    const stmt = this.db.prepare(`
-      SELECT id, user_id, session_id, score, total, session_type, completed_at
-      FROM session_scores
-      WHERE user_id = ?
-      ORDER BY completed_at DESC
-    `);
+    if (this.databaseType === 'sqlite') {
+      const stmt = this.db.prepare(`
+        SELECT id, user_id, session_id, score, total, session_type, completed_at
+        FROM session_scores
+        WHERE user_id = ?
+        ORDER BY completed_at DESC
+      `);
 
-    return stmt.all(userId) as any[];
+      return stmt.all(userId) as any[];
+    } else {
+      // Vercel Postgres implementation
+      const result = await sql`
+        SELECT 
+          id,
+          user_id as "userId",
+          session_id as "sessionId",
+          score,
+          total,
+          session_type as "sessionType",
+          completed_at as "completedAt"
+        FROM session_scores
+        WHERE user_id = ${userId}
+        ORDER BY completed_at DESC
+      `;
+
+      return result.rows;
+    }
   }
 
   // Simple UUID generator function
@@ -150,7 +325,10 @@ export class DatabaseService {
     });
   }
 
-  public close(): void {
-    this.db.close();
+  public async close(): Promise<void> {
+    if (this.databaseType === 'sqlite') {
+      this.db.close();
+    }
+    // Vercel Postgres connection is managed automatically
   }
 }
