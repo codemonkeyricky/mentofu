@@ -161,30 +161,33 @@ export class DatabaseService {
           await this.initNeon(); // Ensure tables exist for Neon
         }
 
-        const sql = this.databaseType === 'vercel-postgres' ? sql : neon(process.env.DATABASE_URL!);
+        const sqlClient = this.databaseType === 'vercel-postgres' ? sql : neon(process.env.DATABASE_URL!);
 
-        await sql`
+        await sqlClient`
           INSERT INTO users (id, username, password_hash)
           VALUES (${user.id}, ${user.username}, ${user.passwordHash})
         `;
 
-        const result = await sql`
+        const result = await sqlClient`
           SELECT id, username, password_hash as "passwordHash", created_at as "createdAt"
           FROM users
           WHERE id = ${user.id}
         `;
 
+        // Handle different return types from Vercel Postgres vs Neon
         if (this.databaseType === 'vercel-postgres') {
-          if (result.rows.length === 0) {
+          const queryResult = result as any;
+          if (!queryResult.rows || queryResult.rows.length === 0) {
             throw new Error('Failed to create user');
           }
-          return result.rows[0] as User;
+          return queryResult.rows[0] as User;
         } else {
           // For Neon, result is an array of rows
-          if (result.length === 0) {
+          const neonResult = result as any[];
+          if (neonResult.length === 0) {
             throw new Error('Failed to create user');
           }
-          return result[0] as User;
+          return neonResult[0] as User;
         }
       } catch (error: any) {
         // Handle unique constraint violation for Postgres
@@ -211,11 +214,14 @@ export class DatabaseService {
         WHERE username = ${username}
       `;
 
+      // Handle different return types from Vercel Postgres vs Neon
       if (this.databaseType === 'vercel-postgres') {
-        return result.rows.length > 0 ? (result.rows[0] as User) : null;
+        const queryResult = result as any;
+        return queryResult.rows && queryResult.rows.length > 0 ? (queryResult.rows[0] as User) : null;
       } else {
         // For Neon, result is an array of rows
-        return result.length > 0 ? (result[0] as User) : null;
+        const neonResult = result as any[];
+        return neonResult.length > 0 ? (neonResult[0] as User) : null;
       }
     }
   }
@@ -235,11 +241,14 @@ export class DatabaseService {
         WHERE id = ${userId}
       `;
 
+      // Handle different return types from Vercel Postgres vs Neon
       if (this.databaseType === 'vercel-postgres') {
-        return result.rows.length > 0 ? (result.rows[0] as User) : null;
+        const queryResult = result as any;
+        return queryResult.rows && queryResult.rows.length > 0 ? (queryResult.rows[0] as User) : null;
       } else {
         // For Neon, result is an array of rows
-        return result.length > 0 ? (result[0] as User) : null;
+        const neonResult = result as any[];
+        return neonResult.length > 0 ? (neonResult[0] as User) : null;
       }
     }
   }
@@ -307,24 +316,27 @@ export class DatabaseService {
         WHERE session_id = ${sessionId}
       `;
 
+      // Handle different return types from Vercel Postgres vs Neon
       if (this.databaseType === 'vercel-postgres') {
-        if (result.rows.length === 0) {
+        const queryResult = result as any;
+        if (queryResult.rows && queryResult.rows.length === 0) {
           return null;
         }
 
         return {
-          score: result.rows[0].score,
-          total: result.rows[0].total
+          score: queryResult.rows[0].score,
+          total: queryResult.rows[0].total
         };
       } else {
         // For Neon, result is an array of rows
-        if (result.length === 0) {
+        const neonResult = result as any[];
+        if (neonResult.length === 0) {
           return null;
         }
 
         return {
-          score: result[0].score,
-          total: result[0].total
+          score: neonResult[0].score,
+          total: neonResult[0].total
         };
       }
     }
@@ -364,8 +376,10 @@ export class DatabaseService {
         ORDER BY completed_at DESC
       `;
 
+      // Handle different return types from Vercel Postgres vs Neon
       if (this.databaseType === 'vercel-postgres') {
-        return result.rows.map(row => ({
+        const queryResult = result as any;
+        return queryResult.rows.map((row: any) => ({
           sessionId: row.sessionId,
           score: row.score,
           total: row.total,
@@ -374,7 +388,8 @@ export class DatabaseService {
         }));
       } else {
         // For Neon, result is an array of rows
-        return result.map(row => ({
+        const neonResult = result as any[];
+        return neonResult.map((row: any) => ({
           sessionId: row.sessionId,
           score: row.score,
           total: row.total,
@@ -413,11 +428,13 @@ export class DatabaseService {
         ORDER BY completed_at DESC
       `;
 
+      // Handle different return types from Vercel Postgres vs Neon
       if (this.databaseType === 'vercel-postgres') {
-        return result.rows;
+        const queryResult = result as any;
+        return queryResult.rows;
       } else {
         // For Neon, result is an array of rows
-        return result;
+        return result as any[];
       }
     }
   }
