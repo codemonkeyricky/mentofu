@@ -8,18 +8,18 @@ export class DatabaseService {
   private db: any;
   private readonly databasePath: string;
   private readonly isVercel: boolean;
-  
+
   // Store database type for runtime decision making
   private readonly databaseType: 'sqlite' | 'vercel-postgres';
 
   constructor(databasePath: string = './quiz.db') {
     this.databasePath = databasePath;
-    
+
     // Check if we're running in Vercel environment
     // Use POSTGRES_URL as the indicator for Vercel Postgres
     this.isVercel = !!process.env.POSTGRES_URL;
     this.databaseType = this.isVercel ? 'vercel-postgres' : 'sqlite';
-    
+
     // Initialize the appropriate database
     if (this.isVercel) {
       console.log('Using Vercel Postgres database');
