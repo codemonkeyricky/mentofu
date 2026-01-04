@@ -5,11 +5,13 @@ import path from 'path';
 import { DatabaseService } from './database/database.service';
 import { sessionService } from './session/session.service';
 import listEndpoints from 'express-list-endpoints';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 const app: Application = express();
 const PORT: number = 4000;
 
-// Initialize database service
+// Initialize database service - will automatically use SQLite for local dev or Vercel Postgres when deployed
 const databaseService = new DatabaseService();
 
 // Connect database service to session service
@@ -47,6 +49,9 @@ app.get('*', (req: Request, res: Response) => {
 
 // Export app for testing
 export { app };
+
+// Export for vercel deployment
+export default app;
 
 // Only start server if not in test environment
 if (process.env.NODE_ENV !== 'test') {
