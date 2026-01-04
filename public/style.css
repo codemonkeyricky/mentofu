@@ -380,6 +380,13 @@ main {
     margin-bottom: 40px;
 }
 
+/* ===== Forest Container ===== */
+.forest-container {
+    width: 100%;
+    height: 500px; /* Set a reasonable default height */
+    min-height: 300px;
+}
+
 .stat-card {
     background: white;
     border-radius: var(--border-radius);

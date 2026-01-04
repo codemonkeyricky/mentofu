@@ -69,18 +69,6 @@ Submit answers for a quiz session and receive scoring results.
 - **Cypress**: End-to-end testing
 - **Swagger**: API documentation
 
-## Installation
-
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Build the project:
-   ```bash
-   npm run build
-   ```
-
 ## Running the Application
 
 ### Development Mode
@@ -120,4 +108,29 @@ API documentation is available at `/api-docs` when the server is running.
   - `test/` - Test files
 - `dist/` - Compiled JavaScript output (generated during build)
 - `spec.md` - Project specification
+
+## Forest Visualization
+
+The forest visualization is a separate Three.js application located in the `public/forest.html` file. To run it properly:
+
+1. **Using Python (recommended)**:
+   ```bash
+   python -m http.server 8000
+   ```
+
+2. **Using Node.js**:
+   Install a simple server:
+   ```bash
+   npm install -g http-server
+   ```
+
+   Then run:
+   ```bash
+   http-server
+   ```
+
+3. **Using VS Code Live Server extension**:
+   Open `public/forest.html` in VS Code and use the Live Server extension.
+
+The forest visualization will then be accessible at `http://localhost:8000/forest.html` or `http://localhost:8080/forest.html` depending on which server you choose.
 

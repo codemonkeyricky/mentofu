@@ -184,6 +184,7 @@ class MathMasterPro {
         if (screenName === 'start' && this.currentUser) {
             this.updateUserInfo();
             this.updateDashboardStats();
+            this.initForestRendering();
         }
     }
 
@@ -386,8 +387,9 @@ class MathMasterPro {
         const totalQuizzes = localStorage.getItem('totalQuizzes') || 0;
         const averageScore = localStorage.getItem('averageScore') || 0;
 
-        document.getElementById('total-quizzes').textContent = totalQuizzes;
-        document.getElementById('average-score').textContent = `${averageScore}%`;
+        // Note: The original elements for total-quizzes and average-score were removed
+        // to make space for the forest rendering. This method still updates quizStats
+        // but doesn't update DOM elements that no longer exist.
 
         this.quizStats.totalQuizzes = parseInt(totalQuizzes);
         this.quizStats.averageScore = parseFloat(averageScore);
@@ -417,6 +419,23 @@ class MathMasterPro {
     fetchSessionReports() {
         // To be implemented in reports module
         console.log('Fetching session reports');
+    }
+
+    initForestRendering() {
+        // Only initialize forest rendering once
+        if (this.forestInitialized) return;
+
+        // Get the canvas element
+        const canvas = document.getElementById('forest-canvas');
+        if (!canvas) return;
+
+        // Create a new script element to load the forest module
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.src = 'forest.js';
+        document.head.appendChild(script);
+
+        this.forestInitialized = true;
     }
 
     cleanupCharts() {
