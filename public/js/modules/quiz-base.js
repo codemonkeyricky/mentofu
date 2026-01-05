@@ -165,6 +165,12 @@ class QuizBase {
                     inline: 'center'
                 });
                 unansweredInput.focus();
+            } else {
+                // If all inputs are filled, focus on the first one
+                const firstInput = document.querySelector('.answer-input');
+                if (firstInput) {
+                    firstInput.focus();
+                }
             }
         }, 500);
     }

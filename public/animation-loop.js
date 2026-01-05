@@ -19,7 +19,7 @@ export function setupAnimationLoop(forest, camera, renderer, statsGL, params, sc
 
     // Update leaf sway animation
     if (forest.leafMat) {
-      forest.leafMat.uniforms.time.value = performance.now() * 0.001;
+      forest.leafMat.uniforms.time.value = performance.now() * 0.003;
     }
 
     // Frustum culling

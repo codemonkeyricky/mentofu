@@ -41,7 +41,7 @@ export function setupScene() {
 
   const camera = new THREE.PerspectiveCamera(
       55, container.clientWidth / container.clientHeight, 0.1, 2000);
-  camera.position.set(0, 12, 35);
+  camera.position.set(0, 24, 70);
 
   const renderer = new THREE.WebGLRenderer({
     antialias: true,

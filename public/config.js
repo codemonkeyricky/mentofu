@@ -4,7 +4,7 @@
 
 export const CONFIG = {
   // Forest
-  TREE_COUNT: 400,
+  TREE_COUNT: 50,
   FOREST_RADIUS: 80,
   CLEAR_RADIUS: 5,
   CUSTOM_TREE_CULLING: false,

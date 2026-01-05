@@ -186,6 +186,18 @@ class MathMasterPro {
             this.updateDashboardStats();
             this.initForestRendering();
         }
+
+        // Focus on the first interactive element in the active screen
+        setTimeout(() => {
+            const activeScreen = document.querySelector('.screen.active');
+            if (activeScreen) {
+                // Try to focus on the first input or button in the active screen
+                const firstInput = activeScreen.querySelector('input, button');
+                if (firstInput) {
+                    firstInput.focus();
+                }
+            }
+        }, 100);
     }
 
     showAuthScreens() {

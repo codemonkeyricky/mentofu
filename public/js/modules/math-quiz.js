@@ -205,7 +205,10 @@ class MathQuiz extends QuizBase {
         });
 
         this.updateProgress();
-        this.scrollToFirstUnanswered();
+        // Focus on first unanswered question after a short delay
+        setTimeout(() => {
+            this.scrollToFirstUnanswered();
+        }, 100);
     }
 
     handleAnswerInput(event) {
