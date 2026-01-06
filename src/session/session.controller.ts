@@ -98,8 +98,31 @@ sessionRouter.get('/simple-math-4', authenticate, (req: Request, res: Response) 
   }
 });
 
+// GET /session/simple-words - Create new simple words quiz session
+sessionRouter.get('/simple-words', authenticate, (req: Request, res: Response) => {
+  try {
+    // Get user from auth middleware
+    const user = (req as any).user;
+
+    const session = sessionService.createSimpleWordsSession(user.userId);
+
+    res.status(200).json({
+      sessionId: session.id,
+      words: session.words
+    });
+  } catch (error) {
+    console.error('Error creating simple words session:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to create simple words session',
+        code: 'SIMPLE_WORDS_SESSION_CREATION_FAILED'
+      }
+    });
+  }
+});
+
 // POST /session/simple-math-4 - Validate BODMAS quiz answers and return score
-sessionRouter.post('/simple-math-4', authenticate, (req: Request, res: Response) => {
+sessionRouter.post('/simple-math-4', authenticate, async (req: Request, res: Response) => {
   try {
     const { sessionId, answers } = req.body;
     // Get user from auth middleware
@@ -124,7 +147,7 @@ sessionRouter.post('/simple-math-4', authenticate, (req: Request, res: Response)
       });
     }
 
-    const result = sessionService.validateBODMASAnswers(sessionId, user.userId, answers);
+    const result = await sessionService.validateBODMASAnswers(sessionId, user.userId, answers);
 
     res.status(200).json({
       score: result.score,
@@ -160,7 +183,7 @@ sessionRouter.post('/simple-math-4', authenticate, (req: Request, res: Response)
 });
 
 // POST /session/simple-math-3 - Validate fraction comparison quiz answers and return score
-sessionRouter.post('/simple-math-3', authenticate, (req: Request, res: Response) => {
+sessionRouter.post('/simple-math-3', authenticate, async (req: Request, res: Response) => {
   try {
     const { sessionId, answers } = req.body;
     // Get user from auth middleware
@@ -185,7 +208,7 @@ sessionRouter.post('/simple-math-3', authenticate, (req: Request, res: Response)
       });
     }
 
-    const result = sessionService.validateFractionComparisonAnswers(sessionId, user.userId, answers);
+    const result = await sessionService.validateFractionComparisonAnswers(sessionId, user.userId, answers);
 
     res.status(200).json({
       score: result.score,
@@ -220,92 +243,8 @@ sessionRouter.post('/simple-math-3', authenticate, (req: Request, res: Response)
   }
 });
 
-// POST /session/simple-math-4 - Validate BODMAS quiz answers and return score
-sessionRouter.post('/simple-math-4', authenticate, (req: Request, res: Response) => {
-  try {
-    const { sessionId, answers } = req.body;
-    // Get user from auth middleware
-    const user = (req as any).user;
-
-    // Validate input
-    if (!sessionId) {
-      return res.status(400).json({
-        error: {
-          message: 'Session ID is required',
-          code: 'MISSING_SESSION_ID'
-        }
-      });
-    }
-
-    if (!answers || !Array.isArray(answers)) {
-      return res.status(400).json({
-        error: {
-          message: 'Answers array is required',
-          code: 'MISSING_ANSWERS'
-        }
-      });
-    }
-
-    const result = sessionService.validateBODMASAnswers(sessionId, user.userId, answers);
-
-    res.status(200).json({
-      score: result.score,
-      total: result.total
-    });
-  } catch (error: any) {
-    if (error.message === 'Session not found') {
-      return res.status(404).json({
-        error: {
-          message: 'Session not found',
-          code: 'SESSION_NOT_FOUND'
-        }
-      });
-    }
-
-    if (error.message === 'Unauthorized access to session') {
-      return res.status(403).json({
-        error: {
-          message: 'Unauthorized access to session',
-          code: 'UNAUTHORIZED_ACCESS'
-        }
-      });
-    }
-
-    console.error('Error processing BODMAS answers:', error);
-    res.status(500).json({
-      error: {
-        message: 'Failed to process BODMAS answers',
-        code: 'BODMAS_ANSWER_PROCESSING_FAILED'
-      }
-    });
-  }
-});
-
-// GET /session/simple-words - Create new simple words quiz session
-sessionRouter.get('/simple-words', authenticate, (req: Request, res: Response) => {
-  try {
-    // Get user from auth middleware
-    const user = (req as any).user;
-
-    const session = sessionService.createSimpleWordsSession(user.userId);
-
-    res.status(200).json({
-      sessionId: session.id,
-      words: session.words
-    });
-  } catch (error) {
-    console.error('Error creating simple words session:', error);
-    res.status(500).json({
-      error: {
-        message: 'Failed to create simple words session',
-        code: 'SIMPLE_WORDS_SESSION_CREATION_FAILED'
-      }
-    });
-  }
-});
-
 // POST /session/simple-math - Validate math quiz answers and return score
-sessionRouter.post('/simple-math', authenticate, (req: Request, res: Response) => {
+sessionRouter.post('/simple-math', authenticate, async (req: Request, res: Response) => {
   try {
     const { sessionId, answers } = req.body;
     // Get user from auth middleware
@@ -330,7 +269,7 @@ sessionRouter.post('/simple-math', authenticate, (req: Request, res: Response) =
       });
     }
 
-    const result = sessionService.validateAnswers(sessionId, user.userId, answers);
+    const result = await sessionService.validateAnswers(sessionId, user.userId, answers);
 
     res.status(200).json({
       score: result.score,
@@ -366,7 +305,7 @@ sessionRouter.post('/simple-math', authenticate, (req: Request, res: Response) =
 });
 
 // POST /session/simple-math-2 - Validate division math quiz answers and return score
-sessionRouter.post('/simple-math-2', authenticate, (req: Request, res: Response) => {
+sessionRouter.post('/simple-math-2', authenticate, async (req: Request, res: Response) => {
   try {
     const { sessionId, answers } = req.body;
     // Get user from auth middleware
@@ -391,7 +330,7 @@ sessionRouter.post('/simple-math-2', authenticate, (req: Request, res: Response)
       });
     }
 
-    const result = sessionService.validateAnswers(sessionId, user.userId, answers);
+    const result = await sessionService.validateAnswers(sessionId, user.userId, answers);
 
     res.status(200).json({
       score: result.score,
@@ -426,69 +365,8 @@ sessionRouter.post('/simple-math-2', authenticate, (req: Request, res: Response)
   }
 });
 
-// POST /session/simple-math-3 - Validate fraction comparison quiz answers and return score
-sessionRouter.post('/simple-math-3', authenticate, (req: Request, res: Response) => {
-  try {
-    const { sessionId, answers } = req.body;
-    // Get user from auth middleware
-    const user = (req as any).user;
-
-    // Validate input
-    if (!sessionId) {
-      return res.status(400).json({
-        error: {
-          message: 'Session ID is required',
-          code: 'MISSING_SESSION_ID'
-        }
-      });
-    }
-
-    if (!answers || !Array.isArray(answers)) {
-      return res.status(400).json({
-        error: {
-          message: 'Answers array is required',
-          code: 'MISSING_ANSWERS'
-        }
-      });
-    }
-
-    const result = sessionService.validateFractionComparisonAnswers(sessionId, user.userId, answers);
-
-    res.status(200).json({
-      score: result.score,
-      total: result.total
-    });
-  } catch (error: any) {
-    if (error.message === 'Session not found') {
-      return res.status(404).json({
-        error: {
-          message: 'Session not found',
-          code: 'SESSION_NOT_FOUND'
-        }
-      });
-    }
-
-    if (error.message === 'Unauthorized access to session') {
-      return res.status(403).json({
-        error: {
-          message: 'Unauthorized access to session',
-          code: 'UNAUTHORIZED_ACCESS'
-        }
-      });
-    }
-
-    console.error('Error processing fraction comparison answers:', error);
-    res.status(500).json({
-      error: {
-        message: 'Failed to process fraction comparison answers',
-        code: 'FRACTION_COMPARISON_ANSWER_PROCESSING_FAILED'
-      }
-    });
-  }
-});
-
 // POST /session/simple-words - Validate simple words quiz answers and return score
-sessionRouter.post('/simple-words', authenticate, (req: Request, res: Response) => {
+sessionRouter.post('/simple-words', authenticate, async (req: Request, res: Response) => {
   try {
     const { sessionId, answers } = req.body;
     // Get user from auth middleware
@@ -513,7 +391,7 @@ sessionRouter.post('/simple-words', authenticate, (req: Request, res: Response) 
       });
     }
 
-    const result = sessionService.validateSimpleWordsAnswers(sessionId, user.userId, answers);
+    const result = await sessionService.validateSimpleWordsAnswers(sessionId, user.userId, answers);
 
     res.status(200).json({
       score: result.score,
@@ -646,3 +524,80 @@ sessionRouter.get('/all', authenticate, async (req: Request, res: Response) => {
     });
   }
 });
+
+// GET /session/multiplier/:quizType - Get user multiplier for a specific quiz type
+sessionRouter.get('/multiplier/:quizType', authenticate, async (req: Request, res: Response) => {
+  try {
+    const { quizType } = req.params;
+    // Get user from auth middleware
+    const user = (req as any).user;
+
+    // Validate quiz type
+    const validQuizTypes = ['math', 'simple_words'];
+    if (!validQuizTypes.includes(quizType)) {
+      return res.status(400).json({
+        error: {
+          message: 'Invalid quiz type'
+        }
+      });
+    }
+
+    const multiplier = await sessionService.getUserMultiplier(user.userId, quizType);
+
+    res.status(200).json({
+      quizType,
+      multiplier
+    });
+  } catch (error) {
+    console.error('Error retrieving multiplier:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to retrieve multiplier'
+      }
+    });
+  }
+});
+
+// POST /session/multiplier/:quizType - Set user multiplier for a specific quiz type
+sessionRouter.post('/multiplier/:quizType', authenticate, async (req: Request, res: Response) => {
+  try {
+    const { quizType } = req.params;
+    const { multiplier } = req.body;
+    // Get user from auth middleware
+    const user = (req as any).user;
+
+    // Validate quiz type
+    const validQuizTypes = ['math', 'simple_words'];
+    if (!validQuizTypes.includes(quizType)) {
+      return res.status(400).json({
+        error: {
+          message: 'Invalid quiz type'
+        }
+      });
+    }
+
+    // Validate multiplier value
+    if (typeof multiplier !== 'number' || multiplier <= 0) {
+      return res.status(400).json({
+        error: {
+          message: 'Invalid multiplier value. Must be a positive number.'
+        }
+      });
+    }
+
+    await sessionService.setUserMultiplier(user.userId, quizType, multiplier);
+
+    res.status(200).json({
+      quizType,
+      multiplier
+    });
+  } catch (error) {
+    console.error('Error setting multiplier:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to set multiplier'
+      }
+    });
+  }
+});
+

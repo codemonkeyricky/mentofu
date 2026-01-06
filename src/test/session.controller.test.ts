@@ -524,3 +524,4 @@ describe('Session Controller', () => {
     TestDatabaseUtil.cleanupTestDatabase(testDbPath);
   });
 });
+

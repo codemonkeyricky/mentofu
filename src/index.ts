@@ -1,6 +1,7 @@
 import express, { Application, Request, Response } from 'express';
 import { sessionRouter } from './session/session.controller';
 import { authRouter } from './auth/auth.controller';
+import { statsRouter } from './stats/stats.controller';
 import path from 'path';
 import { DatabaseService } from './database/database.service';
 import { sessionService } from './session/session.service';
@@ -17,6 +18,10 @@ const databaseService = new DatabaseService();
 // Connect database service to session service
 sessionService.setDatabaseService(databaseService);
 
+// Connect database service to stats service
+import { statsService } from './stats/stats.service';
+statsService.setDatabaseService(databaseService);
+
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
@@ -24,6 +29,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 // Routes
 app.use('/auth', authRouter);
 app.use('/session', sessionRouter);
+app.use('/stats', statsRouter);
 
 // Health check endpoint
 app.get('/', (req: Request, res: Response) => {

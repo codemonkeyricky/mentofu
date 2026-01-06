@@ -653,5 +653,422 @@ describe('Integration Tests', () => {
       expect(validateResponse.body).toHaveProperty('score', questions.length - 1);
       expect(validateResponse.body).toHaveProperty('total', questions.length);
     });
+
+    it('should get and set user multipliers correctly', async () => {
+      // Register and login a user
+      const username = 'multiplieruser' + Date.now();
+      const registerResponse = await request(app)
+        .post('/auth/register')
+        .send({
+          username: username,
+          password: 'multiplierpassword123'
+        });
+      const loginResponse = await request(app)
+        .post('/auth/login')
+        .send({
+          username: username,
+          password: 'multiplierpassword123'
+        });
+      const userToken = loginResponse.body.token;
+
+      // Test getting default multiplier for math
+      const getMultiplierResponse = await request(app)
+        .get('/session/multiplier/math')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      expect(getMultiplierResponse.body).toHaveProperty('quizType', 'math');
+      expect(getMultiplierResponse.body).toHaveProperty('multiplier', 1);
+
+      // Test setting a new multiplier
+      const setMultiplierResponse = await request(app)
+        .post('/session/multiplier/math')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          multiplier: 2
+        })
+        .expect(200);
+
+      expect(setMultiplierResponse.body).toHaveProperty('quizType', 'math');
+      expect(setMultiplierResponse.body).toHaveProperty('multiplier', 2);
+
+      // Verify the multiplier was updated
+      const getUpdatedMultiplierResponse = await request(app)
+        .get('/session/multiplier/math')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      expect(getUpdatedMultiplierResponse.body).toHaveProperty('multiplier', 2);
+
+      // Test setting multiplier for simple_words
+      const setSimpleWordsMultiplierResponse = await request(app)
+        .post('/session/multiplier/simple_words')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          multiplier: 3
+        })
+        .expect(200);
+
+      expect(setSimpleWordsMultiplierResponse.body).toHaveProperty('quizType', 'simple_words');
+      expect(setSimpleWordsMultiplierResponse.body).toHaveProperty('multiplier', 3);
+
+      // Verify the simple_words multiplier was updated
+      const getSimpleWordsMultiplierResponse = await request(app)
+        .get('/session/multiplier/simple_words')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      expect(getSimpleWordsMultiplierResponse.body).toHaveProperty('multiplier', 3);
+    });
+
+    it('should handle invalid quiz types when getting multipliers', async () => {
+      // Register and login a user
+      const username = 'invalidquizuser' + Date.now();
+      const registerResponse = await request(app)
+        .post('/auth/register')
+        .send({
+          username: username,
+          password: 'invalidquizpassword123'
+        });
+      const loginResponse = await request(app)
+        .post('/auth/login')
+        .send({
+          username: username,
+          password: 'invalidquizpassword123'
+        });
+      const userToken = loginResponse.body.token;
+
+      // Try to get multiplier for invalid quiz type
+      const response = await request(app)
+        .get('/session/multiplier/invalid_quiz')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('error.message', 'Invalid quiz type');
+    });
+
+    it('should handle invalid multiplier values when setting multipliers', async () => {
+      // Register and login a user
+      const username = 'invalidmultiplieruser' + Date.now();
+      const registerResponse = await request(app)
+        .post('/auth/register')
+        .send({
+          username: username,
+          password: 'invalidmultiplierpassword123'
+        });
+      const loginResponse = await request(app)
+        .post('/auth/login')
+        .send({
+          username: username,
+          password: 'invalidmultiplierpassword123'
+        });
+      const userToken = loginResponse.body.token;
+
+      // Try to set invalid multiplier value (negative number)
+      const response = await request(app)
+        .post('/session/multiplier/math')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          multiplier: -1.5
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty('error.message', 'Invalid multiplier value. Must be a positive number.');
+    });
+
+    it('should record and apply multipliers to session scores correctly', async () => {
+      // Register and login a user
+      const username = 'multiplieruser' + Date.now();
+      const registerResponse = await request(app)
+        .post('/auth/register')
+        .send({
+          username: username,
+          password: 'multiplierpassword123'
+        });
+      const loginResponse = await request(app)
+        .post('/auth/login')
+        .send({
+          username: username,
+          password: 'multiplierpassword123'
+        });
+      const userToken = loginResponse.body.token;
+      const userId = loginResponse.body.user.id;
+
+      // Set a multiplier for math quizzes
+      await request(app)
+        .post('/session/multiplier/math')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          multiplier: 2.0
+        })
+        .expect(200);
+
+      // Create a math quiz session
+      const sessionResponse = await request(app)
+        .get('/session/simple-math')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      const sessionId = sessionResponse.body.sessionId;
+      const questions = sessionResponse.body.questions;
+
+      // Validate answers with correct answers
+      const userAnswers = questions.map((q: any) => q.answer);
+      const validateResponse = await request(app)
+        .post('/session/simple-math')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          sessionId: sessionId,
+          answers: userAnswers
+        })
+        .expect(200);
+
+      // Should have full score (10/10) but with multiplier applied in the database
+      expect(validateResponse.body).toHaveProperty('score', questions.length);
+      expect(validateResponse.body).toHaveProperty('total', questions.length);
+
+      // Get all sessions to verify multiplier was recorded
+      const allSessionsResponse = await request(app)
+        .get('/session/all')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      expect(allSessionsResponse.body.sessions).toHaveLength(1);
+      const session = allSessionsResponse.body.sessions[0];
+      expect(session).toHaveProperty('multiplier', 2);
+
+      // Get user scores to verify multiplier was recorded
+      const scoresResponse = await request(app)
+        .get('/session/scores')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      expect(scoresResponse.body.scores).toHaveLength(1);
+      const score = scoresResponse.body.scores[0];
+      expect(score).toHaveProperty('multiplier', 2);
+    });
+
+    it('should retrieve user statistics with /stats endpoint correctly', async () => {
+      // Register and login a user
+      const username = 'statsuser' + Date.now();
+      const registerResponse = await request(app)
+        .post('/auth/register')
+        .send({
+          username: username,
+          password: 'statspassword123'
+        });
+      const loginResponse = await request(app)
+        .post('/auth/login')
+        .send({
+          username: username,
+          password: 'statspassword123'
+        });
+      const userToken = loginResponse.body.token;
+
+      // Create a math quiz session and validate answers
+      const mathSessionResponse = await request(app)
+        .get('/session/simple-math')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      const mathSessionId = mathSessionResponse.body.sessionId;
+      const mathQuestions = mathSessionResponse.body.questions;
+
+      // Validate answers with correct answers
+      const mathAnswers = mathQuestions.map((q: any) => q.answer);
+      await request(app)
+        .post('/session/simple-math')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          sessionId: mathSessionId,
+          answers: mathAnswers
+        })
+        .expect(200);
+
+      // Create a simple words quiz session and validate answers
+      const wordsSessionResponse = await request(app)
+        .get('/session/simple-words')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      const wordsSessionId = wordsSessionResponse.body.sessionId;
+      const words = wordsSessionResponse.body.words;
+
+      // Validate answers with correct answers
+      const wordsAnswers = words.map((w: any) => w.word);
+      await request(app)
+        .post('/session/simple-words')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          sessionId: wordsSessionId,
+          answers: wordsAnswers
+        })
+        .expect(200);
+
+      // Get user stats
+      const statsResponse = await request(app)
+        .get('/stats')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      // Verify response structure
+      expect(statsResponse.body).toHaveProperty('totalScore');
+      expect(statsResponse.body).toHaveProperty('sessionsCount');
+      expect(statsResponse.body).toHaveProperty('details');
+
+      // Verify stats values
+      expect(statsResponse.body.totalScore).toBe(mathQuestions.length + words.length);
+      expect(statsResponse.body.sessionsCount).toBe(2);
+
+      // Verify details structure
+      expect(statsResponse.body.details).toHaveProperty('math');
+      expect(statsResponse.body.details).toHaveProperty('simpleWords');
+
+      // Verify math details
+      expect(statsResponse.body.details.math).toHaveProperty('score', mathQuestions.length);
+      expect(statsResponse.body.details.math).toHaveProperty('count', 1);
+
+      // Verify simple words details
+      expect(statsResponse.body.details.simpleWords).toHaveProperty('score', words.length);
+      expect(statsResponse.body.details.simpleWords).toHaveProperty('count', 1);
+    });
+
+    it('should handle empty stats for new users', async () => {
+      // Register and login a new user with no sessions
+      const username = 'newstatsuser' + Date.now();
+      const registerResponse = await request(app)
+        .post('/auth/register')
+        .send({
+          username: username,
+          password: 'newstatspassword123'
+        });
+      const loginResponse = await request(app)
+        .post('/auth/login')
+        .send({
+          username: username,
+          password: 'newstatspassword123'
+        });
+      const userToken = loginResponse.body.token;
+
+      // Get user stats for new user with no sessions
+      const statsResponse = await request(app)
+        .get('/stats')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      // Verify response structure
+      expect(statsResponse.body).toHaveProperty('totalScore', 0);
+      expect(statsResponse.body).toHaveProperty('sessionsCount', 0);
+      expect(statsResponse.body).toHaveProperty('details');
+
+      // Verify details are empty for new user
+      expect(statsResponse.body.details).toEqual({});
+    });
+
+    it('should correctly calculate totalScore with multipliers applied', async () => {
+      // Register and login a user
+      const username = 'multiplierstatsuser' + Date.now();
+      const registerResponse = await request(app)
+        .post('/auth/register')
+        .send({
+          username: username,
+          password: 'multiplierstatspassword123'
+        });
+      const loginResponse = await request(app)
+        .post('/auth/login')
+        .send({
+          username: username,
+          password: 'multiplierstatspassword123'
+        });
+      const userToken = loginResponse.body.token;
+      const userId = loginResponse.body.user.id;
+
+      // Set a multiplier for math quizzes
+      await request(app)
+        .post('/session/multiplier/math')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          multiplier: 2.0
+        })
+        .expect(200);
+
+      // Set a multiplier for simple words quizzes
+      await request(app)
+        .post('/session/multiplier/simple_words')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          multiplier: 1.5
+        })
+        .expect(200);
+
+      // Create and validate a math quiz session with full score (10/10)
+      const mathSessionResponse = await request(app)
+        .get('/session/simple-math')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      const mathSessionId = mathSessionResponse.body.sessionId;
+      const mathQuestions = mathSessionResponse.body.questions;
+
+      // Validate answers with correct answers
+      const mathAnswers = mathQuestions.map((q: any) => q.answer);
+      await request(app)
+        .post('/session/simple-math')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          sessionId: mathSessionId,
+          answers: mathAnswers
+        })
+        .expect(200);
+
+      // Create and validate a simple words quiz session with full score (10/10)
+      const wordsSessionResponse = await request(app)
+        .get('/session/simple-words')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      const wordsSessionId = wordsSessionResponse.body.sessionId;
+      const words = wordsSessionResponse.body.words;
+
+      // Validate answers with correct answers
+      const wordsAnswers = words.map((w: any) => w.word);
+      await request(app)
+        .post('/session/simple-words')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          sessionId: wordsSessionId,
+          answers: wordsAnswers
+        })
+        .expect(200);
+
+      // Get user stats
+      const statsResponse = await request(app)
+        .get('/stats')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      // Verify response structure
+      expect(statsResponse.body).toHaveProperty('totalScore');
+      expect(statsResponse.body).toHaveProperty('sessionsCount', 2);
+      expect(statsResponse.body).toHaveProperty('details');
+
+      // Verify that totalScore is calculated with multipliers applied:
+      // Math session: 10 points * 2 multiplier = 20
+      // Simple words session: 10 points * 1 multiplier = 10 (1.5 rounded to 1)
+      // Total: 20 + 10 = 30
+      expect(statsResponse.body.totalScore).toBe(30);
+
+      // Verify details structure
+      expect(statsResponse.body.details).toHaveProperty('math');
+      expect(statsResponse.body.details).toHaveProperty('simpleWords');
+
+      // Verify math details (weighted score should be 20)
+      expect(statsResponse.body.details.math).toHaveProperty('score', 20);
+      expect(statsResponse.body.details.math).toHaveProperty('count', 1);
+
+      // Verify simple words details (weighted score should be 10)
+      expect(statsResponse.body.details.simpleWords).toHaveProperty('score', 10);
+      expect(statsResponse.body.details.simpleWords).toHaveProperty('count', 1);
+    });
   });
 });

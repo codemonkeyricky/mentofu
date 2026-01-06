@@ -63,6 +63,16 @@ export class DatabaseService {
           FOREIGN KEY (user_id) REFERENCES users(id)
         )
       `;
+
+      await sql`
+        CREATE TABLE IF NOT EXISTS user_multipliers (
+          user_id TEXT NOT NULL,
+          quiz_type TEXT NOT NULL,
+          multiplier INTEGER NOT NULL,
+          PRIMARY KEY (user_id, quiz_type),
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+      `;
     } catch (error) {
       console.error('Error initializing Vercel Postgres tables:', error);
       throw error;
@@ -182,7 +192,8 @@ export class DatabaseService {
     sessionId: string,
     score: number,
     total: number,
-    sessionType: 'math' | 'simple_words'
+    sessionType: 'math' | 'simple_words',
+    multiplier: number = 1.0
   ): Promise<void> {
     const scoreId = this.generateUUID();
 
@@ -196,6 +207,7 @@ export class DatabaseService {
         score: score,
         total: total,
         session_type: sessionType,
+        multiplier: multiplier,
         completed_at: new Date()
       };
 
@@ -206,8 +218,8 @@ export class DatabaseService {
 
       try {
         await sqlClient`
-          INSERT INTO session_scores (id, user_id, session_id, score, total, session_type)
-          VALUES (${scoreId}, ${userId}, ${sessionId}, ${score}, ${total}, ${sessionType})
+          INSERT INTO session_scores (id, user_id, session_id, score, total, session_type, multiplier)
+          VALUES (${scoreId}, ${userId}, ${sessionId}, ${score}, ${total}, ${sessionType}, ${multiplier})
         `;
       } catch (error: any) {
         throw error;
@@ -215,14 +227,15 @@ export class DatabaseService {
     }
   }
 
-  public async getSessionScore(sessionId: string): Promise<{ score: number, total: number } | null> {
+  public async getSessionScore(sessionId: string): Promise<{ score: number, total: number, multiplier?: number } | null> {
     if (this.databaseType === 'memory') {
       const sessionScores = this.db.get('session_scores');
       for (const score of sessionScores.values()) {
         if (score.session_id === sessionId) {
           return {
             score: score.score,
-            total: score.total
+            total: score.total,
+            multiplier: score.multiplier
           };
         }
       }
@@ -232,7 +245,7 @@ export class DatabaseService {
       const sqlClient = sql;
 
       const result = await sqlClient`
-        SELECT score, total
+        SELECT score, total, multiplier
         FROM session_scores
         WHERE session_id = ${sessionId}
       `;
@@ -245,15 +258,16 @@ export class DatabaseService {
 
       return {
         score: queryResult.rows[0].score,
-        total: queryResult.rows[0].total
+        total: queryResult.rows[0].total,
+        multiplier: queryResult.rows[0].multiplier
       };
     }
   }
 
-  public async getUserSessionScores(userId: string): Promise<Array<{ sessionId: string, score: number, total: number, sessionType: string, completedAt: Date }>> {
+  public async getUserSessionScores(userId: string): Promise<Array<{ sessionId: string, score: number, total: number, sessionType: string, completedAt: Date, multiplier?: number }>> {
     if (this.databaseType === 'memory') {
       const sessionScores = this.db.get('session_scores');
-      const userScores: Array<{ sessionId: string, score: number, total: number, sessionType: string, completedAt: Date }> = [];
+      const userScores: Array<{ sessionId: string, score: number, total: number, sessionType: string, completedAt: Date, multiplier?: number }> = [];
 
       for (const score of sessionScores.values()) {
         if (score.user_id === userId) {
@@ -262,7 +276,8 @@ export class DatabaseService {
             score: score.score,
             total: score.total,
             sessionType: score.session_type,
-            completedAt: score.completed_at
+            completedAt: score.completed_at,
+            multiplier: score.multiplier
           });
         }
       }
@@ -279,7 +294,8 @@ export class DatabaseService {
           score,
           total,
           session_type as "sessionType",
-          completed_at as "completedAt"
+          completed_at as "completedAt",
+          multiplier
         FROM session_scores
         WHERE user_id = ${userId}
         ORDER BY completed_at DESC
@@ -292,7 +308,8 @@ export class DatabaseService {
         score: row.score,
         total: row.total,
         sessionType: row.sessionType,
-        completedAt: new Date(row.completedAt)
+        completedAt: new Date(row.completedAt),
+        multiplier: row.multiplier
       }));
     }
   }
@@ -357,5 +374,65 @@ export class DatabaseService {
       // Nothing to do for in-memory db
     }
     // Vercel Postgres connections are managed automatically
+  }
+
+  public async setUserMultiplier(userId: string, quizType: string, multiplier: number): Promise<void> {
+    if (this.databaseType === 'memory') {
+      // Initialize multipliers table if it doesn't exist
+      if (!this.db.has('user_multipliers')) {
+        this.db.set('user_multipliers', new Map());
+      }
+
+      const multipliers = this.db.get('user_multipliers');
+      const key = `${userId}-${quizType}`;
+      multipliers.set(key, Math.floor(multiplier)); // Store as integer
+    } else {
+      // Vercel Postgres implementation only
+      const sqlClient = sql;
+
+      try {
+        await sqlClient`
+          INSERT INTO user_multipliers (user_id, quiz_type, multiplier)
+          VALUES (${userId}, ${quizType}, ${Math.floor(multiplier)})
+          ON CONFLICT (user_id, quiz_type)
+          DO UPDATE SET multiplier = EXCLUDED.multiplier
+        `;
+      } catch (error: any) {
+        throw error;
+      }
+    }
+  }
+
+  public async getUserMultiplier(userId: string, quizType: string): Promise<number> {
+    if (this.databaseType === 'memory') {
+      // Initialize multipliers table if it doesn't exist
+      if (!this.db.has('user_multipliers')) {
+        this.db.set('user_multipliers', new Map());
+      }
+
+      const multipliers = this.db.get('user_multipliers');
+      const key = `${userId}-${quizType}`;
+      return Math.floor(multipliers.get(key) || 1.0); // Default multiplier of 1 (integer)
+    } else {
+      // Vercel Postgres implementation only
+      const sqlClient = sql;
+
+      try {
+        const result = await sqlClient`
+          SELECT multiplier
+          FROM user_multipliers
+          WHERE user_id = ${userId} AND quiz_type = ${quizType}
+        `;
+
+        // Handle return type from Vercel Postgres
+        const queryResult = result as any;
+        if (queryResult.rows && queryResult.rows.length > 0) {
+          return Math.floor(queryResult.rows[0].multiplier);
+        }
+        return 1; // Default multiplier of 1 (integer)
+      } catch (error: any) {
+        throw error;
+      }
+    }
   }
 }

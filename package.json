@@ -19,7 +19,6 @@
     "@vercel/postgres": "^0.10.0",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
-    "better-sqlite3": "^9.4.3",
     "dotenv": "^17.2.3",
     "express": "^4.18.2",
     "express-list-endpoints": "^7.1.1",

@@ -204,7 +204,7 @@ class SessionService {
     return session;
   }
 
-  public validateAnswers(sessionId: string, userId: string, userAnswers: (number | string)[]): { score: number; total: number } {
+  public async validateAnswers(sessionId: string, userId: string, userAnswers: (number | string)[]): Promise<{ score: number; total: number }> {
     const session = this.sessions.get(sessionId);
 
     if (!session) {
@@ -237,9 +237,16 @@ class SessionService {
       total: session.questions.length
     };
 
-    // Save the score to database if database service is available
+    // Get the multiplier for math quizzes
+    let multiplier = 1.0;
     if (this.databaseService) {
-      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, 'math');
+      try {
+        multiplier = await this.getUserMultiplier(userId, 'math');
+      } catch (error) {
+        // If there's an error getting multiplier, default to 1.0
+        multiplier = 1.0;
+      }
+      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, 'math', multiplier);
     }
 
     return result;
@@ -263,7 +270,7 @@ class SessionService {
     }
   }
 
-  public validateBODMASAnswers(sessionId: string, userId: string, userAnswers: (number | string)[]): { score: number; total: number } {
+  public async validateBODMASAnswers(sessionId: string, userId: string, userAnswers: (number | string)[]): Promise<{ score: number; total: number }> {
     const session = this.sessions.get(sessionId);
 
     if (!session) {
@@ -296,15 +303,22 @@ class SessionService {
       total: session.questions.length
     };
 
-    // Save the score to database if database service is available
+    // Get the multiplier for math quizzes
+    let multiplier = 1.0;
     if (this.databaseService) {
-      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, 'math');
+      try {
+        multiplier = await this.getUserMultiplier(userId, 'math');
+      } catch (error) {
+        // If there's an error getting multiplier, default to 1.0
+        multiplier = 1.0;
+      }
+      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, 'math', multiplier);
     }
 
     return result;
   }
 
-  public validateFractionComparisonAnswers(sessionId: string, userId: string, userAnswers: (number | string)[]): { score: number; total: number } {
+  public async validateFractionComparisonAnswers(sessionId: string, userId: string, userAnswers: (number | string)[]): Promise<{ score: number; total: number }> {
     const session = this.sessions.get(sessionId);
 
     if (!session) {
@@ -337,15 +351,22 @@ class SessionService {
       total: session.questions.length
     };
 
-    // Save the score to database if database service is available
+    // Get the multiplier for math quizzes
+    let multiplier = 1.0;
     if (this.databaseService) {
-      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, 'math');
+      try {
+        multiplier = await this.getUserMultiplier(userId, 'math');
+      } catch (error) {
+        // If there's an error getting multiplier, default to 1.0
+        multiplier = 1.0;
+      }
+      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, 'math', multiplier);
     }
 
     return result;
   }
 
-  public validateSimpleWordsAnswers(sessionId: string, userId: string, userAnswers: string[]): { score: number; total: number } {
+  public async validateSimpleWordsAnswers(sessionId: string, userId: string, userAnswers: string[]): Promise<{ score: number; total: number }> {
     const session = this.simpleWordsSessions.get(sessionId);
 
     if (!session) {
@@ -371,9 +392,16 @@ class SessionService {
       total: session.words.length
     };
 
-    // Save the score to database if database service is available
+    // Get the multiplier for simple words quizzes
+    let multiplier = 1.0;
     if (this.databaseService) {
-      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, 'simple_words');
+      try {
+        multiplier = await this.getUserMultiplier(userId, 'simple_words');
+      } catch (error) {
+        // If there's an error getting multiplier, default to 1.0
+        multiplier = 1.0;
+      }
+      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, 'simple_words', multiplier);
     }
 
     return result;
@@ -387,15 +415,19 @@ class SessionService {
     return this.databaseService.getSessionScore(sessionId);
   }
 
-  public async getUserSessionScores(userId: string): Promise<Array<{sessionId: string, score: number, total: number, sessionType: string, completedAt: Date}>> {
+  public async getUserSessionScores(userId: string): Promise<Array<{sessionId: string, score: number, total: number, sessionType: string, completedAt: Date, multiplier?: number}>> {
     if (!this.databaseService) {
       return [];
     }
 
-    return this.databaseService.getUserSessionScores(userId);
+    // Get the raw scores from database
+    const rawScores = await this.databaseService.getUserSessionScores(userId);
+
+    // Return scores with multipliers (no modification needed as they're already stored)
+    return rawScores;
   }
 
-  public async getUserSessions(userId: string): Promise<Array<{sessionId: string, sessionType: string, score: number, total: number, completedAt: Date, createdAt: Date}>> {
+  public async getUserSessions(userId: string): Promise<Array<{sessionId: string, sessionType: string, score: number, total: number, completedAt: Date, createdAt: Date, multiplier?: number}>> {
     if (!this.databaseService) {
       return [];
     }
@@ -410,7 +442,8 @@ class SessionService {
       score: score.score,
       total: score.total,
       completedAt: score.completedAt,
-      createdAt: score.completedAt // For consistency, we'll use completedAt as created time for now
+      createdAt: score.completedAt, // For consistency, we'll use completedAt as created time for now
+      multiplier: score.multiplier
     }));
   }
 
@@ -471,6 +504,66 @@ class SessionService {
       clearTimeout(timeout);
     }
     this.simpleWordsSessionTimeouts.clear();
+  }
+
+  public async setUserMultiplier(userId: string, quizType: string, multiplier: number): Promise<void> {
+    if (!this.databaseService) {
+      throw new Error('Database service not initialized');
+    }
+
+    return this.databaseService.setUserMultiplier(userId, quizType, multiplier);
+  }
+
+  public async getUserMultiplier(userId: string, quizType: string): Promise<number> {
+    if (!this.databaseService) {
+      throw new Error('Database service not initialized');
+    }
+
+    return this.databaseService.getUserMultiplier(userId, quizType);
+  }
+
+  public async getUserStats(userId: string): Promise<{
+    totalScore: number;
+    sessionsCount: number;
+    details: Array<{
+      sessionId: string;
+      score: number;
+      multiplier: number;
+      weightedScore: number;
+    }>
+  }> {
+    if (!this.databaseService) {
+      throw new Error('Database service not initialized');
+    }
+
+    // Get all session scores for the user
+    const userScores = await this.databaseService.getUserSessionScores(userId);
+
+    let totalScore = 0;
+    const details = [];
+
+    for (const score of userScores) {
+      // Get the multiplier for this quiz type, default to 1.0 if not found
+      const multiplier = await this.databaseService.getUserMultiplier(userId, score.sessionType);
+
+      // Calculate weighted score
+      const weightedScore = score.score * multiplier;
+
+      totalScore += weightedScore;
+
+      details.push({
+        sessionId: score.sessionId,
+        score: score.score,
+        multiplier: multiplier,
+        weightedScore: weightedScore
+      });
+    }
+
+    return {
+      totalScore,
+      sessionsCount: userScores.length,
+      details
+    };
   }
 }
 

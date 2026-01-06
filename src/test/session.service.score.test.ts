@@ -44,7 +44,7 @@ describe('SessionService Score Retrieval', () => {
       const session = sessionService.createSession('test-user-id');
 
       // Validate answers to create a score
-      const result = sessionService.validateAnswers(session.id, 'test-user-id', [10, 20, 30]);
+      const result = await sessionService.validateAnswers(session.id, 'test-user-id', [10, 20, 30]);
 
       // Retrieve the score
       const retrievedScore = await sessionService.getSessionScore(session.id);
@@ -67,8 +67,8 @@ describe('SessionService Score Retrieval', () => {
       const session2 = sessionService.createSession('test-user-id');
 
       // Validate answers to create scores
-      sessionService.validateAnswers(session1.id, 'test-user-id', [10, 20, 30]);
-      sessionService.validateAnswers(session2.id, 'test-user-id', [5, 15, 25]);
+      await sessionService.validateAnswers(session1.id, 'test-user-id', [10, 20, 30]);
+      await sessionService.validateAnswers(session2.id, 'test-user-id', [5, 15, 25]);
 
       // Retrieve all scores for the user
       const scores = await sessionService.getUserSessionScores('test-user-id');
