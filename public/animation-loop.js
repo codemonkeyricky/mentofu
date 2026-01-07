@@ -4,7 +4,8 @@ import {CONFIG} from './config.js';
 // ANIMATION LOOP AND EVENT HANDLERS
 // ============================================================================
 
-export function setupAnimationLoop(forest, camera, renderer, statsGL, params, scene) {
+export function setupAnimationLoop(
+    forest, camera, renderer, statsGL, params, scene, fireflies) {
   const statDrawCalls = document.getElementById('statDrawCalls');
   const statTris = document.getElementById('statTris');
 
@@ -17,9 +18,16 @@ export function setupAnimationLoop(forest, camera, renderer, statsGL, params, sc
   function animate() {
     requestAnimationFrame(animate);
 
+
     // Update leaf sway animation
     if (forest.leafMat) {
       forest.leafMat.uniforms.time.value = performance.now() * 0.003;
+    }
+
+    // Update fireflies - ADD NULL CHECK HERE
+    if (fireflies && fireflies.mesh) {
+      console.log('Updating fireflies...');  // Debug log
+      fireflies.update(performance.now() * 0.001);
     }
 
     // Frustum culling
@@ -39,16 +47,17 @@ export function setupAnimationLoop(forest, camera, renderer, statsGL, params, sc
 
   const hasMouse = matchMedia('(pointer:fine)').matches;
   const hasKeyboard =
-    !!navigator.keyboard;  // only true if real Keyboard API present
+      !!navigator.keyboard;  // only true if real Keyboard API present
   const isTouchDevice = 'ontouchstart' in window ||
-    navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
+      navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
 
   const isTouchOnly = isTouchDevice && !hasMouse && !hasKeyboard;
 
   function resize() {
     const dpr = Math.min(
         window.devicePixelRatio,
-        isTouchOnly ? 1 : 1.5);  // cap pixel ratio to prevent insane resolutions
+        isTouchOnly ? 1 :
+                      1.5);  // cap pixel ratio to prevent insane resolutions
     renderer.setPixelRatio(dpr);
     renderer.setSize(window.innerWidth, window.innerHeight, true);
     camera.aspect = window.innerWidth / window.innerHeight;

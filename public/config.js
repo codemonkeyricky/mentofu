@@ -65,4 +65,18 @@ export const CONFIG = {
   SUN_INTENSITY: 2.0,
   AMBIENT_INTENSITY: 0.9,
   EXPOSURE: 1.6,
+
+  // Night mode settings
+  NIGHT_SUN_INTENSITY: 0.1,
+  NIGHT_AMBIENT_INTENSITY: 0.2,
+  NIGHT_EXPOSURE: 0.8,
+  NIGHT_SKY_TOP_COLOR: [0.05, 0.05, 0.2],
+  NIGHT_SKY_BOTTOM_COLOR: [0.1, 0.1, 0.3],
+
+  // Firefly settings
+  FIREFLY_COUNT: 500,
+  FIREFLY_SIZE: 0.3,
+  FIREFLY_BRIGHTNESS: 1.0,
+  FIREFLY_COLOR: [1.0, 1.0, 0.4], // Yellow-ish color
+  FIREFLY_SPEED: 0.5,
 };

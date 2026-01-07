@@ -37,6 +37,14 @@ export function setupScene() {
     side: THREE.BackSide,
     depthWrite: false,
   });
+
+  // Debug shader compilation
+  if (skyMat.onBeforeCompile) {
+    skyMat.onBeforeCompile = function(shader) {
+      console.log('Sky shader compiled successfully');
+    };
+  }
+
   scene.add(new THREE.Mesh(skyGeo, skyMat));
 
   const camera = new THREE.PerspectiveCamera(
@@ -98,7 +106,53 @@ export function setupScene() {
   ground.receiveShadow = true;
   scene.add(ground);
 
-  return {scene, camera, renderer, controls, sun};
+  // Function to switch between day and night modes
+  function setNightMode(enabled) {
+    if (enabled) {
+      // Set night mode parameters
+      sun.intensity = CONFIG.NIGHT_SUN_INTENSITY;
+      scene.children.forEach(child => {
+        if (child instanceof THREE.AmbientLight) {
+          child.intensity = CONFIG.NIGHT_AMBIENT_INTENSITY;
+        }
+      });
+
+      // Update sky color
+      skyMat.uniforms.topColor.value.setRGB(
+        CONFIG.NIGHT_SKY_TOP_COLOR[0],
+        CONFIG.NIGHT_SKY_TOP_COLOR[1],
+        CONFIG.NIGHT_SKY_TOP_COLOR[2]
+      );
+      skyMat.uniforms.bottomColor.value.setRGB(
+        CONFIG.NIGHT_SKY_BOTTOM_COLOR[0],
+        CONFIG.NIGHT_SKY_BOTTOM_COLOR[1],
+        CONFIG.NIGHT_SKY_BOTTOM_COLOR[2]
+      );
+
+      // Update exposure
+      renderer.toneMappingExposure = CONFIG.NIGHT_EXPOSURE;
+    } else {
+      // Set day mode parameters
+      sun.intensity = CONFIG.SUN_INTENSITY;
+      scene.children.forEach(child => {
+        if (child instanceof THREE.AmbientLight) {
+          child.intensity = CONFIG.AMBIENT_INTENSITY;
+        }
+      });
+
+      // Reset sky color to day colors
+      skyMat.uniforms.topColor.value.setRGB(0x6baed6 / 0xffffff, 0x6baed6 / 0xffffff, 0x6baed6 / 0xffffff);
+      skyMat.uniforms.bottomColor.value.setRGB(0xddeeff / 0xffffff, 0xddeeff / 0xffffff, 0xddeeff / 0xffffff);
+
+      // Reset exposure
+      renderer.toneMappingExposure = CONFIG.EXPOSURE;
+    }
+
+    // Update the sky material to reflect changes
+    skyMat.needsUpdate = true;
+  }
+
+  return {scene, camera, renderer, controls, sun, setNightMode};
 }
 
 // ============================================================================

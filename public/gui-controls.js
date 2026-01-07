@@ -5,7 +5,7 @@ import {CONFIG} from './config.js';
 // GUI CONTROLS
 // ============================================================================
 
-export function setupGUI(params, generateForest, updateShadowQuality) {
+export function setupGUI(params, generateForest, updateShadowQuality, setNightMode, generateFireflies) {
   const gui = new GUI({title: 'Controls'});
 
   const envFolder = gui.addFolder('Environment & Shadows');
@@ -15,6 +15,19 @@ export function setupGUI(params, generateForest, updateShadowQuality) {
   envFolder.add(shadowSettings, 'quality', ['none', 'low', 'medium', 'high'])
     .name('Shadow Quality')
     .onChange((value) => updateShadowQuality(value));
+
+  // Add night mode toggle
+  envFolder.add(params, 'nightMode').name('Night Mode').onChange((value) => {
+    setNightMode(value);
+  });
+
+  const fireflyFolder = gui.addFolder('Fireflies');
+  fireflyFolder.add(params, 'firefliesEnabled').name('Enable Fireflies').onChange((value) => {
+    // This will be handled in the main forest.js file
+  });
+  fireflyFolder.add(CONFIG, 'FIREFLY_COUNT', 10, 500, 10).name('Firefly Count');
+  fireflyFolder.add(CONFIG, 'FIREFLY_SIZE', 0.1, 1.0, 0.1).name('Firefly Size');
+  fireflyFolder.add(CONFIG, 'FIREFLY_BRIGHTNESS', 0.5, 2.0, 0.1).name('Brightness');
 
   const forestFolder = gui.addFolder('Forest');
   forestFolder.add(params, 'treeCount', 50, 2000, 50).name('Trees');
