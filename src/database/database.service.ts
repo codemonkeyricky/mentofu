@@ -1,41 +1,62 @@
 import { User } from '../auth/auth.types';
-
-// Import Vercel Postgres for cloud deployment
 import { sql } from '@vercel/postgres';
 
-export class DatabaseService {
-  private db: any;
-  private readonly databasePath: string;
+// Singleton in-memory database
+class MemoryDatabase {
+  private static instance: MemoryDatabase;
+  private db: Map<string, Map<string, any>>;
 
-  // Store database type for runtime decision making
-  private readonly databaseType: 'memory' | 'vercel-postgres';
-
-  constructor(databasePath: string = './quiz.db') {
-    this.databasePath = databasePath;
-
-    // Check if we're running in Vercel environment
-    // Use POSTGRES_URL as the indicator for Vercel Postgres
-    this.databaseType = process.env.POSTGRES_URL ? 'vercel-postgres' : 'memory';
-
-    // Initialize the appropriate database
-    if (this.databaseType === 'memory') {
-      console.log('Using in-memory database for local development');
-      this.db = new Map();
-      this.initMemoryDB();
-    } else {
-      console.log('Using PostgreSQL database (Vercel)');
-      // No initialization needed for Vercel Postgres
-      this.db = null;
-    }
+  private constructor() {
+    this.db = new Map();
+    this.init();
   }
 
-  private initMemoryDB(): void {
-    // Initialize in-memory tables as Maps
+  public static getInstance(): MemoryDatabase {
+    if (!MemoryDatabase.instance) {
+      MemoryDatabase.instance = new MemoryDatabase();
+    }
+    return MemoryDatabase.instance;
+  }
+
+  private init(): void {
     if (!this.db.has('users')) {
       this.db.set('users', new Map());
     }
     if (!this.db.has('session_scores')) {
       this.db.set('session_scores', new Map());
+    }
+    if (!this.db.has('user_multipliers')) {
+      this.db.set('user_multipliers', new Map());
+    }
+  }
+
+  public getTable(tableName: string): Map<string, any> {
+    if (!this.db.has(tableName)) {
+      this.db.set(tableName, new Map());
+    }
+    return this.db.get(tableName)!;
+  }
+
+  public clear(): void {
+    this.db.clear();
+    this.init();
+  }
+}
+
+export class DatabaseService {
+  private readonly databaseType: 'memory' | 'vercel-postgres';
+  private memoryDB: MemoryDatabase | null = null;
+
+  constructor(databasePath: string = './quiz.db') {
+    // Check if we're running in Vercel environment
+    this.databaseType = process.env.POSTGRES_URL ? 'vercel-postgres' : 'memory';
+
+    if (this.databaseType === 'memory') {
+      console.log('Using singleton in-memory database for local development');
+      this.memoryDB = MemoryDatabase.getInstance();
+    } else {
+      console.log('Using PostgreSQL database (Vercel)');
+      // No initialization needed for Vercel Postgres
     }
   }
 
@@ -47,7 +68,8 @@ export class DatabaseService {
           id TEXT PRIMARY KEY,
           username TEXT UNIQUE NOT NULL,
           password_hash TEXT NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          claim INTEGER DEFAULT 0
         )
       `;
 
@@ -59,6 +81,7 @@ export class DatabaseService {
           score INTEGER NOT NULL,
           total INTEGER NOT NULL,
           session_type TEXT NOT NULL,
+          multiplier INTEGER DEFAULT 1,
           completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id)
         )
@@ -81,8 +104,9 @@ export class DatabaseService {
 
   public async createUser(user: Omit<User, 'createdAt'>): Promise<User> {
     if (this.databaseType === 'memory') {
+      const users = this.memoryDB!.getTable('users');
+
       // Check if user already exists by ID or username
-      const users = this.db.get('users');
       if (users.has(user.id)) {
         throw new Error('User already exists');
       }
@@ -99,7 +123,8 @@ export class DatabaseService {
         id: user.id,
         username: user.username,
         passwordHash: user.passwordHash,
-        createdAt: new Date()
+        createdAt: new Date(),
+        claim: 0 // Initialize claim to 0 for new users
       };
 
       users.set(user.id, newUser);
@@ -118,7 +143,7 @@ export class DatabaseService {
         `;
 
         const result = await sqlClient`
-          SELECT id, username, password_hash as "passwordHash", created_at as "createdAt"
+          SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", claim
           FROM users
           WHERE id = ${user.id}
         `;
@@ -141,7 +166,7 @@ export class DatabaseService {
 
   public async findUserByUsername(username: string): Promise<User | null> {
     if (this.databaseType === 'memory') {
-      const users = this.db.get('users');
+      const users = this.memoryDB!.getTable('users');
       for (const user of users.values()) {
         if (user.username === username) {
           return user;
@@ -156,7 +181,7 @@ export class DatabaseService {
       await this.initVercelPostgres();
 
       const result = await sqlClient`
-        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt"
+        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", claim
         FROM users
         WHERE username = ${username}
       `;
@@ -169,14 +194,14 @@ export class DatabaseService {
 
   public async findUserById(userId: string): Promise<User | null> {
     if (this.databaseType === 'memory') {
-      const users = this.db.get('users');
+      const users = this.memoryDB!.getTable('users');
       return users.get(userId) || null;
     } else {
       // Vercel Postgres implementation only
       const sqlClient = sql;
 
       const result = await sqlClient`
-        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt"
+        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", claim
         FROM users
         WHERE id = ${userId}
       `;
@@ -199,7 +224,7 @@ export class DatabaseService {
 
     if (this.databaseType === 'memory') {
       // Create the session score in memory
-      const sessionScores = this.db.get('session_scores');
+      const sessionScores = this.memoryDB!.getTable('session_scores');
       const newScore = {
         id: scoreId,
         user_id: userId,
@@ -207,7 +232,7 @@ export class DatabaseService {
         score: score,
         total: total,
         session_type: sessionType,
-        multiplier: multiplier,
+        multiplier: Math.floor(multiplier),
         completed_at: new Date()
       };
 
@@ -219,7 +244,7 @@ export class DatabaseService {
       try {
         await sqlClient`
           INSERT INTO session_scores (id, user_id, session_id, score, total, session_type, multiplier)
-          VALUES (${scoreId}, ${userId}, ${sessionId}, ${score}, ${total}, ${sessionType}, ${multiplier})
+          VALUES (${scoreId}, ${userId}, ${sessionId}, ${score}, ${total}, ${sessionType}, ${Math.floor(multiplier)})
         `;
       } catch (error: any) {
         throw error;
@@ -229,7 +254,7 @@ export class DatabaseService {
 
   public async getSessionScore(sessionId: string): Promise<{ score: number, total: number, multiplier?: number } | null> {
     if (this.databaseType === 'memory') {
-      const sessionScores = this.db.get('session_scores');
+      const sessionScores = this.memoryDB!.getTable('session_scores');
       for (const score of sessionScores.values()) {
         if (score.session_id === sessionId) {
           return {
@@ -266,7 +291,7 @@ export class DatabaseService {
 
   public async getUserSessionScores(userId: string): Promise<Array<{ sessionId: string, score: number, total: number, sessionType: string, completedAt: Date, multiplier?: number }>> {
     if (this.databaseType === 'memory') {
-      const sessionScores = this.db.get('session_scores');
+      const sessionScores = this.memoryDB!.getTable('session_scores');
       const userScores: Array<{ sessionId: string, score: number, total: number, sessionType: string, completedAt: Date, multiplier?: number }> = [];
 
       for (const score of sessionScores.values()) {
@@ -316,7 +341,7 @@ export class DatabaseService {
 
   public async getUserSessionHistory(userId: string): Promise<any[]> {
     if (this.databaseType === 'memory') {
-      const sessionScores = this.db.get('session_scores');
+      const sessionScores = this.memoryDB!.getTable('session_scores');
       const history: any[] = [];
 
       for (const score of sessionScores.values()) {
@@ -378,12 +403,7 @@ export class DatabaseService {
 
   public async setUserMultiplier(userId: string, quizType: string, multiplier: number): Promise<void> {
     if (this.databaseType === 'memory') {
-      // Initialize multipliers table if it doesn't exist
-      if (!this.db.has('user_multipliers')) {
-        this.db.set('user_multipliers', new Map());
-      }
-
-      const multipliers = this.db.get('user_multipliers');
+      const multipliers = this.memoryDB!.getTable('user_multipliers');
       const key = `${userId}-${quizType}`;
       multipliers.set(key, Math.floor(multiplier)); // Store as integer
     } else {
@@ -405,14 +425,9 @@ export class DatabaseService {
 
   public async getUserMultiplier(userId: string, quizType: string): Promise<number> {
     if (this.databaseType === 'memory') {
-      // Initialize multipliers table if it doesn't exist
-      if (!this.db.has('user_multipliers')) {
-        this.db.set('user_multipliers', new Map());
-      }
-
-      const multipliers = this.db.get('user_multipliers');
+      const multipliers = this.memoryDB!.getTable('user_multipliers');
       const key = `${userId}-${quizType}`;
-      return Math.floor(multipliers.get(key) || 1.0); // Default multiplier of 1 (integer)
+      return Math.floor(multipliers.get(key) || 1); // Default multiplier of 1 (integer)
     } else {
       // Vercel Postgres implementation only
       const sqlClient = sql;
@@ -433,6 +448,69 @@ export class DatabaseService {
       } catch (error: any) {
         throw error;
       }
+    }
+  }
+
+  public async setUserClaim(userId: string, claimAmount: number): Promise<void> {
+    if (this.databaseType === 'memory') {
+      // Get the user from memory database
+      const users = this.memoryDB!.getTable('users');
+      const user = users.get(userId);
+
+      if (user) {
+        // Update the user's claim value
+        user.claim = claimAmount;
+      }
+    } else {
+      // Vercel Postgres implementation only
+      const sqlClient = sql;
+
+      try {
+        await sqlClient`
+          UPDATE users
+          SET claim = ${claimAmount}
+          WHERE id = ${userId}
+        `;
+      } catch (error: any) {
+        throw error;
+      }
+    }
+  }
+
+  public async getUserClaim(userId: string): Promise<number> {
+    if (this.databaseType === 'memory') {
+      // Get the user from memory database
+      const users = this.memoryDB!.getTable('users');
+      const user = users.get(userId);
+
+      return user?.claim || 0;
+    } else {
+      // Vercel Postgres implementation only
+      const sqlClient = sql;
+
+      try {
+        const result = await sqlClient`
+          SELECT claim
+          FROM users
+          WHERE id = ${userId}
+        `;
+
+        // Handle return type from Vercel Postgres
+        const queryResult = result as any;
+        if (queryResult.rows && queryResult.rows.length > 0) {
+          return queryResult.rows[0].claim || 0;
+        }
+        return 0;
+      } catch (error: any) {
+        throw error;
+      }
+    }
+  }
+
+  // Optional: Add a method to clear the in-memory database (useful for testing)
+  public clearMemoryDatabase(): void {
+    if (this.databaseType === 'memory') {
+      this.memoryDB!.clear();
     }
   }
 }

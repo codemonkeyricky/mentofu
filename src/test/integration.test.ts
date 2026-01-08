@@ -10,6 +10,12 @@ describe('Integration Tests', () => {
   // The main app already has its own database connection, so we just need to make sure
   // tests clean up properly without interfering with the main app's connection
 
+  beforeEach(() => {
+    // Clear the in-memory database before each test to ensure isolation
+    const dbService = new DatabaseService();
+    dbService.clearMemoryDatabase();
+  });
+
   describe('Complete Authentication and Session Flow', () => {
     it('should register, login, and create a session in sequence', async () => {
       // Use unique username to avoid conflicts
@@ -931,6 +937,86 @@ describe('Integration Tests', () => {
       // Verify simple words details
       expect(statsResponse.body.details.simpleWords).toHaveProperty('score', words.length);
       expect(statsResponse.body.details.simpleWords).toHaveProperty('count', 1);
+    });
+
+    it('should handle claim operations correctly', async () => {
+      // Register and login a user
+      const username = 'claimuser' + Date.now();
+      const registerResponse = await request(app)
+        .post('/auth/register')
+        .send({
+          username: username,
+          password: 'claimpassword123'
+        });
+      const loginResponse = await request(app)
+        .post('/auth/login')
+        .send({
+          username: username,
+          password: 'claimpassword123'
+        });
+      const userToken = loginResponse.body.token;
+
+      // Create a math quiz session and validate answers to earn points
+      const mathSessionResponse = await request(app)
+        .get('/session/simple-math')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      const mathSessionId = mathSessionResponse.body.sessionId;
+      const mathQuestions = mathSessionResponse.body.questions;
+
+      // Validate answers with correct answers
+      const mathAnswers = mathQuestions.map((q: any) => q.answer);
+      await request(app)
+        .post('/session/simple-math')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          sessionId: mathSessionId,
+          answers: mathAnswers
+        })
+        .expect(200);
+
+      // Get initial claim (should be 0)
+      const initialClaimResponse = await request(app)
+        .get('/stats/claim')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      expect(initialClaimResponse.body).toHaveProperty('claimedAmount', 0);
+
+      // Claim some points
+      const claimAmount = 5;
+      const claimResponse = await request(app)
+        .post('/stats/claim')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          claimedAmount: claimAmount
+        })
+        .expect(200);
+
+      expect(claimResponse.body).toHaveProperty('claimedAmount', claimAmount);
+      expect(claimResponse.body).toHaveProperty('totalScore');
+      expect(claimResponse.body).toHaveProperty('remainingScore');
+
+      // Verify the claim was updated by retrieving it again
+      const updatedClaimResponse = await request(app)
+        .get('/stats/claim')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      
+      expect(updatedClaimResponse.body).toHaveProperty('claimedAmount', claimAmount);
+
+      // Try to claim more points than available (should fail)
+      const invalidClaimResponse = await request(app)
+        .post('/stats/claim')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({
+          claimedAmount: 100 // More than available score
+        })
+        .expect(400);
+
+      expect(invalidClaimResponse.body).toHaveProperty('error.message');
     });
 
     it('should handle empty stats for new users', async () => {

@@ -63,6 +63,22 @@ export class StatsService {
       details
     };
   }
+
+  async getUserClaim(userId: string): Promise<number> {
+    if (!this.databaseService) {
+      throw new Error('Database service not initialized');
+    }
+
+    return await this.databaseService.getUserClaim(userId);
+  }
+
+  async setUserClaim(userId: string, claimAmount: number): Promise<void> {
+    if (!this.databaseService) {
+      throw new Error('Database service not initialized');
+    }
+
+    await this.databaseService.setUserClaim(userId, claimAmount);
+  }
 }
 
 export const statsService = new StatsService();

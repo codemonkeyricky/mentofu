@@ -3,6 +3,7 @@ export interface User {
   username: string;
   passwordHash: string;
   createdAt: Date;
+  claim?: number;
 }
 
 export interface AuthResponse {
