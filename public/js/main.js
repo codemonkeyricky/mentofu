@@ -21,7 +21,7 @@ class MathMasterPro {
             quiz: document.getElementById('quiz-screen'),
             words: document.getElementById('simple-words-screen'),
             results: document.getElementById('results-screen'),
-            reports: document.getElementById('reports-screen')
+            claimCredit: document.getElementById('claim-credit-screen')
         };
 
         // Auth Elements
@@ -33,13 +33,8 @@ class MathMasterPro {
         this.registerForm = document.getElementById('register-form');
         this.userInfo = document.getElementById('user-info');
 
-        // Quiz Elements
-        this.startMathBtn = document.getElementById('start-math-btn');
-        this.startMath2Btn = document.getElementById('start-math-2-btn');
-        this.startMath3Btn = document.getElementById('start-math-3-btn');
-        this.startMath4Btn = document.getElementById('start-math-4-btn');
-        this.startWordsBtn = document.getElementById('start-words-btn');
-        this.reportsBtn = document.getElementById('reports-btn');
+        // Quiz Elements - Updated to remove hardcoded IDs and use data attributes
+        this.claimCreditBtn = document.getElementById('claim-credit-btn');
         this.submitBtn = document.getElementById('submit-btn');
         this.submitWordsBtn = document.getElementById('submit-words-btn');
         this.restartBtn = document.getElementById('restart-btn');
@@ -120,21 +115,27 @@ class MathMasterPro {
             await this.registerUser(username, password);
         });
 
-        // Quiz Event Listeners
-        this.startMathBtn?.addEventListener('click', () => this.quizManager.startQuiz('math'));
-        this.startMath2Btn?.addEventListener('click', () => this.quizManager.startQuiz('math-2'));
-        this.startMath3Btn?.addEventListener('click', () => this.quizManager.startQuiz('math-3'));
-        this.startMath4Btn?.addEventListener('click', () => this.quizManager.startQuiz('math-4'));
-        this.startWordsBtn?.addEventListener('click', () => this.quizManager.startQuiz('words'));
+        // Quiz Event Listeners - Updated to use data attributes
+        // Handle start quiz buttons in the quiz cards
+        const startQuizButtons = document.querySelectorAll('.start-quiz-btn');
+        startQuizButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                const card = e.target.closest('.quiz-card');
+                if (card && card.dataset.quizType) {
+                    this.quizManager.startQuiz(card.dataset.quizType);
+                }
+            });
+        });
 
-        this.reportsBtn?.addEventListener('click', () => {
+        // Handle claim credit button
+        this.claimCreditBtn?.addEventListener('click', () => {
             if (!this.currentToken) {
                 this.showNotification('Please log in to view reports', 'warning');
                 this.showScreen('auth');
                 return;
             }
-            this.showScreen('reports');
-            this.fetchSessionReports();
+            this.showScreen('claimCredit');
+            this.fetchClaimCredit();
         });
 
         this.submitBtn?.addEventListener('click', () => this.quizManager.submitAnswers());
@@ -143,6 +144,22 @@ class MathMasterPro {
         this.dashboardBtn?.addEventListener('click', () => this.showScreen('start'));
         this.backToStartBtn?.addEventListener('click', () => this.showScreen('start'));
         this.logoutBtn?.addEventListener('click', () => this.logoutUser());
+
+        // Handle claim credit button
+        const claimCreditsBtn = document.getElementById('claim-credits-btn');
+        claimCreditsBtn?.addEventListener('click', () => {
+            if (!this.currentToken) {
+                this.showNotification('Please log in to claim credits', 'warning');
+                this.showScreen('auth');
+                return;
+            }
+            const creditsInput = document.getElementById('credits-input');
+            if (creditsInput && creditsInput.value) {
+                this.claimCredits(parseInt(creditsInput.value));
+            } else {
+                this.showNotification('Please enter a valid credit amount', 'warning');
+            }
+        });
 
         // Add cleanup observer for charts
         this.initChartCleanupObserver();
@@ -394,7 +411,7 @@ class MathMasterPro {
         }
     }
 
-    updateDashboardStats() {
+    async updateDashboardStats() {
         // Update stats from user data or API
         const totalQuizzes = localStorage.getItem('totalQuizzes') || 0;
         const averageScore = localStorage.getItem('averageScore') || 0;
@@ -405,6 +422,76 @@ class MathMasterPro {
 
         this.quizStats.totalQuizzes = parseInt(totalQuizzes);
         this.quizStats.averageScore = parseFloat(averageScore);
+
+        // Fetch user stats from API if user is authenticated
+        if (this.currentToken && this.currentUser) {
+            await this.fetchUserStats();
+        }
+    }
+
+    async fetchUserStats() {
+        try {
+            const response = await fetch('/stats', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.currentToken}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const stats = await response.json();
+
+            // Update dashboard with user stats
+            this.displayUserStats(stats);
+        } catch (error) {
+            console.error('Error fetching user stats:', error);
+            // Fallback to local storage if API call fails
+            this.displayUserStats({
+                totalScore: localStorage.getItem('totalScore') || 0,
+                sessionsCount: localStorage.getItem('sessionsCount') || 0
+            });
+        }
+    }
+
+    displayUserStats(stats) {
+        // Create or update the user stats display in the dashboard
+        const dashboardHeader = document.querySelector('.dashboard-header');
+        if (!dashboardHeader) return;
+
+        // Check if stats already exist to avoid duplication
+        const existingStatsElement = dashboardHeader.querySelector('.user-stats');
+        if (existingStatsElement) {
+            existingStatsElement.remove();
+        }
+
+        // Create new stats element
+        const statsElement = document.createElement('div');
+        statsElement.className = 'user-stats';
+        statsElement.innerHTML = `
+            <div class="stats-container">
+                <div class="stat-card">
+                    <h4>Total Score</h4>
+                    <p class="score-value">${stats.totalScore || 0}</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Claimed Credit</h4>
+                    <p class="sessions-value">${stats.claimCredit || 0}</p>
+                </div>
+            </div>
+        `;
+
+        // Insert stats before logout button
+        const logoutBtn = dashboardHeader.querySelector('#logout-btn');
+        if (logoutBtn) {
+            dashboardHeader.insertBefore(statsElement, logoutBtn);
+        } else {
+            // If no logout button, append to the header
+            dashboardHeader.appendChild(statsElement);
+        }
     }
 
     startTimer(timerType = 'quiz') {
@@ -428,9 +515,52 @@ class MathMasterPro {
         return timer.elapsed;
     }
 
-    fetchSessionReports() {
-        // To be implemented in reports module
-        console.log('Fetching session reports');
+    fetchClaimCredit() {
+        // Fetch existing claim credit data
+        this.fetchSessionReports();
+    }
+
+    async claimCredits(credits) {
+        try {
+            if (!this.currentToken) {
+                throw new Error('User not authenticated');
+            }
+
+            // Validate input
+            if (isNaN(credits) || credits <= 0) {
+                throw new Error('Invalid credit amount');
+            }
+
+            const response = await fetch('/stats/claim', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.currentToken}`
+                },
+                body: JSON.stringify({ claimedAmount: credits })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            // Update the UI with new credit information
+            this.showNotification(`Successfully claimed ${credits} credits!`, 'success');
+
+            // Refresh user stats to show updated credit
+            this.updateDashboardStats();
+
+            // Clear the input field
+            document.getElementById('credits-input').value = '';
+
+            return result;
+        } catch (error) {
+            console.error('Error claiming credits:', error);
+            this.showNotification(`Failed to claim credits: ${error.message}`, 'error');
+            throw error;
+        }
     }
 
     initForestRendering() {

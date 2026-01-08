@@ -26,7 +26,7 @@ export function setupAnimationLoop(
 
     // Update fireflies - ADD NULL CHECK HERE
     if (fireflies && fireflies.mesh) {
-      console.log('Updating fireflies...');  // Debug log
+      // console.log('Updating fireflies...');  // Debug log
       fireflies.update(performance.now() * 0.001);
     }
 

@@ -16,15 +16,15 @@ class QuizManager {
         this.currentQuizType = quizType;
 
         switch (quizType) {
-            case 'math':
+            case 'simple-math':
                 return await this.mathQuiz.startQuiz();
-            case 'math-2':
+            case 'simple-math-2':
                 return await this.divisionQuiz.startQuiz();
-            case 'math-3':
+            case 'simple-math-3':
                 return await this.fractionQuiz.startQuiz();
-            case 'math-4':
+            case 'simple-math-4':
                 return await this.bodmasQuiz.startQuiz();
-            case 'words':
+            case 'simple-words':
                 return await this.spellingQuiz.startQuiz();
             default:
                 console.error('Invalid quiz type:', quizType);
@@ -34,13 +34,13 @@ class QuizManager {
 
     async submitAnswers() {
         switch (this.currentQuizType) {
-            case 'math':
+            case 'simple-math':
                 return await this.mathQuiz.submitAnswers();
-            case 'math-2':
+            case 'simple-math-2':
                 return await this.divisionQuiz.submitAnswers();
-            case 'math-3':
+            case 'simple-math-3':
                 return await this.fractionQuiz.submitAnswers();
-            case 'math-4':
+            case 'simple-math-4':
                 return await this.bodmasQuiz.submitAnswers();
             default:
                 console.error('Invalid quiz type for submission:', this.currentQuizType);
@@ -49,7 +49,7 @@ class QuizManager {
     }
 
     async submitWordsAnswers() {
-        if (this.currentQuizType === 'words') {
+        if (this.currentQuizType === 'simple-words') {
             return await this.spellingQuiz.submitAnswers();
         } else {
             console.error('Invalid quiz type for words submission:', this.currentQuizType);
@@ -59,15 +59,15 @@ class QuizManager {
 
     restartQuiz() {
         switch (this.currentQuizType) {
-            case 'math':
+            case 'simple-math':
                 return this.mathQuiz.restartQuiz();
-            case 'math-2':
+            case 'simple-math-2':
                 return this.divisionQuiz.restartQuiz();
-            case 'math-3':
+            case 'simple-math-3':
                 return this.fractionQuiz.restartQuiz();
-            case 'math-4':
+            case 'simple-math-4':
                 return this.bodmasQuiz.restartQuiz();
-            case 'words':
+            case 'simple-words':
                 return this.spellingQuiz.restartQuiz();
             default:
                 console.error('Invalid quiz type for restart:', this.currentQuizType);

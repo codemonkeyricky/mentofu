@@ -457,7 +457,10 @@ export class DatabaseService {
       const users = this.memoryDB!.getTable('users');
       const user = users.get(userId);
 
+      console.log(`## setUserClaim: Setting claim for user ${userId} to amount ${claimAmount}`);
+
       if (user) {
+        console.log(`## setUserClaim: 2 `);
         // Update the user's claim value
         user.claim = claimAmount;
       }
@@ -482,6 +485,8 @@ export class DatabaseService {
       // Get the user from memory database
       const users = this.memoryDB!.getTable('users');
       const user = users.get(userId);
+
+      console.log(`## getUserClaim: Retrieved claim for user ${userId}: ${user?.claim || 0}`);
 
       return user?.claim || 0;
     } else {

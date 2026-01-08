@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { sessionService } from '../session/session.service';
 import { statsService } from './stats.service';
 import { authenticate } from '../middleware/auth.middleware';
 
@@ -10,12 +11,32 @@ statsRouter.get('/', authenticate, async (req: Request, res: Response) => {
     // Get user from auth middleware
     const user = (req as any).user;
 
-    const stats = await statsService.getUserStats(user.userId);
+    const stats = await sessionService.getUserStats(user.userId);
+
+    // Transform the details array into grouped object format expected by tests
+    const details: Record<string, { score: number; count: number }> = {};
+
+    // Group by quiz type and calculate total score and count
+    for (const detail of stats.details) {
+      let quizType = detail.sessionType;
+
+      // Map session types to match test expectations
+      if (quizType === 'simple_words') {
+        quizType = 'simpleWords';
+      }
+
+      if (!details[quizType]) {
+        details[quizType] = { score: 0, count: 0 };
+      }
+
+      details[quizType].score += detail.weightedScore;
+      details[quizType].count += 1;
+    }
 
     res.status(200).json({
       totalScore: stats.totalScore,
       sessionsCount: stats.sessionsCount,
-      details: stats.details
+      details
     });
   } catch (error) {
     console.error('Error retrieving user stats:', error);
@@ -71,7 +92,7 @@ statsRouter.post('/claim', authenticate, async (req: Request, res: Response) => 
     }
 
     // Get current stats for the user
-    const stats = await statsService.getUserStats(user.userId);
+    const stats = await sessionService.getUserStats(user.userId);
 
     // Check if claimed amount exceeds total score
     if (claimedAmount > stats.totalScore) {

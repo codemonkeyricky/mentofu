@@ -8,7 +8,7 @@ function showAuthScreens() {
     quizScreen.classList.remove('active');
     simpleWordsScreen.classList.remove('active');
     resultsScreen.classList.remove('active');
-    reportsScreen.classList.remove('active');
+    claimCreditScreen.classList.remove('active');
 }
 
 function showAuthenticatedScreens() {
@@ -19,11 +19,11 @@ function showAuthenticatedScreens() {
     quizScreen.classList.remove('active');
     simpleWordsScreen.classList.remove('active');
     resultsScreen.classList.remove('active');
-    reportsScreen.classList.remove('active');
+    claimCreditScreen.classList.remove('active');
 }
 
-// Fetch and display session reports
-async function fetchSessionReports() {
+// Fetch and display claim credit data
+async function fetchClaimCredit() {
     try {
         const response = await fetch('/session/all', {
             method: 'GET',
@@ -39,19 +39,19 @@ async function fetchSessionReports() {
 
         const reports = await response.json();
 
-        // Display reports
-        displaySessionReports(reports);
+        // Display claim credit data
+        displayClaimCredit(reports);
     } catch (error) {
-        console.error('Error fetching session reports:', error);
-        alert(`Failed to fetch session reports. Please try again.\nError: ${error.message}`);
+        console.error('Error fetching claim credit data:', error);
+        alert(`Failed to fetch claim credit data. Please try again.\nError: ${error.message}`);
     }
 }
 
-// Display session reports
-function displaySessionReports(reports) {
-    // Check if reports is properly formatted
+// Display claim credit data
+function displayClaimCredit(reports) {
+    // Check if data is properly formatted
     if (!reports || !Array.isArray(reports.sessions)) {
-        console.error('Invalid reports data format:', reports);
+        console.error('Invalid claim credit data format:', reports);
         reportsContainer.innerHTML = '<p>No session reports available.</p>';
         return;
     }
@@ -78,4 +78,10 @@ function displaySessionReports(reports) {
     html += '</div>';
 
     reportsContainer.innerHTML = html;
+}
+
+// Update the UI to show claim credit button
+function updateClaimCreditUI() {
+    // This function can be used to update the UI when credits are claimed
+    // For now, it's a placeholder that could be extended in the future
 }

@@ -2,17 +2,7 @@ import { DatabaseService } from '../database/database.service';
 
 export interface UserStats {
   totalScore: number;
-  sessionsCount: number;
-  details: {
-    math?: {
-      score: number;
-      count: number;
-    };
-    simpleWords?: {
-      score: number;
-      count: number;
-    };
-  };
+  claimCredit: number;
 }
 
 export class StatsService {
@@ -22,7 +12,7 @@ export class StatsService {
     this.databaseService = databaseService;
   }
 
-  async getUserStats(userId: string): Promise<UserStats> {
+  async getUserStats(userId: string): Promise<UserStats & { claimCredit: number }> {
     if (!this.databaseService) {
       throw new Error('Database service not initialized');
     }
@@ -32,35 +22,18 @@ export class StatsService {
 
     // Calculate total score and session count
     let totalScore = 0;
-    let sessionsCount = 0;
-    const details: UserStats['details'] = {};
+    let claimCredit = await this.getUserClaim(userId);
 
     // Group by quiz type and calculate totals
     for (const score of scores) {
       // Calculate weighted score using multiplier
       const weightedScore = score.score * (score.multiplier || 1);
       totalScore += weightedScore;
-      sessionsCount++;
-
-      if (score.sessionType === 'math') {
-        if (!details.math) {
-          details.math = { score: 0, count: 0 };
-        }
-        details.math.score += weightedScore;
-        details.math.count++;
-      } else if (score.sessionType === 'simple_words') {
-        if (!details.simpleWords) {
-          details.simpleWords = { score: 0, count: 0 };
-        }
-        details.simpleWords.score += weightedScore;
-        details.simpleWords.count++;
-      }
     }
 
     return {
       totalScore,
-      sessionsCount,
-      details
+      claimCredit
     };
   }
 

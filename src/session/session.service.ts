@@ -530,6 +530,7 @@ class SessionService {
       score: number;
       multiplier: number;
       weightedScore: number;
+      sessionType: string;
     }>
   }> {
     if (!this.databaseService) {
@@ -555,7 +556,8 @@ class SessionService {
         sessionId: score.sessionId,
         score: score.score,
         multiplier: multiplier,
-        weightedScore: weightedScore
+        weightedScore: weightedScore,
+        sessionType: score.sessionType
       });
     }
 
