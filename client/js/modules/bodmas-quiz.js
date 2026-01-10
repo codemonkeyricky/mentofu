@@ -1,5 +1,7 @@
+import QuizBase from './quiz-base.js';
+
 // BODMAS quiz module for order of operations problems
-class BODMASQuiz extends QuizBase {
+export default class BODMASQuiz extends QuizBase {
     constructor(mathMasterPro) {
         super(mathMasterPro);
         this.currentQuestions = [];

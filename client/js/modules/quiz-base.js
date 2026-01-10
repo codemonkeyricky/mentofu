@@ -1,5 +1,5 @@
 // Base class for all quiz types with shared functionality
-class QuizBase {
+export default class QuizBase {
     constructor(mathMasterPro) {
         this.mathMasterPro = mathMasterPro;
         this.currentSessionId = '';

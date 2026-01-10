@@ -1,5 +1,7 @@
+import QuizManager from './modules/quiz-manager.js';
+
 // Main Application Entry Point - Professional Version
-class MathMasterPro {
+export class MathMasterPro {
     constructor() {
         this.initDOMReferences();
         this.initGlobalVariables();
@@ -515,9 +517,56 @@ class MathMasterPro {
         return timer.elapsed;
     }
 
-    fetchClaimCredit() {
-        // Fetch existing claim credit data
-        this.fetchSessionReports();
+    async fetchSessionReports() {
+        try {
+            const response = await fetch('/session/all', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.currentToken}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const reports = await response.json();
+            this.displaySessionReports(reports);
+        } catch (error) {
+            console.error('Error fetching session reports:', error);
+            this.showNotification(`Failed to fetch reports: ${error.message}`, 'error');
+        }
+    }
+
+    displaySessionReports(reports) {
+        if (!reports || !Array.isArray(reports.sessions) || reports.sessions.length === 0) {
+            this.reportsContainer.innerHTML = '<p class="text-center text-muted">No session reports available.</p>';
+            return;
+        }
+
+        let html = '<div class="reports-list">';
+        reports.sessions.forEach(report => {
+            const date = new Date(report.completedAt);
+            const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const percentage = Math.round((report.score / report.total) * 100);
+            
+            html += `
+                <div class="report-item glass-card mb-3 p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="mb-0">${report.sessionType === 'math' ? 'Math Quiz' : 'Simple Words Quiz'}</h5>
+                        <span class="badge ${percentage >= 70 ? 'bg-success' : 'bg-warning'}">${percentage}%</span>
+                    </div>
+                    <div class="report-details">
+                        <p class="mb-1"><strong>Score:</strong> ${report.score}/${report.total}</p>
+                        <p class="mb-0 text-muted small"><i class="fas fa-calendar-alt me-1"></i> ${formattedDate}</p>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+
+        this.reportsContainer.innerHTML = html;
     }
 
     async claimCredits(credits) {
@@ -592,5 +641,7 @@ class MathMasterPro {
 
 // Initialize application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.mathMasterPro = new MathMasterPro();
+    const app = new MathMasterPro();
+    window.mathMasterPro = app;
+    window.app = app;
 });

@@ -24,7 +24,7 @@ statsService.setDatabaseService(databaseService);
 
 // Middleware
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, '../dist/client')));
 
 // Routes
 app.use('/auth', authRouter);
@@ -50,7 +50,7 @@ app.get('/endpoints', (req: Request, res: Response) => {
 
 // Serve the main HTML file for all other routes (for SPA)
 app.get('*', (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+  res.sendFile(path.join(__dirname, '../dist/client/index.html'));
 });
 
 // Export app for testing

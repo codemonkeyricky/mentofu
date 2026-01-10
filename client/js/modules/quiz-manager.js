@@ -1,5 +1,11 @@
+import MathQuiz from './math-quiz.js';
+import DivisionQuiz from './division-quiz.js';
+import FractionQuiz from './fraction-quiz.js';
+import BODMASQuiz from './bodmas-quiz.js';
+import SpellingQuiz from './spelling-quiz.js';
+
 // Main Quiz Manager that coordinates between different quiz types
-class QuizManager {
+export default class QuizManager {
     constructor(mathMasterPro) {
         this.mathMasterPro = mathMasterPro;
         this.currentQuizType = 'math';

@@ -4,9 +4,11 @@
   "description": "REST API for multiplication quiz sessions",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && vite build",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "ts-node src/index.ts",
+    "dev:client": "vite",
     "test": "jest",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run"
@@ -19,13 +21,17 @@
     "@vercel/postgres": "^0.10.0",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
+    "chart.js": "^4.5.1",
     "dotenv": "^17.2.3",
     "express": "^4.18.2",
     "express-list-endpoints": "^7.1.1",
     "jest": "^30.2.0",
     "jsonwebtoken": "^9.0.3",
+    "lil-gui": "^0.21.0",
     "node-fetch": "^3.3.2",
     "pg": "^8.16.3",
+    "stats-gl": "^3.8.0",
+    "three": "^0.182.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
@@ -36,11 +42,13 @@
     "@types/node": "^20.5.0",
     "@types/supertest": "^6.0.3",
     "@types/uuid": "^11.0.0",
+    "concurrently": "^9.2.1",
     "cypress": "^15.8.1",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.1",
-    "typescript": "^5.1.6"
+    "typescript": "^5.1.6",
+    "vite": "^7.3.1"
   },
   "engines": {
     "node": "20.x"

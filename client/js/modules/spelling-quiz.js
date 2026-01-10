@@ -1,5 +1,7 @@
+import QuizBase from './quiz-base.js';
+
 // Spelling quiz module
-class SpellingQuiz extends QuizBase {
+export default class SpellingQuiz extends QuizBase {
     constructor(mathMasterPro) {
         super(mathMasterPro);
         this.currentWords = [];

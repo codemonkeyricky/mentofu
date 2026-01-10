@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
 import {CONFIG} from './config.js';
 
 // ============================================================================
@@ -58,7 +58,6 @@ export function setupScene() {
   });
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.physicallyCorrectLights = true;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;

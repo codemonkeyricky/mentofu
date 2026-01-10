@@ -1,5 +1,7 @@
-// Division quiz module for division problems
-class DivisionQuiz extends QuizBase {
+import QuizBase from './quiz-base.js';
+
+// Math quiz module for multiplication problems
+export default class MathQuiz extends QuizBase {
     constructor(mathMasterPro) {
         super(mathMasterPro);
         this.currentQuestions = [];
@@ -15,7 +17,7 @@ class DivisionQuiz extends QuizBase {
             }
 
             // Show loading state with professional animation
-            const button = this.mathMasterPro.startMath2Btn;
+            const button = this.mathMasterPro.startMathBtn;
             if (button) {
                 button.disabled = true;
                 const originalHTML = button.innerHTML;
@@ -26,10 +28,10 @@ class DivisionQuiz extends QuizBase {
                 button.setAttribute('data-original-html', originalHTML);
             }
 
-            this.currentQuizType = 'math-2';
+            this.currentQuizType = 'math';
 
             // Fetch new session from API
-            const response = await fetch('/session/simple-math-2', {
+            const response = await fetch('/session/simple-math', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -64,11 +66,11 @@ class DivisionQuiz extends QuizBase {
             );
 
             // Reset button states
-            const button = this.mathMasterPro.startMath2Btn;
+            const button = this.mathMasterPro.startMathBtn;
             if (button) {
                 button.disabled = false;
                 const originalHTML = button.getAttribute('data-original-html');
-                button.innerHTML = originalHTML || this.getDefaultButtonHTML('math-2');
+                button.innerHTML = originalHTML || this.getDefaultButtonHTML('math');
             }
         }
     }
@@ -105,7 +107,7 @@ class DivisionQuiz extends QuizBase {
             }
 
             // Submit to API
-            const response = await fetch('/session/simple-math-2', {
+            const response = await fetch('/session/simple-math', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -205,7 +207,10 @@ class DivisionQuiz extends QuizBase {
         });
 
         this.updateProgress();
-        this.scrollToFirstUnanswered();
+        // Focus on first unanswered question after a short delay
+        setTimeout(() => {
+            this.scrollToFirstUnanswered();
+        }, 100);
     }
 
     handleAnswerInput(event) {

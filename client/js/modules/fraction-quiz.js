@@ -1,5 +1,7 @@
+import QuizBase from './quiz-base.js';
+
 // Fraction comparison quiz module
-class FractionQuiz extends QuizBase {
+export default class FractionQuiz extends QuizBase {
     constructor(mathMasterPro) {
         super(mathMasterPro);
         this.currentQuestions = [];
