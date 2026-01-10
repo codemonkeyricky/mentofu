@@ -24,7 +24,20 @@ statsService.setDatabaseService(databaseService);
 
 // Middleware
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../dist/client')));
+
+// Simple CORS middleware
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+const publicPath = path.join(__dirname, '../../dist/public');
+app.use(express.static(publicPath));
 
 // Routes
 app.use('/auth', authRouter);
@@ -50,7 +63,15 @@ app.get('/endpoints', (req: Request, res: Response) => {
 
 // Serve the main HTML file for all other routes (for SPA)
 app.get('*', (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, '../dist/public/index.html'));
+  const indexPath = path.join(publicPath, 'index.html');
+  // Check if file exists to avoid crashing if not built
+  import('fs').then(fs => {
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).json({ message: 'Frontend not built yet. Please run npm run build.' });
+    }
+  });
 });
 
 // Export app for testing

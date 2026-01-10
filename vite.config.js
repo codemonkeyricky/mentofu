@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
+import path from 'path';
 
 export default defineConfig({
+  root: 'src/client',
   server: {
     proxy: {
       '/auth': 'http://localhost:4000',
@@ -11,10 +13,11 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: 'index.html',
+        main: path.resolve(__dirname, 'src/client/index.html'),
       },
     },
-    outDir: 'dist/public',
+    outDir: path.resolve(__dirname, 'dist/public'),
     emptyOutDir: true,
-  }
+  },
+  publicDir: path.resolve(__dirname, 'src/client/public'),
 });
