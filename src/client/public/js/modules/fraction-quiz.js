@@ -170,36 +170,28 @@ export default class FractionQuiz extends QuizBase {
             const frac2 = question.question[1];
 
             questionCard.innerHTML = `
-                <div class="card-header">
-                    <span class="badge bg-primary">Question ${index + 1}</span>
-                    <span class="question-type">Fraction Comparison</span>
-                </div>
-                <div class="card-body">
-                    <div class="question-text mb-4">
-                        <h6 class="text-muted mb-3">Compare the fractions:</h6>
-                        <div class="fraction-comparison">
-                            <div class="fraction-item">
-                                <div class="fraction-chart">
-                                    <canvas id="chart-${index}-1" width="100" height="100"></canvas>
-                                </div>
-                                <div class="fraction-label">${frac1.numerator}/${frac1.denominator}</div>
-                            </div>
-                            <div class="comparison-operator-container">
-                                <select class="form-select form-select-lg answer-input"
-                                        id="answer-${index}"
-                                        data-index="${index}">
-                                    <option value="">Select comparison</option>
-                                    <option value="<">&lt; (less than)</option>
-                                    <option value=">">&gt; (greater than)</option>
-                                    <option value="=">= (equal to)</option>
-                                </select>
-                            </div>
-                            <div class="fraction-item">
-                                <div class="fraction-chart">
-                                    <canvas id="chart-${index}-2" width="100" height="100"></canvas>
-                                </div>
-                                <div class="fraction-label">${frac2.numerator}/${frac2.denominator}</div>
-                            </div>
+                <div class="question-container-compact">
+                    <div class="question-info">
+                        <span class="badge bg-primary me-2">Q${index + 1}</span>
+                    </div>
+                    <div class="fraction-comparison-compact flex-grow-1">
+                        <div class="fraction-item-compact">
+                            <canvas id="chart-${index}-1" width="60" height="60"></canvas>
+                            <span class="fraction-label-compact">${frac1.numerator}/${frac1.denominator}</span>
+                        </div>
+                        <div class="comparison-operator-compact">
+                            <select class="form-select form-select-sm answer-input"
+                                    id="answer-${index}"
+                                    data-index="${index}">
+                                <option value="">?</option>
+                                <option value="<">&lt;</option>
+                                <option value=">">&gt;</option>
+                                <option value="=">=</option>
+                            </select>
+                        </div>
+                        <div class="fraction-item-compact">
+                            <canvas id="chart-${index}-2" width="60" height="60"></canvas>
+                            <span class="fraction-label-compact">${frac2.numerator}/${frac2.denominator}</span>
                         </div>
                     </div>
                 </div>

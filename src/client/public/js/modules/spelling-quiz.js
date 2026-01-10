@@ -166,42 +166,26 @@ export default class SpellingQuiz extends QuizBase {
             wordCard.style.animationDelay = `${index * 0.1}s`;
 
             wordCard.innerHTML = `
-                <div class="card-header">
-                    <span class="badge bg-success">Word ${index + 1}</span>
-                    <span class="question-type">Spelling Challenge</span>
-                </div>
-                <div class="card-body">
-                    <div class="word-content">
-                        <div class="word-hint mb-3">
-                            <h6 class="text-muted mb-2">Listen and spell:</h6>
-                            <p class="h5 text-dark">${word.hint || 'Listen to the word and type it below'}</p>
-                        </div>
-
-                        <div class="word-controls d-flex align-items-center mb-4">
-                            <button class="btn btn-outline-primary play-button me-3"
-                                    data-word="${word.word}"
-                                    data-index="${index}">
-                                <i class="fas fa-volume-up me-2"></i>Play Audio
-                            </button>
-                            <div class="text-muted">
-                                <small><i class="fas fa-info-circle me-1"></i>Click to hear pronunciation</small>
-                            </div>
-                        </div>
-
-                        <div class="answer-section">
-                            <label for="word-${index}" class="form-label">Type the word:</label>
-                            <input type="text"
-                                   class="form-control form-control-lg answer-input"
-                                   id="word-${index}"
-                                   placeholder="Type the word here..."
-                                   data-index="${index}"
-                                   autocomplete="off"
-                                   spellcheck="false">
-                            <div class="form-text d-flex justify-content-between align-items-center mt-2">
-                                <span>Length: ${word.word?.length || '?'} letters</span>
-                                <span class="char-counter">0/${word.word?.length || 0}</span>
-                            </div>
-                        </div>
+                <div class="question-container-compact">
+                    <div class="question-info">
+                        <span class="badge bg-success me-2">W${index + 1}</span>
+                        <button class="btn btn-sm btn-outline-primary play-button"
+                                data-word="${word.word}"
+                                data-index="${index}">
+                            <i class="fas fa-volume-up"></i>
+                        </button>
+                    </div>
+                    <div class="answer-wrapper flex-grow-1">
+                        <input type="text"
+                               class="form-control answer-input"
+                               id="word-${index}"
+                               placeholder="Type word"
+                               data-index="${index}"
+                               autocomplete="off"
+                               spellcheck="false">
+                    </div>
+                    <div class="char-counter-compact">
+                        <small class="char-counter">0/${word.word?.length || 0}</small>
                     </div>
                 </div>
             `;

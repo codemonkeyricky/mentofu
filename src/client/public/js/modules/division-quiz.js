@@ -167,26 +167,20 @@ export default class DivisionQuiz extends QuizBase {
 
             // Handle regular math questions
             questionCard.innerHTML = `
-                <div class="card-header">
-                    <span class="badge bg-primary">Question ${index + 1}</span>
-                    <span class="question-type">Math Problem</span>
-                </div>
-                <div class="card-body">
-                    <div class="question-text mb-4">
-                        <h6 class="text-muted mb-2">Solve the following:</h6>
-                        <h5 class="mb-4">${question.question}</h5>
+                <div class="question-container-compact">
+                    <div class="question-info">
+                        <span class="badge bg-primary me-2">Q${index + 1}</span>
+                        <span class="question-text-main">${question.question}</span>
                     </div>
-                    <div class="answer-section">
-                        <label for="answer-${index}" class="form-label">Your Answer</label>
+                    <div class="answer-wrapper">
                         <input type="number"
-                               class="form-control form-control-lg answer-input"
+                               class="form-control answer-input"
                                id="answer-${index}"
-                               placeholder="Enter your answer here"
+                               placeholder="Answer"
                                min="0"
                                max="999"
                                step="0.01"
                                data-index="${index}">
-                        <div class="form-text">Please enter a numeric value</div>
                     </div>
                 </div>
             `;

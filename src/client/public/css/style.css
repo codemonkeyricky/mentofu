@@ -486,36 +486,90 @@ main {
 
 /* Questions Container */
 .questions-container {
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
 .question-card {
     background: var(--glass-bg);
     backdrop-filter: blur(10px);
-    border-radius: var(--border-radius);
-    padding: 10px;
-    margin-bottom: 5px;
+    border-radius: var(--border-radius-sm);
+    padding: 8px 12px;
+    margin-bottom: 8px;
     border: 1px solid var(--glass-border);
+    transition: var(--transition);
 }
 
-.question-text {
-    font-size: 1.8rem;
+.question-container-compact {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    width: 100%;
+}
+
+.question-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: fit-content;
+}
+
+.question-text-main {
+    font-size: 1.2rem;
     font-weight: 600;
-    text-align: center;
-    margin: 15px 0;
     color: var(--light-color);
+}
+
+.answer-wrapper {
+    flex: 0 0 150px;
 }
 
 .answer-input {
     width: 100%;
-    padding: 12px 20px;
-    font-size: 1.1rem;
+    padding: 6px 12px;
+    font-size: 1rem;
     text-align: center;
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid transparent;
     border-radius: var(--border-radius-sm);
     color: var(--light-color);
     transition: var(--transition);
+}
+
+/* Fraction Comparison Compact */
+.fraction-comparison-compact {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.fraction-item-compact {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.fraction-item-compact canvas {
+    max-width: 50px;
+    max-height: 50px;
+}
+
+.fraction-label-compact {
+    font-size: 0.8rem;
+    color: var(--gray-light);
+    font-weight: 600;
+}
+
+.comparison-operator-compact {
+    width: 60px;
+}
+
+.char-counter-compact {
+    min-width: 40px;
+    text-align: right;
+    color: var(--gray-light);
 }
 
 .answer-input:focus {
@@ -781,8 +835,17 @@ main {
         flex-direction: column;
     }
 
-    .question-text {
-        font-size: 1.8rem;
+    .question-container-compact {
+        flex-wrap: wrap;
+    }
+
+    .question-info {
+        flex: 1 1 100%;
+        margin-bottom: 5px;
+    }
+
+    .answer-wrapper {
+        flex: 1 1 100%;
     }
 
     .quiz-header {
