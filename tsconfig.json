@@ -1,1 +1,28 @@
-{"compilerOptions": {"target": "ES2020", "module": "commonjs", "lib": ["ES2020"], "types": ["node", "express", "jest"], "outDir": "./dist", "rootDir": "./src", "strict": true, "esModuleInterop": true, "skipLibCheck": true, "forceConsistentCasingInFileNames": true, "resolveJsonModule": true, "downlevelIteration": true}, "include": ["src/**/*", "src/test/**/*.ts"], "exclude": ["node_modules", "**/*.spec.ts"]}
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "types": [
+      "node",
+      "express",
+      "jest"
+    ],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "downlevelIteration": true
+  },
+  "include": [
+    "src/**/*",
+    "src/test/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts"
+  ]
+}

@@ -50,7 +50,7 @@ app.get('/endpoints', (req: Request, res: Response) => {
 
 // Serve the main HTML file for all other routes (for SPA)
 app.get('*', (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, '../dist/client/index.html'));
+  res.sendFile(path.join(__dirname, '../dist/public/index.html'));
 });
 
 // Export app for testing

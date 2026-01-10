@@ -12,10 +12,9 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: 'index.html',
-        forest: 'forest.html',
       },
     },
-    outDir: 'dist/client',
+    outDir: 'dist/public',
     emptyOutDir: true,
   }
 });
