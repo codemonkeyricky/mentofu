@@ -73,6 +73,16 @@ export class DatabaseService {
         )
       `;
 
+      // Migration: Add 'claim' column to 'users' if it doesn't exist
+      await sql`
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='claim') THEN
+                ALTER TABLE users ADD COLUMN claim INTEGER DEFAULT 0;
+            END IF;
+        END $$;
+      `;
+
       await sql`
         CREATE TABLE IF NOT EXISTS session_scores (
           id TEXT PRIMARY KEY,
@@ -85,6 +95,16 @@ export class DatabaseService {
           completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id)
         )
+      `;
+
+      // Migration: Add 'multiplier' column to 'session_scores' if it doesn't exist
+      await sql`
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='session_scores' AND column_name='multiplier') THEN
+                ALTER TABLE session_scores ADD COLUMN multiplier INTEGER DEFAULT 1;
+            END IF;
+        END $$;
       `;
 
       await sql`
