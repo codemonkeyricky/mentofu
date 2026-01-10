@@ -15,11 +15,23 @@
   ],
   "rewrites": [
     {
+      "source": "/auth",
+      "destination": "/api/index.ts"
+    },
+    {
       "source": "/auth/(.*)",
       "destination": "/api/index.ts"
     },
     {
+      "source": "/session",
+      "destination": "/api/index.ts"
+    },
+    {
       "source": "/session/(.*)",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/stats",
       "destination": "/api/index.ts"
     },
     {
