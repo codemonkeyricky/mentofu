@@ -4,9 +4,9 @@ export function generateQuestions(count: number = 10): Question[] {
   const questions: Question[] = [];
 
   for (let i = 0; i < count; i++) {
-    // Generate two random single-digit numbers (0-9)
-    const num1 = Math.floor(Math.random() * 10);
-    const num2 = Math.floor(Math.random() * 10);
+    // Generate two random single-digit numbers (1-9)
+    const num1 = Math.floor(Math.random() * 9) + 1;
+    const num2 = Math.floor(Math.random() * 9) + 1;
 
     // Create question string
     const question = `${num1}*${num2}`;
@@ -27,22 +27,18 @@ export function generateDivisionQuestions(count: number = 10): Question[] {
   const questions: Question[] = [];
 
   for (let i = 0; i < count; i++) {
-    // Generate a random number between 1 and 100 as the numerator
-    const numerator = Math.floor(Math.random() * 100) + 1;
+    // Generate two random single-digit numbers (1-9) to be symmetric with generateQuestions
+    const num1 = Math.floor(Math.random() * 9) + 1;
+    const num2 = Math.floor(Math.random() * 9) + 1;
 
-    // Generate a random divisor between 1 and the numerator (to ensure whole number division)
-    const divisor = Math.floor(Math.random() * numerator) + 1;
+    // Calculate product
+    const product = num1 * num2;
 
-    // Ensure that the division results in a whole number
-    // We'll make sure that numerator is divisible by divisor
-    const quotient = Math.floor(numerator / divisor);
-    const adjustedNumerator = quotient * divisor; // Make sure it's a clean division
+    // Create question string: "product ÷ num1"
+    const question = `${product}÷${num1}`;
 
-    // Create question string
-    const question = `${adjustedNumerator}÷${divisor}`;
-
-    // Calculate correct answer
-    const answer = quotient;
+    // The answer is num2
+    const answer = num2;
 
     questions.push({
       question,
