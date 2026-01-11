@@ -6,6 +6,7 @@ import * as dat from "dat.gui";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { MeshSurfaceSampler } from "three-stdlib"; 
 import { GrassMaterial } from "./GrassMaterial";
+import { FireflySystem } from "./FireflySystem";
 
 export class FluffyGrass {
 	// # Need access to these outside the comp
@@ -38,6 +39,8 @@ export class FluffyGrass {
 	private grassGeometry = new THREE.BufferGeometry();
 	private grassMaterial: GrassMaterial;
 	private grassCount = 8000;
+
+	private fireflies!: FireflySystem;
 
 	constructor(_canvas: HTMLCanvasElement) {
 		this.loadingManager = new THREE.LoadingManager();
@@ -103,6 +106,24 @@ export class FluffyGrass {
 		this.loadModels();
 		this.setupEventListeners();
 		this.addLights();
+		this.setupFireflies();
+	}
+
+	private setupFireflies() {
+		this.fireflies = new FireflySystem({
+			count: 150,
+			size: 0.8,
+			brightness: 5.0,
+			color: new THREE.Color(0xffff66),
+		});
+		this.fireflies.generate();
+		this.scene.add(this.fireflies.group);
+
+		// Add GUI controls for fireflies
+		const fireflyFolder = this.gui.addFolder("Fireflies");
+		fireflyFolder.add({ brightness: 5.0 }, "brightness", 0, 10).onChange((v) => this.fireflies.setBrightness(v));
+		fireflyFolder.add({ size: 0.8 }, "size", 0.1, 5).onChange((v) => this.fireflies.setSizeMultiplier(v));
+		fireflyFolder.open();
 	}
 
 	private createCube() {
@@ -233,6 +254,9 @@ export class FluffyGrass {
 	public render() {
 		this.Uniforms.uTime.value += this.clock.getDelta();
 		this.grassMaterial.update(this.Uniforms.uTime.value);
+		if (this.fireflies) {
+			this.fireflies.update(this.Uniforms.uTime.value);
+		}
 		this.renderer.render(this.scene, this.camera);
 		// this.postProcessingManager.update();
 		this.stats.update();

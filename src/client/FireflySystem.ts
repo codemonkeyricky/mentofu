@@ -4,25 +4,35 @@ import * as THREE from 'three';
 // FIREFLY SYSTEM
 // ============================================================================
 
+export interface FireflyConfig {
+  count?: number;
+  size?: number;
+  brightness?: number;
+  color?: THREE.Color;
+  speed?: number;
+}
+
 export class FireflySystem {
-  constructor(config = {}) {
+  private config: Required<FireflyConfig>;
+  public group: THREE.Group;
+  private mesh: THREE.Points | null = null;
+  private positions: Float32Array | null = null;
+  private colors: Float32Array | null = null;
+  private sizes: Float32Array | null = null;
+  private phases: Float32Array | null = null;
+  private time: number = 0;
+  private initialPositions: Float32Array | null = null;
+
+  constructor(config: FireflyConfig = {}) {
     this.config = {
-      count: config.count || 150,  // Increased count for better visibility
-      size: config.size || 0.5,    // Increased base size
-      brightness: config.brightness || 4.0,  // Increased brightness
+      count: config.count || 150,
+      size: config.size || 0.5,
+      brightness: config.brightness || 4.0,
       color: config.color || new THREE.Color(0xffff66),
       speed: config.speed || 0.5,
-      ...config
     };
 
     this.group = new THREE.Group();
-    this.mesh = null;
-    this.positions = null;
-    this.colors = null;
-    this.sizes = null;
-    this.phases = null;
-    this.time = 0;
-    this.initialPositions = null;
   }
 
   generate() {
@@ -35,8 +45,6 @@ export class FireflySystem {
     this.sizes = new Float32Array(this.config.count);
     this.phases = new Float32Array(this.config.count);
     this.initialPositions = new Float32Array(this.config.count * 3);
-
-    const baseColor = this.config.color;
 
     // Initialize fireflies with random positions
     for (let i = 0; i < this.config.count; i++) {
@@ -165,34 +173,18 @@ export class FireflySystem {
     });
 
     this.mesh = new THREE.Points(geometry, material);
-    console.log('Firefly mesh created:', this.mesh);
-    console.log('Geometry vertices:', geometry.attributes.position.count);
-
     this.group.add(this.mesh);
-    console.log('Group now has children:', this.group.children.length);
-
-    // // DEBUG: Add visible spheres at firefly positions
-    // for (let i = 0; i < Math.min(10, this.config.count); i++) {
-    //   const sphere = new THREE.Mesh(
-    //       new THREE.SphereGeometry(1, 8, 8),
-    //       new THREE.MeshBasicMaterial({color: 0xff0000}));
-    //   sphere.position.set(
-    //       this.positions[i * 3], this.positions[i * 3 + 1],
-    //       this.positions[i * 3 + 2]);
-    //   this.group.add(sphere);
-    //   console.log('Debug sphere at:', sphere.position);
-    // }
 
     return {group: this.group};
   }
 
-  update(time) {
+  update(time: number) {
     if (!this.mesh) return;
 
     this.time = time;
 
     // Update shader uniforms
-    const material = this.mesh.material;
+    const material = this.mesh.material as THREE.ShaderMaterial;
     if (material.uniforms) {
       material.uniforms.u_time.value = time;
 
@@ -200,29 +192,26 @@ export class FireflySystem {
       material.uniforms.u_sizeMultiplier.value =
           0.9 + Math.sin(time * 0.5) * 0.1;
     }
-
-    // Update positions in the shader instead of CPU for better performance
-    // The movement is now handled in the vertex shader
   }
 
   // Method to adjust firefly brightness
-  setBrightness(value) {
-    if (this.mesh && this.mesh.material.uniforms.u_brightness) {
-      this.mesh.material.uniforms.u_brightness.value = value;
+  setBrightness(value: number) {
+    if (this.mesh && (this.mesh.material as THREE.ShaderMaterial).uniforms.u_brightness) {
+      (this.mesh.material as THREE.ShaderMaterial).uniforms.u_brightness.value = value;
     }
   }
 
   // Method to adjust firefly size
-  setSizeMultiplier(value) {
-    if (this.mesh && this.mesh.material.uniforms.u_sizeMultiplier) {
-      this.mesh.material.uniforms.u_sizeMultiplier.value = value;
+  setSizeMultiplier(value: number) {
+    if (this.mesh && (this.mesh.material as THREE.ShaderMaterial).uniforms.u_sizeMultiplier) {
+      (this.mesh.material as THREE.ShaderMaterial).uniforms.u_sizeMultiplier.value = value;
     }
   }
 
   dispose() {
     if (this.mesh) {
       this.mesh.geometry.dispose();
-      this.mesh.material.dispose();
+      (this.mesh.material as THREE.ShaderMaterial).dispose();
       this.group.remove(this.mesh);
     }
     this.positions = null;
