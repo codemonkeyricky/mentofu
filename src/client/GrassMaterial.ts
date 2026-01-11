@@ -29,7 +29,7 @@ export class GrassMaterial {
 		uTime: { value: 0 },
 		uEnableShadows: { value: true },
 		uShadowDarkness: { value: 0.5 },
-		uGrassLightIntensity: { value: 1 },
+		uGrassLightIntensity: { value: 0.4 },
 		uNoiseScale: { value: 1.5 },
 		uPlayerPosition: { value: new THREE.Vector3() },
 		baseColor: { value: new THREE.Color(this.grassColorProps.baseColor) },
