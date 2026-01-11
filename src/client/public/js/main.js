@@ -137,7 +137,7 @@ export class MathMasterPro {
                 return;
             }
             this.showScreen('claimCredit');
-            this.fetchClaimCredit();
+            this.fetchSessionReports();
         });
 
         this.submitBtn?.addEventListener('click', () => this.quizManager.submitAnswers());
@@ -433,35 +433,53 @@ export class MathMasterPro {
 
     async fetchUserStats() {
         try {
-            const response = await fetch('/stats', {
+            const earnedResponse = await fetch('/credit/earned', {
                 method: 'GET',
+                cache: 'no-cache',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${this.currentToken}`
                 }
             });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            const claimedResponse = await fetch('/credit/claimed', {
+                method: 'GET',
+                cache: 'no-cache',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.currentToken}`
+                }
+            });
+
+            if (!earnedResponse.ok || !claimedResponse.ok) {
+                throw new Error('Failed to fetch credit information');
             }
 
-            const stats = await response.json();
+            const earnedData = await earnedResponse.json();
+            const claimedData = await claimedResponse.json();
+
+            // Save to local storage for fallback
+            localStorage.setItem('totalScore', earnedData.earned);
+            localStorage.setItem('claimCredit', claimedData.claimed);
 
             // Update dashboard with user stats
-            this.displayUserStats(stats);
+            this.displayUserStats({
+                totalScore: earnedData.earned,
+                claimCredit: claimedData.claimed
+            });
         } catch (error) {
             console.error('Error fetching user stats:', error);
             // Fallback to local storage if API call fails
             this.displayUserStats({
                 totalScore: localStorage.getItem('totalScore') || 0,
-                sessionsCount: localStorage.getItem('sessionsCount') || 0
+                claimCredit: localStorage.getItem('claimCredit') || 0
             });
         }
     }
 
     displayUserStats(stats) {
         // Create or update the user stats display in the dashboard
-        const dashboardHeader = document.querySelector('.dashboard-header');
+        const dashboardHeader = document.querySelector('#start-screen .dashboard-header');
         if (!dashboardHeader) return;
 
         // Check if stats already exist to avoid duplication
@@ -580,13 +598,13 @@ export class MathMasterPro {
                 throw new Error('Invalid credit amount');
             }
 
-            const response = await fetch('/stats/claim', {
+            const response = await fetch('/credit/claimed', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${this.currentToken}`
                 },
-                body: JSON.stringify({ claimedAmount: credits })
+                body: JSON.stringify({ amount: credits })
             });
 
             if (!response.ok) {

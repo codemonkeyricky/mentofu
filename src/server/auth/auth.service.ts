@@ -9,9 +9,13 @@ class AuthService {
   private readonly JWT_SECRET: string = process.env.JWT_SECRET || 'quiz-app-secret-key';
   private readonly JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || '24h';
 
-  constructor(databasePath?: string) {
-    // Initialize database service - using default path or provided path
-    this.db = new DatabaseService(databasePath);
+  constructor(databaseService?: DatabaseService) {
+    // Initialize database service
+    this.db = databaseService || new DatabaseService();
+  }
+
+  public setDatabaseService(databaseService: DatabaseService): void {
+    this.db = databaseService;
   }
 
   public async register(username: string, password: string): Promise<User> {

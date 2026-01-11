@@ -1,7 +1,7 @@
 import express, { Application, Request, Response } from 'express';
 import { sessionRouter } from './session/session.controller';
 import { authRouter } from './auth/auth.controller';
-import { statsRouter } from './stats/stats.controller';
+import { creditRouter } from './credit/credit.controller';
 import path from 'path';
 import { DatabaseService } from './database/database.service';
 import { sessionService } from './session/session.service';
@@ -15,12 +15,14 @@ const PORT: number = 4000;
 // Initialize database service - will automatically use SQLite for local dev or Vercel Postgres when deployed
 const databaseService = new DatabaseService();
 
-// Connect database service to session service
+// Connect database service to services
+import { authService } from './auth/auth.service';
+authService.setDatabaseService(databaseService);
 sessionService.setDatabaseService(databaseService);
 
-// Connect database service to stats service
-import { statsService } from './stats/stats.service';
-statsService.setDatabaseService(databaseService);
+// Connect database service to credit service
+import { creditService } from './credit/credit.service';
+creditService.setDatabaseService(databaseService);
 
 // Middleware
 app.use(express.json());
@@ -42,7 +44,7 @@ app.use(express.static(publicPath));
 // Routes
 app.use('/auth', authRouter);
 app.use('/session', sessionRouter);
-app.use('/stats', statsRouter);
+app.use('/credit', creditRouter);
 
 // Health check endpoint
 app.get('/', (req: Request, res: Response) => {

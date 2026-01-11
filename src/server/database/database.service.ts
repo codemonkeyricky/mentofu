@@ -69,16 +69,20 @@ export class DatabaseService {
           username TEXT UNIQUE NOT NULL,
           password_hash TEXT NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          claim INTEGER DEFAULT 0
+          earned_credits INTEGER DEFAULT 0,
+          claimed_credits INTEGER DEFAULT 0
         )
       `;
 
-      // Migration: Add 'claim' column to 'users' if it doesn't exist
+      // Migration: Add columns if they don't exist
       await sql`
         DO $$
         BEGIN
-            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='claim') THEN
-                ALTER TABLE users ADD COLUMN claim INTEGER DEFAULT 0;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='earned_credits') THEN
+                ALTER TABLE users ADD COLUMN earned_credits INTEGER DEFAULT 0;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='claimed_credits') THEN
+                ALTER TABLE users ADD COLUMN claimed_credits INTEGER DEFAULT 0;
             END IF;
         END $$;
       `;
@@ -144,7 +148,8 @@ export class DatabaseService {
         username: user.username,
         passwordHash: user.passwordHash,
         createdAt: new Date(),
-        claim: 0 // Initialize claim to 0 for new users
+        earned_credits: 0,
+        claimed_credits: 0
       };
 
       users.set(user.id, newUser);
@@ -163,7 +168,7 @@ export class DatabaseService {
         `;
 
         const result = await sqlClient`
-          SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", claim
+          SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits
           FROM users
           WHERE id = ${user.id}
         `;
@@ -201,7 +206,7 @@ export class DatabaseService {
       await this.initVercelPostgres();
 
       const result = await sqlClient`
-        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", claim
+        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits
         FROM users
         WHERE username = ${username}
       `;
@@ -221,7 +226,7 @@ export class DatabaseService {
       const sqlClient = sql;
 
       const result = await sqlClient`
-        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", claim
+        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits
         FROM users
         WHERE id = ${userId}
       `;
@@ -471,65 +476,109 @@ export class DatabaseService {
     }
   }
 
-  public async setUserClaim(userId: string, claimAmount: number): Promise<void> {
+  public async addEarnedCredits(userId: string, amount: number): Promise<void> {
     if (this.databaseType === 'memory') {
-      // Get the user from memory database
       const users = this.memoryDB!.getTable('users');
       const user = users.get(userId);
-
-      console.log(`## setUserClaim: Setting claim for user ${userId} to amount ${claimAmount}`);
-
       if (user) {
-        console.log(`## setUserClaim: 2 `);
-        // Update the user's claim value
-        user.claim = claimAmount;
+        user.earned_credits = (user.earned_credits || 0) + amount;
+      } else {
+        throw new Error('User not found');
       }
     } else {
-      // Vercel Postgres implementation only
-      const sqlClient = sql;
-
       try {
-        await sqlClient`
+        const result = await sql`
           UPDATE users
-          SET claim = ${claimAmount}
+          SET earned_credits = earned_credits + ${amount}
           WHERE id = ${userId}
         `;
+        if (result.rowCount === 0) {
+          throw new Error('User not found');
+        }
       } catch (error: any) {
         throw error;
       }
     }
   }
 
-  public async getUserClaim(userId: string): Promise<number> {
+  public async getEarnedCredits(userId: string): Promise<number> {
     if (this.databaseType === 'memory') {
-      // Get the user from memory database
       const users = this.memoryDB!.getTable('users');
       const user = users.get(userId);
-
-      console.log(`## getUserClaim: Retrieved claim for user ${userId}: ${user?.claim || 0}`);
-
-      return user?.claim || 0;
+      return user?.earned_credits || 0;
     } else {
-      // Vercel Postgres implementation only
-      const sqlClient = sql;
-
       try {
-        const result = await sqlClient`
-          SELECT claim
+        const result = await sql`
+          SELECT earned_credits
           FROM users
           WHERE id = ${userId}
         `;
-
-        // Handle return type from Vercel Postgres
         const queryResult = result as any;
         if (queryResult.rows && queryResult.rows.length > 0) {
-          return queryResult.rows[0].claim || 0;
+          return queryResult.rows[0].earned_credits || 0;
         }
         return 0;
       } catch (error: any) {
         throw error;
       }
     }
+  }
+
+  public async addClaimedCredits(userId: string, amount: number): Promise<void> {
+    if (this.databaseType === 'memory') {
+      const users = this.memoryDB!.getTable('users');
+      const user = users.get(userId);
+      if (user) {
+        user.claimed_credits = (user.claimed_credits || 0) + amount;
+      } else {
+        throw new Error('User not found');
+      }
+    } else {
+      try {
+        const result = await sql`
+          UPDATE users
+          SET claimed_credits = claimed_credits + ${amount}
+          WHERE id = ${userId}
+        `;
+        if (result.rowCount === 0) {
+          throw new Error('User not found');
+        }
+      } catch (error: any) {
+        throw error;
+      }
+    }
+  }
+
+  public async getClaimedCredits(userId: string): Promise<number> {
+    if (this.databaseType === 'memory') {
+      const users = this.memoryDB!.getTable('users');
+      const user = users.get(userId);
+      return user?.claimed_credits || 0;
+    } else {
+      try {
+        const result = await sql`
+          SELECT claimed_credits
+          FROM users
+          WHERE id = ${userId}
+        `;
+        const queryResult = result as any;
+        if (queryResult.rows && queryResult.rows.length > 0) {
+          return queryResult.rows[0].claimed_credits || 0;
+        }
+        return 0;
+      } catch (error: any) {
+        throw error;
+      }
+    }
+  }
+
+  // Compatibility methods for existing code
+  public async setUserClaim(userId: string, claimAmount: number): Promise<void> {
+    await this.addClaimedCredits(userId, claimAmount - await this.getClaimedCredits(userId));
+  }
+
+  public async getUserClaim(userId: string): Promise<number> {
+    return await this.getClaimedCredits(userId);
   }
 
   // Optional: Add a method to clear the in-memory database (useful for testing)
