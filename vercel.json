@@ -31,11 +31,11 @@
       "destination": "/api/index.ts"
     },
     {
-      "source": "/stats",
+      "source": "/credit",
       "destination": "/api/index.ts"
     },
     {
-      "source": "/stats/(.*)",
+      "source": "/credit/(.*)",
       "destination": "/api/index.ts"
     },
     {
