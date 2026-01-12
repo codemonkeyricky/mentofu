@@ -45,45 +45,61 @@ export default class QuizBase {
     displayResults(score, total, details = null) {
         const percentage = Math.round((score / total) * 100);
 
-        // Professional score display with gradient based on performance
+        // Create a more streamlined results display that matches our modern design
         let scoreClass = 'score-poor';
         let icon = '📚';
         let message = 'Keep practicing! You\'ll improve with time.';
+        let colorClass = 'text-danger';
 
         if (percentage >= 90) {
             scoreClass = 'score-excellent';
             icon = '🏆';
             message = 'Outstanding! You\'ve mastered this challenge!';
+            colorClass = 'text-green';
         } else if (percentage >= 75) {
             scoreClass = 'score-good';
             icon = '🌟';
             message = 'Excellent work! You\'re doing great!';
+            colorClass = 'text-green';
         } else if (percentage >= 60) {
             scoreClass = 'score-average';
             icon = '👍';
             message = 'Good job! Keep up the good work!';
+            colorClass = 'text-yellow';
         } else if (percentage >= 40) {
             scoreClass = 'score-fair';
             icon = '💪';
             message = 'Nice effort! Practice makes progress!';
+            colorClass = 'text-orange';
         }
 
-        // Create detailed results if available
-        let detailsHTML = '';
+        // Create breakdown items
+        let breakdownHTML = '';
         if (details && Array.isArray(details)) {
-            detailsHTML = `
-                <div class="results-details mt-4">
-                    <h5 class="mb-3">Detailed Analysis</h5>
-                    <div class="details-grid">
-                        ${details.map((detail, index) => `
-                            <div class="detail-item ${detail.correct ? 'correct' : 'incorrect'}">
-                                <span class="detail-number">${index + 1}</span>
-                                <span class="detail-question">${detail.question}</span>
-                                <span class="detail-answer">Your answer: ${detail.userAnswer}</span>
-                                ${!detail.correct ? `<span class="detail-correct">Correct: ${detail.correctAnswer}</span>` : ''}
-                            </div>
-                        `).join('')}
-                    </div>
+            breakdownHTML = `
+                <div class="breakdown-item">
+                    <span class="breakdown-label"><i class="fas fa-check-circle"></i> Correct Answers</span>
+                    <span class="breakdown-value">${score}</span>
+                </div>
+                <div class="breakdown-item">
+                    <span class="breakdown-label"><i class="fas fa-times-circle"></i> Incorrect Answers</span>
+                    <span class="breakdown-value">${total - score}</span>
+                </div>
+                <div class="breakdown-item">
+                    <span class="breakdown-label"><i class="fas fa-percentage"></i> Accuracy</span>
+                    <span class="breakdown-value">${percentage}%</span>
+                </div>
+            `;
+        } else {
+            // Fallback to basic breakdown
+            breakdownHTML = `
+                <div class="breakdown-item">
+                    <span class="breakdown-label"><i class="fas fa-tachometer-alt"></i> Score</span>
+                    <span class="breakdown-value">${score}/${total}</span>
+                </div>
+                <div class="breakdown-item">
+                    <span class="breakdown-label"><i class="fas fa-percentage"></i> Accuracy</span>
+                    <span class="breakdown-value">${percentage}%</span>
                 </div>
             `;
         }
@@ -92,27 +108,12 @@ export default class QuizBase {
             <div class="score-container ${scoreClass}">
                 <div class="score-icon">${icon}</div>
                 <div class="score-value">${score}<span class="score-total">/${total}</span></div>
-                <div class="score-percentage">${percentage}%</div>
-                <div class="progress mt-3">
-                    <div class="progress-bar" role="progressbar"
-                         style="width: ${percentage}%"
-                         aria-valuenow="${percentage}"
-                         aria-valuemin="0"
-                         aria-valuemax="100">
-                    </div>
-                </div>
+                <div class="score-percentage ${colorClass}">${percentage}%</div>
                 <div class="score-message mt-3">${message}</div>
-                ${detailsHTML}
-                <div class="mt-4">
-                    <button class="btn btn-outline-primary me-2" onclick="app.quizManager.restartQuiz()">
-                        <i class="fas fa-redo me-1"></i>Try Again
-                    </button>
-                    <button class="btn btn-primary" onclick="app.quizManager.startQuiz('${this.currentQuizType}')">
-                        <i class="fas fa-plus-circle me-1"></i>New Quiz
-                    </button>
-                </div>
             </div>
         `;
+
+        this.mathMasterPro.resultsBreakdown.innerHTML = breakdownHTML;
     }
 
     updateProgress() {
