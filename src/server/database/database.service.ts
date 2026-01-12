@@ -43,7 +43,32 @@ class MemoryDatabase {
   }
 }
 
-export class DatabaseService {
+// Base database operations interface
+interface DatabaseOperations {
+  initVercelPostgres(): Promise<void>;
+  createUser(user: Omit<User, 'createdAt'>): Promise<User>;
+  findUserByUsername(username: string): Promise<User | null>;
+  findUserById(userId: string): Promise<User | null>;
+  saveSessionScore(
+    userId: string,
+    sessionId: string,
+    score: number,
+    total: number,
+    sessionType: 'math' | 'simple_words',
+    multiplier: number
+  ): Promise<void>;
+  getSessionScore(sessionId: string): Promise<{ score: number, total: number, multiplier?: number } | null>;
+  getUserSessionScores(userId: string): Promise<Array<{ sessionId: string, score: number, total: number, sessionType: string, completedAt: Date, multiplier?: number }>>;
+  getUserSessionHistory(userId: string): Promise<any[]>;
+  setUserMultiplier(userId: string, quizType: string, multiplier: number): Promise<void>;
+  getUserMultiplier(userId: string, quizType: string): Promise<number>;
+  addEarnedCredits(userId: string, amount: number): Promise<void>;
+  getEarnedCredits(userId: string): Promise<number>;
+  addClaimedCredits(userId: string, amount: number): Promise<void>;
+  getClaimedCredits(userId: string): Promise<number>;
+}
+
+export class DatabaseService implements DatabaseOperations {
   private readonly databaseType: 'memory' | 'vercel-postgres';
   private memoryDB: MemoryDatabase | null = null;
 
@@ -60,7 +85,7 @@ export class DatabaseService {
     }
   }
 
-  private async initVercelPostgres(): Promise<void> {
+  public async initVercelPostgres(): Promise<void> {
     // Initialize tables in Vercel Postgres if they don't exist
     try {
       await sql`
@@ -126,6 +151,31 @@ export class DatabaseService {
     }
   }
 
+  // Helper method to get database operations based on type
+  private getDatabaseOperations() {
+    if (this.databaseType === 'memory') {
+      return {
+        getUsersTable: () => this.memoryDB!.getTable('users'),
+        getSessionScoresTable: () => this.memoryDB!.getTable('session_scores'),
+        getMultipliersTable: () => this.memoryDB!.getTable('user_multipliers')
+      };
+    } else {
+      return {
+        getUsersTable: null,
+        getSessionScoresTable: null,
+        getMultipliersTable: null
+      };
+    }
+  }
+
+  // Helper method to handle PostgreSQL query results consistently
+  private handlePostgresResult<T>(result: any): T {
+    if (result.rows && result.rows.length > 0) {
+      return result.rows[0] as T;
+    }
+    return null as T;
+  }
+
   public async createUser(user: Omit<User, 'createdAt'>): Promise<User> {
     if (this.databaseType === 'memory') {
       const users = this.memoryDB!.getTable('users');
@@ -173,12 +223,7 @@ export class DatabaseService {
           WHERE id = ${user.id}
         `;
 
-        // Handle return type from Vercel Postgres
-        const queryResult = result as any;
-        if (!queryResult.rows || queryResult.rows.length === 0) {
-          throw new Error('Failed to create user');
-        }
-        return queryResult.rows[0] as User;
+        return this.handlePostgresResult<User>(result);
       } catch (error: any) {
         // Handle unique constraint violation for Postgres
         if (error.message.includes('duplicate key') || error.code === '23505') {
@@ -211,9 +256,7 @@ export class DatabaseService {
         WHERE username = ${username}
       `;
 
-      // Handle return type from Vercel Postgres
-      const queryResult = result as any;
-      return queryResult.rows && queryResult.rows.length > 0 ? (queryResult.rows[0] as User) : null;
+      return this.handlePostgresResult<User>(result);
     }
   }
 
@@ -231,9 +274,7 @@ export class DatabaseService {
         WHERE id = ${userId}
       `;
 
-      // Handle return type from Vercel Postgres
-      const queryResult = result as any;
-      return queryResult.rows && queryResult.rows.length > 0 ? (queryResult.rows[0] as User) : null;
+      return this.handlePostgresResult<User>(result);
     }
   }
 
@@ -300,17 +341,8 @@ export class DatabaseService {
         WHERE session_id = ${sessionId}
       `;
 
-      // Handle return type from Vercel Postgres
-      const queryResult = result as any;
-      if (queryResult.rows && queryResult.rows.length === 0) {
-        return null;
-      }
-
-      return {
-        score: queryResult.rows[0].score,
-        total: queryResult.rows[0].total,
-        multiplier: queryResult.rows[0].multiplier
-      };
+      const postgresResult = this.handlePostgresResult<{ score: number, total: number, multiplier?: number }>(result);
+      return postgresResult;
     }
   }
 
@@ -351,9 +383,7 @@ export class DatabaseService {
         ORDER BY completed_at DESC
       `;
 
-      // Handle return type from Vercel Postgres
-      const queryResult = result as any;
-      return queryResult.rows.map((row: any) => ({
+      return result.rows.map((row: any) => ({
         sessionId: row.sessionId,
         score: row.score,
         total: row.total,
@@ -403,9 +433,7 @@ export class DatabaseService {
         ORDER BY completed_at DESC
       `;
 
-      // Handle return type from Vercel Postgres
-      const queryResult = result as any;
-      return queryResult.rows;
+      return result.rows;
     }
   }
 
@@ -464,10 +492,9 @@ export class DatabaseService {
           WHERE user_id = ${userId} AND quiz_type = ${quizType}
         `;
 
-        // Handle return type from Vercel Postgres
-        const queryResult = result as any;
-        if (queryResult.rows && queryResult.rows.length > 0) {
-          return Math.floor(queryResult.rows[0].multiplier);
+        const postgresResult = this.handlePostgresResult<{ multiplier: number }>(result);
+        if (postgresResult) {
+          return Math.floor(postgresResult.multiplier);
         }
         return 1; // Default multiplier of 1 (integer)
       } catch (error: any) {
@@ -513,9 +540,9 @@ export class DatabaseService {
           FROM users
           WHERE id = ${userId}
         `;
-        const queryResult = result as any;
-        if (queryResult.rows && queryResult.rows.length > 0) {
-          return queryResult.rows[0].earned_credits || 0;
+        const postgresResult = this.handlePostgresResult<{ earned_credits: number }>(result);
+        if (postgresResult) {
+          return postgresResult.earned_credits || 0;
         }
         return 0;
       } catch (error: any) {
@@ -561,9 +588,9 @@ export class DatabaseService {
           FROM users
           WHERE id = ${userId}
         `;
-        const queryResult = result as any;
-        if (queryResult.rows && queryResult.rows.length > 0) {
-          return queryResult.rows[0].claimed_credits || 0;
+        const postgresResult = this.handlePostgresResult<{ claimed_credits: number }>(result);
+        if (postgresResult) {
+          return postgresResult.claimed_credits || 0;
         }
         return 0;
       } catch (error: any) {
