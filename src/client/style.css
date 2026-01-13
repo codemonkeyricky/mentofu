@@ -5,13 +5,14 @@
 }
 
 body, html {
-  background-color: #f8f9fa;
-  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  font-family: 'Nunito', sans-serif;
   overflow: hidden;
   display: flex;
   padding: 0;
   margin: 0;
   height: 100vh;
+  color: #1e1b4b;
 }
 
 #canvas {
@@ -26,17 +27,23 @@ body, html {
 /* Glassmorphism Card Styles */
 .glass-card {
   background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.3);
   padding: 30px;
   width: 90%;
   max-width: 500px;
   margin: 0 auto;
   position: relative;
   overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 12px 40px rgba(31, 38, 135, 0.4);
 }
 
 .glass-card::before {
@@ -46,7 +53,7 @@ body, html {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.15), transparent);
   transform: rotate(45deg);
   z-index: -1;
 }
@@ -55,6 +62,7 @@ body, html {
 .auth-card {
   padding: 40px 30px;
   margin-top: 50px;
+  border-radius: 25px;
 }
 
 /* Screen styling */
@@ -108,34 +116,41 @@ body, html {
 }
 
 .logo-icon {
-  width: 70px;
-  height: 70px;
+  width: 80px;
+  height: 80px;
   background: linear-gradient(135deg, #667eea, #764ba2);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 20px;
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+}
+
+.logo-icon:hover {
+  transform: scale(1.05);
 }
 
 .logo-icon i {
-  font-size: 2rem;
+  font-size: 2.2rem;
   color: white;
 }
 
 .card-header h2 {
   color: #fff;
   margin-bottom: 10px;
-  font-weight: 600;
-  font-size: 2rem;
+  font-weight: 700;
+  font-size: 2.2rem;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .card-subtitle {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 1rem;
-  font-weight: 300;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.1rem;
+  font-weight: 400;
   margin-bottom: 30px;
+  line-height: 1.4;
 }
 
 /* Feature Grid */
@@ -148,97 +163,125 @@ body, html {
 
 .feature-item {
   text-align: center;
-  padding: 20px 15px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 15px;
+  padding: 25px 20px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
   transition: all 0.3s ease;
   backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
 }
 
 .feature-item:hover {
-  transform: translateY(-5px);
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transform: translateY(-8px);
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
 }
 
 .feature-icon {
-  width: 50px;
-  height: 50px;
+  width: 60px;
+  height: 60px;
   background: linear-gradient(135deg, #667eea, #764ba2);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 15px;
+  transition: all 0.3s ease;
+}
+
+.feature-icon:hover {
+  transform: scale(1.1);
 }
 
 .feature-icon i {
-  font-size: 1.2rem;
+  font-size: 1.4rem;
   color: white;
 }
 
 .feature-item h4 {
   color: #fff;
   margin-bottom: 8px;
-  font-weight: 500;
-  font-size: 1rem;
+  font-weight: 600;
+  font-size: 1.1rem;
 }
 
 .feature-item p {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  line-height: 1.4;
 }
 
 /* Auth Buttons */
 .auth-buttons {
   display: flex;
   gap: 15px;
-  margin-top: 20px;
+  margin-top: 25px;
 }
 
 .btn {
-  padding: 14px 20px;
-  border-radius: 12px;
+  padding: 16px 24px;
+  border-radius: 14px;
   border: none;
-  font-family: 'Poppins', sans-serif;
-  font-weight: 500;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  font-size: 1rem;
+  font-size: 1.05rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .btn-primary {
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: 0.5s;
+}
+
+.btn-primary:hover::before {
+  left: 100%;
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
 }
 
 .btn-outline {
   background: transparent;
   color: white;
   border: 2px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
 }
 
 .btn-outline:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
 }
 
 .btn-logout {
   background: linear-gradient(135deg, #ff6b6b, #ee5a24);
   color: white;
-  padding: 12px 20px;
-  font-size: 0.9rem;
+  padding: 14px 24px;
+  font-size: 1rem;
+  border-radius: 14px;
 }
 
 /* Form Styles */
@@ -253,14 +296,15 @@ body, html {
 
 .form-input {
   width: 100%;
-  padding: 16px 20px 16px 50px;
-  border-radius: 12px;
+  padding: 18px 20px 18px 50px;
+  border-radius: 14px;
   border: none;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   color: white;
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-size: 1rem;
   transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .form-input::placeholder {
@@ -269,8 +313,9 @@ body, html {
 
 .form-input:focus {
   outline: none;
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.4);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .input-icon {
@@ -307,61 +352,89 @@ body, html {
 }
 
 .quiz-card {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
   padding: 25px 20px;
   text-align: center;
   transition: all 0.3s ease;
   backdrop-filter: blur(5px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
 }
 
 .quiz-card:hover {
-  transform: translateY(-5px);
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  transform: translateY(-8px);
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.quiz-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.quiz-card:hover::before {
+  transform: scaleX(1);
 }
 
 .quiz-icon {
-  width: 60px;
-  height: 60px;
+  width: 70px;
+  height: 70px;
   background: linear-gradient(135deg, #667eea, #764ba2);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 15px;
+  transition: all 0.3s ease;
+}
+
+.quiz-icon:hover {
+  transform: scale(1.1);
 }
 
 .quiz-icon i {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   color: white;
 }
 
 .quiz-info h4 {
   color: #fff;
   margin-bottom: 8px;
-  font-weight: 500;
-  font-size: 1.1rem;
+  font-weight: 600;
+  font-size: 1.2rem;
 }
 
 .quiz-info p {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.95rem;
+  line-height: 1.4;
 }
 
 .start-quiz-btn {
   margin-top: 15px;
-  padding: 10px 15px;
-  background: rgba(255, 255, 255, 0.15);
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.18);
   color: white;
-  border-radius: 8px;
-  font-size: 0.9rem;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
 }
 
 .start-quiz-btn:hover {
   background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
 }
 
 /* Quiz Header */
@@ -494,14 +567,20 @@ body, html {
   text-align: center;
   max-width: 600px;
   margin: 0 auto;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.3);
   position: relative;
   overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.results-card:hover {
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 12px 40px rgba(31, 38, 135, 0.4);
 }
 
 .results-card::before {
@@ -511,7 +590,7 @@ body, html {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.15), transparent);
   transform: rotate(45deg);
   z-index: -1;
 }

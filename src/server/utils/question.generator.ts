@@ -51,72 +51,76 @@ export function generateDivisionQuestions(count: number = 10): Question[] {
 
 export function generateBODMASQuestions(count: number = 10): Question[] {
   const questions: Question[] = [];
+  const rand = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
 
   for (let i = 0; i < count; i++) {
-    // Generate a random BODMAS expression with 3-4 operations
-    // We'll create expressions that follow the order of operations correctly
-
-    // For simplicity, we'll generate expressions like:
-    // - "2 + 3 * 4" (where multiplication comes first)
-    // - "10 - 6 ÷ 2" (where division comes first)
-    // - "(5 + 3) * 2" (where parentheses come first)
-
-    const operations = ['+', '-', '*', '÷'];
-    const numOperations = Math.floor(Math.random() * 2) + 3; // 3-4 operations
-
-    let expression = '';
+    const type = rand(0, 5);
+    let question = '';
     let answer = 0;
 
-    // Generate a random starting number
-    let currentNum = Math.floor(Math.random() * 10) + 1;
-    expression = `${currentNum}`;
-
-    // Add operations and numbers
-    for (let j = 0; j < numOperations; j++) {
-      const operation = operations[Math.floor(Math.random() * operations.length)];
-
-      // For division, make sure it results in a whole number
-      if (operation === '÷') {
-        let divisor = Math.floor(Math.random() * 10) + 1;
-        // Make sure the result is a whole number
-        const dividend = currentNum * divisor;
-        expression += ` ${operation} ${divisor}`;
-        answer = dividend / divisor;
-        currentNum = answer;
-      } else {
-        let nextNum = Math.floor(Math.random() * 10) + 1;
-        expression += ` ${operation} ${nextNum}`;
-        if (operation === '+') {
-          answer = currentNum + nextNum;
-        } else if (operation === '-') {
-          answer = currentNum - nextNum;
-        } else if (operation === '*') {
-          answer = currentNum * nextNum;
+    switch (type) {
+      case 0: // (A + B) * C
+        {
+          const a = rand(1, 10);
+          const b = rand(1, 10);
+          const c = rand(2, 6);
+          question = `(${a} + ${b}) * ${c}`;
+          answer = (a + b) * c;
         }
-        currentNum = answer;
-      }
+        break;
+      case 1: // A + B * C
+        {
+          const b = rand(2, 6);
+          const c = rand(2, 6);
+          const a = rand(1, 20);
+          question = `${a} + ${b} * ${c}`;
+          answer = a + (b * c);
+        }
+        break;
+      case 2: // (A - B) ÷ C
+        {
+          const c = rand(2, 5);
+          answer = rand(2, 10); // The final answer
+          const dividend = answer * c; // (A - B)
+          const b = rand(1, 10);
+          const a = dividend + b;
+          question = `(${a} - ${b}) ÷ ${c}`;
+        }
+        break;
+      case 3: // A - B ÷ C
+        {
+          const c = rand(2, 5);
+          const quotient = rand(2, 6);
+          const b = quotient * c;
+          const a = rand(quotient + 1, quotient + 20); // Ensure positive result
+          question = `${a} - ${b} ÷ ${c}`;
+          answer = a - quotient;
+        }
+        break;
+      case 4: // A * B - C
+        {
+          const a = rand(2, 6);
+          const b = rand(2, 6);
+          const c = rand(1, (a * b) - 1);
+          question = `${a} * ${b} - ${c}`;
+          answer = (a * b) - c;
+        }
+        break;
+      case 5: // A * (B + C)
+        {
+          const a = rand(2, 6);
+          const b = rand(1, 10);
+          const c = rand(1, 10);
+          question = `${a} * (${b} + ${c})`;
+          answer = a * (b + c);
+        }
+        break;
     }
 
-    // Make sure we have a valid expression with proper BODMAS evaluation
-    try {
-      // Evaluate the expression to get the correct answer
-      const evalExpression = expression.replace(/÷/g, '/');
-      answer = eval(evalExpression);
-
-      questions.push({
-        question: expression,
-        answer: Math.round(answer * 100) / 100 // Round to avoid floating point precision issues
-      });
-    } catch (e) {
-      // If evaluation fails, generate a simpler one
-      const simpleExpression = `${Math.floor(Math.random() * 10) + 1} + ${Math.floor(Math.random() * 10) + 1}`;
-      const simpleAnswer = eval(simpleExpression.replace(/÷/g, '/'));
-
-      questions.push({
-        question: simpleExpression,
-        answer: Math.round(simpleAnswer * 100) / 100
-      });
-    }
+    questions.push({
+      question,
+      answer
+    });
   }
 
   return questions;

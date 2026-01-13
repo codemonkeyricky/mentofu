@@ -531,11 +531,11 @@ export class MathMasterPro {
         statsElement.innerHTML = `
             <div class="stats-container">
                 <div class="stat-card">
-                    <h4>Total Score</h4>
+                    <h4>Earned Credits</h4>
                     <p class="score-value">${stats.totalScore || 0}</p>
                 </div>
                 <div class="stat-card">
-                    <h4>Claimed Credit</h4>
+                    <h4>Claimed Credits</h4>
                     <p class="sessions-value">${stats.claimCredit || 0}</p>
                 </div>
             </div>
