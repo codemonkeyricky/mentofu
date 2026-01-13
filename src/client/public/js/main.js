@@ -143,8 +143,8 @@ export class MathMasterPro {
         this.submitBtn?.addEventListener('click', () => this.quizManager.submitAnswers());
         this.submitWordsBtn?.addEventListener('click', () => this.quizManager.submitWordsAnswers());
         this.restartBtn?.addEventListener('click', () => this.quizManager.restartQuiz());
-        this.dashboardBtn?.addEventListener('click', () => this.showScreen('start'));
-        this.backToStartBtn?.addEventListener('click', () => this.showScreen('start'));
+        this.dashboardBtn?.addEventListener('click', () => this.quizManager.restartQuiz());
+        this.backToStartBtn?.addEventListener('click', () => this.quizManager.restartQuiz());
         this.logoutBtn?.addEventListener('click', () => this.logoutUser());
 
         // Handle claim credit button
@@ -204,6 +204,9 @@ export class MathMasterPro {
             this.updateUserInfo();
             this.updateDashboardStats();
             this.initForestRendering();
+
+            // Add event listener to refresh score when dashboard becomes visible
+            this.setupDashboardVisibilityListener();
         }
 
         // Focus on the first interactive element in the active screen
@@ -217,6 +220,40 @@ export class MathMasterPro {
                 }
             }
         }, 100);
+    }
+
+    setupDashboardVisibilityListener() {
+        // Create a visibility change listener to refresh score when dashboard becomes visible
+        const startScreen = this.screens.start;
+
+        // Use Intersection Observer to detect when the dashboard is visible
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        // Dashboard is now visible, refresh score
+                        this.refreshDashboardScore();
+                    }
+                });
+            }, { threshold: 0.5 }); // Trigger when 50% of the element is visible
+
+            observer.observe(startScreen);
+        } else {
+            // Fallback for browsers that don't support IntersectionObserver
+            // We'll use a simple approach with page visibility API
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    this.refreshDashboardScore();
+                }
+            });
+        }
+    }
+
+    refreshDashboardScore() {
+        // Only refresh if user is authenticated
+        if (this.currentToken && this.currentUser) {
+            this.fetchUserStats();
+        }
     }
 
     showAuthScreens() {
