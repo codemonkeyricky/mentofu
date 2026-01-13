@@ -38,7 +38,7 @@ export class FluffyGrass {
 	private terrainMat: THREE.MeshPhongMaterial;
 	private grassGeometry = new THREE.BufferGeometry();
 	private grassMaterial: GrassMaterial;
-	private grassCount = 8000;
+	private grassCount = 100;
 
 	private fireflies!: FireflySystem;
 
