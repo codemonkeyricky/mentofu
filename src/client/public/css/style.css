@@ -506,6 +506,9 @@ main {
     margin-bottom: 8px;
     border: 1px solid var(--glass-border);
     transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .question-container-compact {
@@ -844,32 +847,47 @@ main {
         flex-direction: column;
     }
 
+    /* Keep quiz card single row on mobile for minimalistic look */
     .quiz-card {
-        flex-wrap: wrap;
-        justify-content: center;
-        text-align: center;
+        padding: 10px;
+        gap: 10px;
     }
 
-    .quiz-info {
-        text-align: center;
-        flex: 1 1 100%;
+    .quiz-icon {
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
+    }
+
+    .quiz-info h4 {
+        font-size: 1rem;
+    }
+
+    .quiz-info p {
+        font-size: 0.8rem;
     }
 
     .quiz-card .btn {
-        width: 100%;
+        padding: 5px 12px;
+        font-size: 0.85rem;
     }
 
     .question-container-compact {
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        gap: 10px;
     }
 
     .question-info {
-        flex: 1 1 100%;
-        margin-bottom: 5px;
+        flex: 1;
+        margin-bottom: 0;
+        min-width: 0; /* Allow text truncation */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .answer-wrapper {
-        flex: 1 1 100%;
+        flex: 0 0 80px; /* Fixed smaller width for answer */
     }
 
     .quiz-header {
