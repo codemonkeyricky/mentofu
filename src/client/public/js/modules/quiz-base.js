@@ -15,7 +15,8 @@ export default class QuizBase {
             'math-2': { icon: 'fa-divide', text: 'Start Division Quiz' },
             'math-3': { icon: 'fa-chart-pie', text: 'Start Fraction Comparison' },
             'math-4': { icon: 'fa-calculator', text: 'Start BODMAS Quiz' },
-            'words': { icon: 'fa-book', text: 'Start Words Quiz' }
+            'words': { icon: 'fa-book', text: 'Start Words Quiz' },
+        'math-5': { icon: 'fa-superscript', text: 'Start Factors Quiz' }
         };
 
         const config = buttonConfigs[quizType];

@@ -121,6 +121,29 @@ sessionRouter.get('/simple-words', authenticate, (req: Request, res: Response) =
   }
 });
 
+// GET /session/simple-math-5 - Create new factors math quiz session with questions
+sessionRouter.get('/simple-math-5', authenticate, (req: Request, res: Response) => {
+  try {
+    // Get user from auth middleware
+    const user = (req as any).user;
+
+    const session = sessionService.createFactorsSession(user.userId);
+
+    res.status(200).json({
+      sessionId: session.id,
+      questions: session.questions
+    });
+  } catch (error) {
+    console.error('Error creating factors session:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to create factors session',
+        code: 'FACTORS_SESSION_CREATION_FAILED'
+      }
+    });
+  }
+});
+
 // POST /session/simple-math-4 - Validate BODMAS quiz answers and return score
 sessionRouter.post('/simple-math-4', authenticate, async (req: Request, res: Response) => {
   try {
@@ -421,6 +444,67 @@ sessionRouter.post('/simple-words', authenticate, async (req: Request, res: Resp
       error: {
         message: 'Failed to process simple words answers',
         code: 'SIMPLE_WORDS_ANSWER_PROCESSING_FAILED'
+      }
+    });
+  }
+});
+
+// POST /session/simple-math-5 - Validate factors quiz answers and return score
+sessionRouter.post('/simple-math-5', authenticate, async (req: Request, res: Response) => {
+  try {
+    const { sessionId, answers } = req.body;
+    // Get user from auth middleware
+    const user = (req as any).user;
+
+    // Validate input
+    if (!sessionId) {
+      return res.status(400).json({
+        error: {
+          message: 'Session ID is required',
+          code: 'MISSING_SESSION_ID'
+        }
+      });
+    }
+
+    if (!answers || !Array.isArray(answers)) {
+      return res.status(400).json({
+        error: {
+          message: 'Answers array is required',
+          code: 'MISSING_ANSWERS'
+        }
+      });
+    }
+
+    const result = await sessionService.validateFactorsAnswers(sessionId, user.userId, answers);
+
+    res.status(200).json({
+      score: result.score,
+      total: result.total
+    });
+  } catch (error: any) {
+    if (error.message === 'Session not found') {
+      return res.status(404).json({
+        error: {
+          message: 'Session not found',
+          code: 'SESSION_NOT_FOUND'
+        }
+      });
+    }
+
+    if (error.message === 'Unauthorized access to session') {
+      return res.status(403).json({
+        error: {
+          message: 'Unauthorized access to session',
+          code: 'UNAUTHORIZED_ACCESS'
+        }
+      });
+    }
+
+    console.error('Error processing factors answers:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to process factors answers',
+        code: 'FACTORS_ANSWER_PROCESSING_FAILED'
       }
     });
   }

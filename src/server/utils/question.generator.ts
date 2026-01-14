@@ -126,6 +126,38 @@ export function generateBODMASQuestions(count: number = 10): Question[] {
   return questions;
 }
 
+export function generateFactorsQuestions(count: number = 5): Question[] {
+  const questions: Question[] = [];
+
+  for (let i = 0; i < count; i++) {
+    // Generate a random number between 2 and 50 (inclusive)
+    const number = Math.floor(Math.random() * 49) + 2;
+
+    // Find all factors of the number
+    const factors: number[] = [];
+    for (let j = 1; j <= number; j++) {
+      if (number % j === 0) {
+        factors.push(j);
+      }
+    }
+
+    // Create question string asking for all factors of the number
+    const question = `List all factors of ${number}`;
+
+    // For factors quiz, we'll use the first factor as the answer for validation purposes
+    // (the client side will check if user's input contains all factors)
+    const answer = factors[0];
+
+    questions.push({
+      question,
+      answer,
+      factors: factors // Include the list of all factors for client-side validation
+    });
+  }
+
+  return questions;
+}
+
 export function generateFractionComparisonQuestions(count: number = 10): Question[] {
   const questions: Question[] = [];
 

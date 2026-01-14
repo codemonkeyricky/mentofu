@@ -1,5 +1,5 @@
-import { Session, Question } from './session.types';
-import { generateQuestions, generateDivisionQuestions, generateFractionComparisonQuestions, generateBODMASQuestions } from '../utils/question.generator';
+import { Session, Question, FactorsQuestion } from './session.types';
+import { generateQuestions, generateDivisionQuestions, generateFractionComparisonQuestions, generateBODMASQuestions, generateFactorsQuestions } from '../utils/question.generator';
 import { generateSimpleWords } from '../utils/simple.words.generator';
 import { SimpleWordsSession } from './simple.words.types';
 import { DatabaseService } from '../database/database.service';
@@ -128,6 +128,38 @@ class SessionService {
   public createFractionComparisonSession(userId: string): Session {
     const sessionId = generateUUID();
     const questions = generateFractionComparisonQuestions(10);
+
+    const session: Session = {
+      id: sessionId,
+      userId: userId,
+      questions: questions,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    this.sessions.set(sessionId, session);
+
+    // Set up cleanup for expired sessions
+    const timeout = setTimeout(() => {
+      this.deleteSession(sessionId);
+    }, this.SESSION_TTL);
+
+    // Store the timeout so we can clear it later
+    this.sessionTimeouts.set(sessionId, timeout);
+
+    // Save session metadata to database if database service is available
+    if (this.databaseService) {
+      // We'll save a placeholder or just ensure that when answers are submitted,
+      // the score will be properly tracked. The key is that we need to make sure
+      // there's a way for /session/all to return session information.
+    }
+
+    return session;
+  }
+
+  public createFactorsSession(userId: string): Session {
+    const sessionId = generateUUID();
+    const questions = generateFactorsQuestions(5);
 
     const session: Session = {
       id: sessionId,
@@ -402,6 +434,72 @@ class SessionService {
         multiplier = 1.0;
       }
       this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, 'simple_words', multiplier);
+    }
+
+    return result;
+  }
+
+  public async validateFactorsAnswers(sessionId: string, userId: string, userAnswers: (number | string)[]): Promise<{ score: number; total: number }> {
+    const session = this.sessions.get(sessionId);
+
+    if (!session) {
+      throw new Error('Session not found');
+    }
+
+    // Verify that the session belongs to the user
+    if (session.userId !== userId) {
+      throw new Error('Unauthorized access to session');
+    }
+
+    let correctCount = 0;
+
+    // Compare each user answer with the correct answer
+    for (let i = 0; i < session.questions.length; i++) {
+      const question = session.questions[i];
+
+      // Type guard to check if it's a FactorsQuestion
+      if ((question as any).factors !== undefined) {
+        const factorsQuestion = question as FactorsQuestion;
+
+        // Parse the user's input to get an array of numbers
+        const userFactors = String(userAnswers[i])
+          .split(',')
+          .map(factor => factor.trim())
+          .filter(factor => factor !== '')
+          .map(factor => parseInt(factor))
+          .filter(factor => !isNaN(factor));
+
+        // Check if all factors provided by user are actual factors of the number
+        const allUserFactorsValid = userFactors.every(factor => factorsQuestion.factors.includes(factor));
+
+        // Check if user provided all the actual factors (same length)
+        const allActualFactorsProvided = allUserFactorsValid &&
+                                        userFactors.length === factorsQuestion.factors.length;
+
+        if (allActualFactorsProvided) {
+          correctCount++;
+        }
+      } else {
+        // For other question types, we should not be calling this function with them
+        throw new Error('Invalid question type for validateFactorsAnswers');
+      }
+    }
+
+    const result = {
+      score: correctCount,
+      total: session.questions.length
+    };
+
+    // Get the multiplier for math quizzes
+    let multiplier = 1.0;
+    if (this.databaseService) {
+      try {
+        multiplier = await this.getUserMultiplier(userId, 'math');
+      } catch (error) {
+        // If there's an error getting multiplier, default to 1.0
+        multiplier = 1.0;
+      }
+      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, 'math', multiplier);
     }
 
     return result;

@@ -15,8 +15,15 @@ export interface FractionComparisonQuestion {
   answer: string; // "<", ">", or "="
 }
 
+// Factors question interface
+export interface FactorsQuestion {
+  question: string; // e.g., "List all factors of 12"
+  answer: number;   // First factor (for server-side validation)
+  factors: number[]; // All factors for client-side validation
+}
+
 // Union type for all question types
-export type Question = MathQuestion | FractionComparisonQuestion;
+export type Question = MathQuestion | FractionComparisonQuestion | FactorsQuestion;
 
 export interface Session {
   id: string;
