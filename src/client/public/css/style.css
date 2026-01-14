@@ -307,7 +307,7 @@ main {
     border-bottom: 1px solid var(--glass-border);
 }
 
-.user-welcome h2 {
+.dashboard-header h2 {
     color: var(--light-color);
     font-size: 1.8rem;
     margin-bottom: 5px;
@@ -616,6 +616,13 @@ main {
     font-size: 2.5rem;
 }
 
+.results-header h2 {
+    color: var(--light-color);
+    margin-bottom: 10px;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
 .results-subtitle {
     color: var(--gray-light);
     font-size: 1.1rem;
@@ -624,6 +631,60 @@ main {
 .score-display {
     text-align: center;
     margin: 30px 0;
+}
+
+.score-container {
+    padding: 25px;
+    border-radius: var(--border-radius);
+    background: rgba(255, 255, 255, 0.05);
+    margin-bottom: 25px;
+    border: 1px solid var(--glass-border);
+}
+
+.score-icon {
+    font-size: 3.5rem;
+    margin-bottom: 15px;
+}
+
+.score-percentage {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 10px 0;
+}
+
+.score-message {
+    font-size: 1.2rem;
+    color: var(--light-color);
+}
+
+.score-total {
+    font-size: 1.8rem;
+    color: var(--gray-light);
+}
+
+.breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 25px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 12px;
+    border: 1px solid var(--glass-border);
+}
+
+.breakdown-label {
+    color: var(--gray-light);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1rem;
+}
+
+.breakdown-value {
+    color: var(--light-color);
+    font-weight: 700;
+    font-size: 1.1rem;
 }
 
 .results-actions {
@@ -690,6 +751,46 @@ main {
     font-size: 1rem;
 }
 
+/* Report Items - Single Row Minimalistic */
+.report-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    min-height: 40px;
+    padding: 8px 12px;
+}
+
+.report-info h5 {
+    color: var(--light-color);
+    font-size: 1rem;
+    margin-bottom: 0;
+}
+
+.report-details {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+}
+
+.score-text {
+    font-weight: 600;
+    color: var(--light-color);
+    font-size: 0.9rem;
+}
+
+.date-text {
+    font-size: 0.75rem;
+    color: var(--gray-light);
+}
+
+.badge {
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    border-radius: 10px;
+}
+
 /* Credit Input Container */
 .credit-input-container {
     text-align: center;
@@ -699,6 +800,12 @@ main {
     margin-bottom: 30px;
     backdrop-filter: blur(10px);
     border: 1px solid var(--glass-border);
+}
+
+.credit-input-container h3 {
+    color: var(--light-color);
+    font-size: 1.5rem;
+    margin-bottom: 15px;
 }
 
 .credit-input-container p {
@@ -755,6 +862,51 @@ main {
 .credit-display p {
     color: var(--gray-light);
     font-size: 1.1rem;
+}
+
+.text-muted {
+    color: var(--gray-light) !important;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Helper Classes */
+.bg-success {
+    background-color: var(--success-color) !important;
+    color: white !important;
+}
+
+.bg-warning {
+    background-color: var(--warning-color) !important;
+    color: white !important;
+}
+
+.btn-sm {
+    padding: 6px 12px !important;
+    font-size: 0.85rem !important;
+}
+
+.btn-outline-primary {
+    background: transparent !important;
+    border: 1px solid var(--primary-light) !important;
+    color: var(--primary-light) !important;
+}
+
+.spinner-border {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    vertical-align: text-bottom;
+    border: 0.2em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border .75s linear infinite;
+}
+
+@keyframes spinner-border {
+    to { transform: rotate(360deg); }
 }
 
 /* Animation Classes */

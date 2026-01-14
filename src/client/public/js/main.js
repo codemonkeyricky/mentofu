@@ -605,16 +605,16 @@ export class MathMasterPro {
             const date = new Date(report.completedAt);
             const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             const percentage = Math.round((report.score / report.total) * 100);
-            
+
             html += `
-                <div class="report-item glass-card mb-3 p-3">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="report-item glass-card mb-2">
+                    <div class="report-info">
                         <h5 class="mb-0">${report.sessionType === 'math' ? 'Math Quiz' : 'Simple Words Quiz'}</h5>
-                        <span class="badge ${percentage >= 70 ? 'bg-success' : 'bg-warning'}">${percentage}%</span>
                     </div>
                     <div class="report-details">
-                        <p class="mb-1"><strong>Score:</strong> ${report.score}/${report.total}</p>
-                        <p class="mb-0 text-muted small"><i class="fas fa-calendar-alt me-1"></i> ${formattedDate}</p>
+                        <span class="badge ${percentage >= 70 ? 'bg-success' : 'bg-warning'}">${percentage}%</span>
+                        <span class="score-text"><strong>${report.score}/${report.total}</strong></span>
+                        <span class="date-text text-muted small">${formattedDate}</span>
                     </div>
                 </div>
             `;
