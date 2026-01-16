@@ -4,6 +4,15 @@ import { generateSimpleWords } from '../utils/simple.words.generator';
 import { SimpleWordsSession } from './simple.words.types';
 import { DatabaseService } from '../database/database.service';
 
+const questionGenerators: { [key: string]: (count: number) => Question[] } = {
+  'simple-math': generateQuestions,
+  'simple-math-2': generateDivisionQuestions,
+  'simple-math-3': generateFractionComparisonQuestions,
+  'simple-math-4': generateBODMASQuestions,
+  'simple-math-5': generateFactorsQuestions,
+};
+
+
 // Simple UUID generator function
 function generateUUID(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -29,10 +38,32 @@ class SessionService {
     this.databaseService = databaseService;
   }
 
-  public createSession(userId: string): Session {
+  public createQuizSession(userId: string, quizType: string): Session | SimpleWordsSession {
     const sessionId = generateUUID();
-    const questions = generateQuestions(10);
 
+    if (quizType === 'simple-words') {
+      const words = generateSimpleWords(10);
+      const session: SimpleWordsSession = {
+        id: sessionId,
+        userId: userId,
+        words: words,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      this.simpleWordsSessions.set(sessionId, session);
+      const timeout = setTimeout(() => {
+        this.deleteSimpleWordsSession(sessionId);
+      }, this.SESSION_TTL);
+      this.simpleWordsSessionTimeouts.set(sessionId, timeout);
+      return session;
+    }
+
+    const questionGenerator = questionGenerators[quizType];
+    if (!questionGenerator) {
+      throw new Error(`Invalid quiz type for math session: ${quizType}`);
+    }
+
+    const questions = questionGenerator(quizType === 'simple-math-5' ? 5 : 10);
     const session: Session = {
       id: sessionId,
       userId: userId,
@@ -40,178 +71,31 @@ class SessionService {
       createdAt: new Date(),
       updatedAt: new Date()
     };
-
     this.sessions.set(sessionId, session);
-
-    // Set up cleanup for expired sessions
     const timeout = setTimeout(() => {
       this.deleteSession(sessionId);
     }, this.SESSION_TTL);
-
-    // Store the timeout so we can clear it later
     this.sessionTimeouts.set(sessionId, timeout);
-
-    // Save session metadata to database if database service is available
-    if (this.databaseService) {
-      // We'll save a placeholder or just ensure that when answers are submitted,
-      // the score will be properly tracked. The key is that we need to make sure
-      // there's a way for /session/all to return session information.
-    }
-
     return session;
   }
 
-  public createDivisionSession(userId: string): Session {
-    const sessionId = generateUUID();
-    const questions = generateDivisionQuestions(10);
-
-    const session: Session = {
-      id: sessionId,
-      userId: userId,
-      questions: questions,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    this.sessions.set(sessionId, session);
-
-    // Set up cleanup for expired sessions
-    const timeout = setTimeout(() => {
-      this.deleteSession(sessionId);
-    }, this.SESSION_TTL);
-
-    // Store the timeout so we can clear it later
-    this.sessionTimeouts.set(sessionId, timeout);
-
-    // Save session metadata to database if database service is available
-    if (this.databaseService) {
-      // We'll save a placeholder or just ensure that when answers are submitted,
-      // the score will be properly tracked. The key is that we need to make sure
-      // there's a way for /session/all to return session information.
+  public async validateQuizAnswers(sessionId: string, userId: string, userAnswers: (number | string)[], quizType: string): Promise<{ score: number; total: number }> {
+    if (quizType === 'simple-words') {
+      return this.validateSimpleWordsAnswers(sessionId, userId, userAnswers as string[]);
     }
-
-    return session;
-  }
-
-  public createBODMASession(userId: string): Session {
-    const sessionId = generateUUID();
-    const questions = generateBODMASQuestions(10);
-
-    const session: Session = {
-      id: sessionId,
-      userId: userId,
-      questions: questions,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    this.sessions.set(sessionId, session);
-
-    // Set up cleanup for expired sessions
-    const timeout = setTimeout(() => {
-      this.deleteSession(sessionId);
-    }, this.SESSION_TTL);
-
-    // Store the timeout so we can clear it later
-    this.sessionTimeouts.set(sessionId, timeout);
-
-    // Save session metadata to database if database service is available
-    if (this.databaseService) {
-      // We'll save a placeholder or just ensure that when answers are submitted,
-      // the score will be properly tracked. The key is that we need to make sure
-      // there's a way for /session/all to return session information.
+    if (quizType === 'simple-math' || quizType === 'simple-math-2') {
+      return this.validateAnswers(sessionId, userId, userAnswers);
     }
-
-    return session;
-  }
-
-  public createFractionComparisonSession(userId: string): Session {
-    const sessionId = generateUUID();
-    const questions = generateFractionComparisonQuestions(10);
-
-    const session: Session = {
-      id: sessionId,
-      userId: userId,
-      questions: questions,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    this.sessions.set(sessionId, session);
-
-    // Set up cleanup for expired sessions
-    const timeout = setTimeout(() => {
-      this.deleteSession(sessionId);
-    }, this.SESSION_TTL);
-
-    // Store the timeout so we can clear it later
-    this.sessionTimeouts.set(sessionId, timeout);
-
-    // Save session metadata to database if database service is available
-    if (this.databaseService) {
-      // We'll save a placeholder or just ensure that when answers are submitted,
-      // the score will be properly tracked. The key is that we need to make sure
-      // there's a way for /session/all to return session information.
+    if (quizType === 'simple-math-3') {
+      return this.validateFractionComparisonAnswers(sessionId, userId, userAnswers);
     }
-
-    return session;
-  }
-
-  public createFactorsSession(userId: string): Session {
-    const sessionId = generateUUID();
-    const questions = generateFactorsQuestions(5);
-
-    const session: Session = {
-      id: sessionId,
-      userId: userId,
-      questions: questions,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    this.sessions.set(sessionId, session);
-
-    // Set up cleanup for expired sessions
-    const timeout = setTimeout(() => {
-      this.deleteSession(sessionId);
-    }, this.SESSION_TTL);
-
-    // Store the timeout so we can clear it later
-    this.sessionTimeouts.set(sessionId, timeout);
-
-    // Save session metadata to database if database service is available
-    if (this.databaseService) {
-      // We'll save a placeholder or just ensure that when answers are submitted,
-      // the score will be properly tracked. The key is that we need to make sure
-      // there's a way for /session/all to return session information.
+    if (quizType === 'simple-math-4') {
+        return this.validateBODMASAnswers(sessionId, userId, userAnswers);
     }
-
-    return session;
-  }
-
-  public createSimpleWordsSession(userId: string): SimpleWordsSession {
-    const sessionId = generateUUID();
-    const words = generateSimpleWords(10);
-
-    const session: SimpleWordsSession = {
-      id: sessionId,
-      userId: userId,
-      words: words,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    this.simpleWordsSessions.set(sessionId, session);
-
-    // Set up cleanup for expired sessions
-    const timeout = setTimeout(() => {
-      this.deleteSimpleWordsSession(sessionId);
-    }, this.SESSION_TTL);
-
-    // Store the timeout so we can clear it later
-    this.simpleWordsSessionTimeouts.set(sessionId, timeout);
-
-    return session;
+    if (quizType === 'simple-math-5') {
+        return this.validateFactorsAnswers(sessionId, userId, userAnswers);
+    }
+    throw new Error(`Invalid quiz type for validation: ${quizType}`);
   }
 
   public getSession(sessionId: string): Session | undefined {

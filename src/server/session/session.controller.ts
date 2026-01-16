@@ -6,171 +6,67 @@ import { authenticate } from '../middleware/auth.middleware';
 
 export const sessionRouter = Router();
 
-// GET /session/simple-math - Create new math quiz session with questions
-sessionRouter.get('/simple-math', authenticate, (req: Request, res: Response) => {
+const quizTypes = [
+  'simple-math',
+  'simple-math-2',
+  'simple-math-3',
+  'simple-math-4',
+  'simple-math-5',
+  'simple-words',
+];
+const quizTypePattern = `:quizType(${quizTypes.join('|')})`;
+
+// Create new quiz session
+sessionRouter.get(`/${quizTypePattern}`, authenticate, (req: Request, res: Response) => {
   try {
-    // Get user from auth middleware
     const user = (req as any).user;
+    const { quizType } = req.params;
 
-    const session = sessionService.createSession(user.userId);
+    const session = sessionService.createQuizSession(user.userId, quizType);
 
-    res.status(200).json({
-      sessionId: session.id,
-      questions: session.questions
-    });
+    if ('words' in session) {
+      res.status(200).json({
+        sessionId: session.id,
+        words: (session as SimpleWordsSession).words
+      });
+    } else {
+      res.status(200).json({
+        sessionId: session.id,
+        questions: (session as Session).questions
+      });
+    }
   } catch (error) {
-    console.error('Error creating session:', error);
+    console.error(`Error creating ${req.params.quizType} session:`, error);
     res.status(500).json({
       error: {
-        message: 'Failed to create session',
+        message: `Failed to create ${req.params.quizType} session`,
         code: 'SESSION_CREATION_FAILED'
       }
     });
   }
 });
 
-// GET /session/simple-math-2 - Create new division math quiz session with questions
-sessionRouter.get('/simple-math-2', authenticate, (req: Request, res: Response) => {
-  try {
-    // Get user from auth middleware
-    const user = (req as any).user;
-
-    const session = sessionService.createDivisionSession(user.userId);
-
-    res.status(200).json({
-      sessionId: session.id,
-      questions: session.questions
-    });
-  } catch (error) {
-    console.error('Error creating division session:', error);
-    res.status(500).json({
-      error: {
-        message: 'Failed to create division session',
-        code: 'DIVISION_SESSION_CREATION_FAILED'
-      }
-    });
-  }
-});
-
-// GET /session/simple-math-3 - Create new fraction comparison math quiz session with questions
-sessionRouter.get('/simple-math-3', authenticate, (req: Request, res: Response) => {
-  try {
-    // Get user from auth middleware
-    const user = (req as any).user;
-
-    const session = sessionService.createFractionComparisonSession(user.userId);
-
-    res.status(200).json({
-      sessionId: session.id,
-      questions: session.questions
-    });
-  } catch (error) {
-    console.error('Error creating fraction comparison session:', error);
-    res.status(500).json({
-      error: {
-        message: 'Failed to create fraction comparison session',
-        code: 'FRACTION_COMPARISON_SESSION_CREATION_FAILED'
-      }
-    });
-  }
-});
-
-// GET /session/simple-math-4 - Create new BODMAS math quiz session with questions
-sessionRouter.get('/simple-math-4', authenticate, (req: Request, res: Response) => {
-  try {
-    // Get user from auth middleware
-    const user = (req as any).user;
-
-    const session = sessionService.createBODMASession(user.userId);
-
-    res.status(200).json({
-      sessionId: session.id,
-      questions: session.questions
-    });
-  } catch (error) {
-    console.error('Error creating BODMAS session:', error);
-    res.status(500).json({
-      error: {
-        message: 'Failed to create BODMAS session',
-        code: 'BODMAS_SESSION_CREATION_FAILED'
-      }
-    });
-  }
-});
-
-// GET /session/simple-words - Create new simple words quiz session
-sessionRouter.get('/simple-words', authenticate, (req: Request, res: Response) => {
-  try {
-    // Get user from auth middleware
-    const user = (req as any).user;
-
-    const session = sessionService.createSimpleWordsSession(user.userId);
-
-    res.status(200).json({
-      sessionId: session.id,
-      words: session.words
-    });
-  } catch (error) {
-    console.error('Error creating simple words session:', error);
-    res.status(500).json({
-      error: {
-        message: 'Failed to create simple words session',
-        code: 'SIMPLE_WORDS_SESSION_CREATION_FAILED'
-      }
-    });
-  }
-});
-
-// GET /session/simple-math-5 - Create new factors math quiz session with questions
-sessionRouter.get('/simple-math-5', authenticate, (req: Request, res: Response) => {
-  try {
-    // Get user from auth middleware
-    const user = (req as any).user;
-
-    const session = sessionService.createFactorsSession(user.userId);
-
-    res.status(200).json({
-      sessionId: session.id,
-      questions: session.questions
-    });
-  } catch (error) {
-    console.error('Error creating factors session:', error);
-    res.status(500).json({
-      error: {
-        message: 'Failed to create factors session',
-        code: 'FACTORS_SESSION_CREATION_FAILED'
-      }
-    });
-  }
-});
-
-// POST /session/simple-math-4 - Validate BODMAS quiz answers and return score
-sessionRouter.post('/simple-math-4', authenticate, async (req: Request, res: Response) => {
+// Validate quiz answers and return score
+sessionRouter.post(`/${quizTypePattern}`, authenticate, async (req: Request, res: Response) => {
   try {
     const { sessionId, answers } = req.body;
-    // Get user from auth middleware
+    const { quizType } = req.params;
     const user = (req as any).user;
 
     // Validate input
     if (!sessionId) {
       return res.status(400).json({
-        error: {
-          message: 'Session ID is required',
-          code: 'MISSING_SESSION_ID'
-        }
+        error: { message: 'Session ID is required', code: 'MISSING_SESSION_ID' }
       });
     }
 
     if (!answers || !Array.isArray(answers)) {
       return res.status(400).json({
-        error: {
-          message: 'Answers array is required',
-          code: 'MISSING_ANSWERS'
-        }
+        error: { message: 'Answers array is required', code: 'MISSING_ANSWERS' }
       });
     }
 
-    const result = await sessionService.validateBODMASAnswers(sessionId, user.userId, answers);
+    const result = await sessionService.validateQuizAnswers(sessionId, user.userId, answers, quizType);
 
     res.status(200).json({
       score: result.score,
@@ -179,332 +75,21 @@ sessionRouter.post('/simple-math-4', authenticate, async (req: Request, res: Res
   } catch (error: any) {
     if (error.message === 'Session not found') {
       return res.status(404).json({
-        error: {
-          message: 'Session not found',
-          code: 'SESSION_NOT_FOUND'
-        }
+        error: { message: 'Session not found', code: 'SESSION_NOT_FOUND' }
       });
     }
 
     if (error.message === 'Unauthorized access to session') {
       return res.status(403).json({
-        error: {
-          message: 'Unauthorized access to session',
-          code: 'UNAUTHORIZED_ACCESS'
-        }
+        error: { message: 'Unauthorized access to session', code: 'UNAUTHORIZED_ACCESS' }
       });
     }
 
-    console.error('Error processing BODMAS answers:', error);
+    console.error(`Error processing ${req.params.quizType} answers:`, error);
     res.status(500).json({
       error: {
-        message: 'Failed to process BODMAS answers',
-        code: 'BODMAS_ANSWER_PROCESSING_FAILED'
-      }
-    });
-  }
-});
-
-// POST /session/simple-math-3 - Validate fraction comparison quiz answers and return score
-sessionRouter.post('/simple-math-3', authenticate, async (req: Request, res: Response) => {
-  try {
-    const { sessionId, answers } = req.body;
-    // Get user from auth middleware
-    const user = (req as any).user;
-
-    // Validate input
-    if (!sessionId) {
-      return res.status(400).json({
-        error: {
-          message: 'Session ID is required',
-          code: 'MISSING_SESSION_ID'
-        }
-      });
-    }
-
-    if (!answers || !Array.isArray(answers)) {
-      return res.status(400).json({
-        error: {
-          message: 'Answers array is required',
-          code: 'MISSING_ANSWERS'
-        }
-      });
-    }
-
-    const result = await sessionService.validateFractionComparisonAnswers(sessionId, user.userId, answers);
-
-    res.status(200).json({
-      score: result.score,
-      total: result.total
-    });
-  } catch (error: any) {
-    if (error.message === 'Session not found') {
-      return res.status(404).json({
-        error: {
-          message: 'Session not found',
-          code: 'SESSION_NOT_FOUND'
-        }
-      });
-    }
-
-    if (error.message === 'Unauthorized access to session') {
-      return res.status(403).json({
-        error: {
-          message: 'Unauthorized access to session',
-          code: 'UNAUTHORIZED_ACCESS'
-        }
-      });
-    }
-
-    console.error('Error processing fraction comparison answers:', error);
-    res.status(500).json({
-      error: {
-        message: 'Failed to process fraction comparison answers',
-        code: 'FRACTION_COMPARISON_ANSWER_PROCESSING_FAILED'
-      }
-    });
-  }
-});
-
-// POST /session/simple-math - Validate math quiz answers and return score
-sessionRouter.post('/simple-math', authenticate, async (req: Request, res: Response) => {
-  try {
-    const { sessionId, answers } = req.body;
-    // Get user from auth middleware
-    const user = (req as any).user;
-
-    // Validate input
-    if (!sessionId) {
-      return res.status(400).json({
-        error: {
-          message: 'Session ID is required',
-          code: 'MISSING_SESSION_ID'
-        }
-      });
-    }
-
-    if (!answers || !Array.isArray(answers)) {
-      return res.status(400).json({
-        error: {
-          message: 'Answers array is required',
-          code: 'MISSING_ANSWERS'
-        }
-      });
-    }
-
-    const result = await sessionService.validateAnswers(sessionId, user.userId, answers);
-
-    res.status(200).json({
-      score: result.score,
-      total: result.total
-    });
-  } catch (error: any) {
-    if (error.message === 'Session not found') {
-      return res.status(404).json({
-        error: {
-          message: 'Session not found',
-          code: 'SESSION_NOT_FOUND'
-        }
-      });
-    }
-
-    if (error.message === 'Unauthorized access to session') {
-      return res.status(403).json({
-        error: {
-          message: 'Unauthorized access to session',
-          code: 'UNAUTHORIZED_ACCESS'
-        }
-      });
-    }
-
-    console.error('Error processing answers:', error);
-    res.status(500).json({
-      error: {
-        message: 'Failed to process answers',
+        message: `Failed to process ${req.params.quizType} answers`,
         code: 'ANSWER_PROCESSING_FAILED'
-      }
-    });
-  }
-});
-
-// POST /session/simple-math-2 - Validate division math quiz answers and return score
-sessionRouter.post('/simple-math-2', authenticate, async (req: Request, res: Response) => {
-  try {
-    const { sessionId, answers } = req.body;
-    // Get user from auth middleware
-    const user = (req as any).user;
-
-    // Validate input
-    if (!sessionId) {
-      return res.status(400).json({
-        error: {
-          message: 'Session ID is required',
-          code: 'MISSING_SESSION_ID'
-        }
-      });
-    }
-
-    if (!answers || !Array.isArray(answers)) {
-      return res.status(400).json({
-        error: {
-          message: 'Answers array is required',
-          code: 'MISSING_ANSWERS'
-        }
-      });
-    }
-
-    const result = await sessionService.validateAnswers(sessionId, user.userId, answers);
-
-    res.status(200).json({
-      score: result.score,
-      total: result.total
-    });
-  } catch (error: any) {
-    if (error.message === 'Session not found') {
-      return res.status(404).json({
-        error: {
-          message: 'Session not found',
-          code: 'SESSION_NOT_FOUND'
-        }
-      });
-    }
-
-    if (error.message === 'Unauthorized access to session') {
-      return res.status(403).json({
-        error: {
-          message: 'Unauthorized access to session',
-          code: 'UNAUTHORIZED_ACCESS'
-        }
-      });
-    }
-
-    console.error('Error processing division math answers:', error);
-    res.status(500).json({
-      error: {
-        message: 'Failed to process division math answers',
-        code: 'DIVISION_MATH_ANSWER_PROCESSING_FAILED'
-      }
-    });
-  }
-});
-
-// POST /session/simple-words - Validate simple words quiz answers and return score
-sessionRouter.post('/simple-words', authenticate, async (req: Request, res: Response) => {
-  try {
-    const { sessionId, answers } = req.body;
-    // Get user from auth middleware
-    const user = (req as any).user;
-
-    // Validate input
-    if (!sessionId) {
-      return res.status(400).json({
-        error: {
-          message: 'Session ID is required',
-          code: 'MISSING_SESSION_ID'
-        }
-      });
-    }
-
-    if (!answers || !Array.isArray(answers)) {
-      return res.status(400).json({
-        error: {
-          message: 'Answers array is required',
-          code: 'MISSING_ANSWERS'
-        }
-      });
-    }
-
-    const result = await sessionService.validateSimpleWordsAnswers(sessionId, user.userId, answers);
-
-    res.status(200).json({
-      score: result.score,
-      total: result.total
-    });
-  } catch (error: any) {
-    if (error.message === 'Session not found') {
-      return res.status(404).json({
-        error: {
-          message: 'Session not found',
-          code: 'SESSION_NOT_FOUND'
-        }
-      });
-    }
-
-    if (error.message === 'Unauthorized access to session') {
-      return res.status(403).json({
-        error: {
-          message: 'Unauthorized access to session',
-          code: 'UNAUTHORIZED_ACCESS'
-        }
-      });
-    }
-
-    console.error('Error processing simple words answers:', error);
-    res.status(500).json({
-      error: {
-        message: 'Failed to process simple words answers',
-        code: 'SIMPLE_WORDS_ANSWER_PROCESSING_FAILED'
-      }
-    });
-  }
-});
-
-// POST /session/simple-math-5 - Validate factors quiz answers and return score
-sessionRouter.post('/simple-math-5', authenticate, async (req: Request, res: Response) => {
-  try {
-    const { sessionId, answers } = req.body;
-    // Get user from auth middleware
-    const user = (req as any).user;
-
-    // Validate input
-    if (!sessionId) {
-      return res.status(400).json({
-        error: {
-          message: 'Session ID is required',
-          code: 'MISSING_SESSION_ID'
-        }
-      });
-    }
-
-    if (!answers || !Array.isArray(answers)) {
-      return res.status(400).json({
-        error: {
-          message: 'Answers array is required',
-          code: 'MISSING_ANSWERS'
-        }
-      });
-    }
-
-    const result = await sessionService.validateFactorsAnswers(sessionId, user.userId, answers);
-
-    res.status(200).json({
-      score: result.score,
-      total: result.total
-    });
-  } catch (error: any) {
-    if (error.message === 'Session not found') {
-      return res.status(404).json({
-        error: {
-          message: 'Session not found',
-          code: 'SESSION_NOT_FOUND'
-        }
-      });
-    }
-
-    if (error.message === 'Unauthorized access to session') {
-      return res.status(403).json({
-        error: {
-          message: 'Unauthorized access to session',
-          code: 'UNAUTHORIZED_ACCESS'
-        }
-      });
-    }
-
-    console.error('Error processing factors answers:', error);
-    res.status(500).json({
-      error: {
-        message: 'Failed to process factors answers',
-        code: 'FACTORS_ANSWER_PROCESSING_FAILED'
       }
     });
   }
