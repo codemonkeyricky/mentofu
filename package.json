@@ -13,9 +13,7 @@
     "dev:client": "vite",
     "test": "jest",
     "playwright": "playwright test",
-    "playwright:ui": "playwright test --ui",
-    "cypress:open": "cypress open",
-    "cypress:run": "cypress run"
+    "playwright:ui": "playwright test --ui"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
@@ -52,7 +50,6 @@
     "@types/three": "^0.182.0",
     "@types/uuid": "^11.0.0",
     "concurrently": "^9.2.1",
-    "cypress": "^15.8.1",
     "nodemon": "^3.1.11",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.6",

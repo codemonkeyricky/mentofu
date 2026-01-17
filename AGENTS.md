@@ -67,7 +67,6 @@ src/client/
 ### 4. Testing Infrastructure
 ```
 e2e/                    # Playwright end-to-end tests
-cypress/                # Cypress end-to-end tests
 src/server/test/        # Jest unit and integration tests
 test-results/           # Test output and reports
 ```
@@ -174,16 +173,9 @@ npm run playwright                 # Run Playwright tests
 npm run playwright:ui              # Open Playwright UI
 ```
 
-**Cypress**: `cypress/` - Visual testing with recording
-```bash
-npm run cypress:open              # Open Cypress test runner
-npm run cypress:run               # Run Cypress tests headless
-```
-
 ### 4. Test Configuration
 - **Jest**: `jest.config.js` with TypeScript support via `ts-jest`
 - **Playwright**: `playwright.config.ts` with multi-browser setup
-- **Cypress**: `cypress.config.js` with video recording enabled
 
 ## Development Workflow
 
@@ -240,8 +232,6 @@ npm run playwright           # Run Playwright end-to-end tests
 
 **Purpose**: These tests validate that changes do not break existing functionality and maintain system stability. While the CI pipeline will also run these tests, local execution catches issues early and reduces pipeline failures.
 
-**Note**: Additional test suites (Cypress) and build verification are part of the full post-change validation process described below.
-
 ### Testing Requirements for Changes
 
 #### Backend Changes
@@ -253,7 +243,6 @@ npm run playwright           # Run Playwright end-to-end tests
 - [ ] Mandatory test suite executed (`npm test && npm run playwright`)
 
 #### Frontend Changes
-- [ ] Visual regression testing (Cypress/Playwright)
 - [ ] User interaction flows tested end-to-end
 - [ ] 3D visualization performance validated
 - [ ] Cross-browser compatibility (Playwright multi-browser)
@@ -277,7 +266,6 @@ npm run playwright           # Run Playwright end-to-end tests
    ```bash
    npm test
    npm run playwright
-   npm run cypress:run
    ```
 
 2. **Build Verification**:
@@ -345,9 +333,9 @@ npm run playwright           # Run Playwright end-to-end tests
 **Trade-off**: Steeper learning curve for maintenance
 
 ### 4. Multi-Framework Testing
-**Decision**: Use both Playwright and Cypress for E2E testing
-**Rationale**: Leverage strengths of each (Playwright for multi-browser, Cypress for DX)
-**Trade-off**: Maintenance overhead for two test suites
+**Decision**: Use Playwright for E2E testing
+**Rationale**: Leverage Playwright's multi-browser support and robust test infrastructure
+**Trade-off**: Single test framework to maintain
 
 ---
 

@@ -66,7 +66,6 @@ Submit answers for a quiz session and receive scoring results.
 - **Better SQLite3**: Database for storing session data
 - **JWT**: JSON Web Token for authentication
 - **Jest**: Testing framework
-- **Cypress**: End-to-end testing
 - **Swagger**: API documentation
 
 ## Running the Application
@@ -86,11 +85,6 @@ npm start
 Run unit tests:
 ```bash
 npm test
-```
-
-Run end-to-end tests:
-```bash
-npm run cypress:open
 ```
 
 ## API Documentation
