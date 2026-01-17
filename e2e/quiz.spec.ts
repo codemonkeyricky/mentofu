@@ -18,14 +18,7 @@ test.describe('Quiz Functionality', () => {
     await page.getByPlaceholder('Create password').fill('testpass123');
     await page.getByRole('button', { name: 'Register' }).click();
 
-    // Wait for login screen to appear
-    await expect(page.getByText('Welcome Back')).toBeVisible();
-
-    await page.locator('#login-username').fill(username);
-    await page.locator('#login-password').fill('testpass123');
-    await page.getByRole('button', { name: 'Sign In' }).click();
-
-    // Wait for dashboard to load
+    // Wait for dashboard to load (after auto-login)
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
 
     // Click on multiplication quiz card (first one)
@@ -81,14 +74,7 @@ test.describe('Quiz Functionality', () => {
     await page.getByPlaceholder('Create password').fill('testpass123');
     await page.getByRole('button', { name: 'Register' }).click();
 
-    // Wait for login screen to appear
-    await expect(page.getByText('Welcome Back')).toBeVisible();
-
-    await page.locator('#login-username').fill(username);
-    await page.locator('#login-password').fill('testpass123');
-    await page.getByRole('button', { name: 'Sign In' }).click();
-
-    // Wait for dashboard to load
+    // Wait for dashboard to load (after auto-login)
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
 
     // Take the multiplication quiz twice
