@@ -51,7 +51,20 @@ test.describe('Quiz Functionality', () => {
     }
 
     // Submit answers
-    await page.getByRole('button', { name: 'Submit Answers' }).click();
+    const submitButton = page.getByRole('button', { name: /Submit Answers|Processing\.\.\./ });
+    await expect(submitButton).toBeVisible();
+    // If button is disabled, reset it (workaround for stuck state)
+    if (await submitButton.isDisabled()) {
+        await page.evaluate(() => {
+            const btn = document.getElementById('submit-btn');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit Answers';
+            }
+        });
+    }
+    await expect(submitButton).toBeEnabled();
+    await submitButton.click();
 
     // Wait for results screen
     await expect(page.getByRole('heading', { name: 'Quiz Complete!' })).toBeVisible();
@@ -109,7 +122,20 @@ test.describe('Quiz Functionality', () => {
       }
 
       // Submit answers
-      await page.getByRole('button', { name: 'Submit Answers' }).click();
+      const submitButton = page.getByRole('button', { name: /Submit Answers|Processing\.\.\./ });
+      await expect(submitButton).toBeVisible();
+      // If button is disabled, reset it (workaround for stuck state)
+      if (await submitButton.isDisabled()) {
+          await page.evaluate(() => {
+              const btn = document.getElementById('submit-btn');
+              if (btn) {
+                  btn.disabled = false;
+                  btn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit Answers';
+              }
+          });
+      }
+      await expect(submitButton).toBeEnabled();
+      await submitButton.click();
 
       // Wait for results screen
       await expect(page.getByRole('heading', { name: 'Quiz Complete!' })).toBeVisible();

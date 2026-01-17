@@ -211,6 +211,16 @@ export class MathMasterPro {
 
             // Add event listener to refresh score when dashboard becomes visible
             this.setupDashboardVisibilityListener();
+
+            // Reset submit buttons in case they're stuck in loading state
+            if (this.submitBtn) {
+                this.submitBtn.disabled = false;
+                this.submitBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit Answers';
+            }
+            if (this.submitWordsBtn) {
+                this.submitWordsBtn.disabled = false;
+                this.submitWordsBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit Answers';
+            }
         }
 
         // Focus on the first interactive element in the active screen

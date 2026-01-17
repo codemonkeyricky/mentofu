@@ -16,6 +16,15 @@ export default class MathQuiz extends QuizBase {
                 return;
             }
 
+            // Reset all buttons to ensure clean state (especially submit button)
+            this.resetAllButtons();
+
+            // Ensure submit button is enabled
+            if (this.mathMasterPro.submitBtn) {
+                this.mathMasterPro.submitBtn.disabled = false;
+                this.mathMasterPro.submitBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit Answers';
+            }
+
             // Show loading state with professional animation
             const button = this.mathMasterPro.startMathBtn;
             if (button) {
