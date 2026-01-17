@@ -12,11 +12,14 @@
     "dev:server": "nodemon --watch 'src/server/**/*.ts' --exec 'ts-node' src/server/index.ts",
     "dev:client": "vite",
     "test": "jest",
+    "playwright": "playwright test",
+    "playwright:ui": "playwright test --ui",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
+    "@playwright/test": "^1.57.0",
     "@types/bcrypt": "^6.0.0",
     "@types/dotenv": "^6.1.1",
     "@types/pg": "^8.16.0",
