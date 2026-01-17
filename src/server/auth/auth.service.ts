@@ -18,7 +18,7 @@ class AuthService {
     this.db = databaseService;
   }
 
-  public async register(username: string, password: string): Promise<User> {
+  public async register(username: string, password: string, isAdmin: boolean = false): Promise<User> {
     // Check if user already exists by querying the database
     const existingUser = await this.db.findUserByUsername(username);
     if (existingUser) {
@@ -34,7 +34,8 @@ class AuthService {
     const newUser: Omit<User, 'createdAt'> = {
       id: userId,
       username,
-      passwordHash
+      passwordHash,
+      isAdmin
     };
 
     // Save to database

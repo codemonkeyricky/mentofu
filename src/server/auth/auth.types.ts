@@ -5,6 +5,7 @@ export interface User {
   createdAt: Date;
   earned_credits?: number;
   claimed_credits?: number;
+  isAdmin?: boolean;
 }
 
 export interface AuthResponse {

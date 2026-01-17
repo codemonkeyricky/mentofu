@@ -66,6 +66,7 @@ interface DatabaseOperations {
   getEarnedCredits(userId: string): Promise<number>;
   addClaimedCredits(userId: string, amount: number): Promise<void>;
   getClaimedCredits(userId: string): Promise<number>;
+  getAllUsers(): Promise<User[]>;
 }
 
 export class DatabaseService implements DatabaseOperations {
@@ -95,7 +96,8 @@ export class DatabaseService implements DatabaseOperations {
           password_hash TEXT NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           earned_credits INTEGER DEFAULT 0,
-          claimed_credits INTEGER DEFAULT 0
+          claimed_credits INTEGER DEFAULT 0,
+          is_admin BOOLEAN DEFAULT FALSE
         )
       `;
 
@@ -108,6 +110,9 @@ export class DatabaseService implements DatabaseOperations {
             END IF;
             IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='claimed_credits') THEN
                 ALTER TABLE users ADD COLUMN claimed_credits INTEGER DEFAULT 0;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='is_admin') THEN
+                ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE;
             END IF;
         END $$;
       `;
@@ -197,7 +202,8 @@ export class DatabaseService implements DatabaseOperations {
         passwordHash: user.passwordHash,
         createdAt: new Date(),
         earned_credits: 0,
-        claimed_credits: 0
+        claimed_credits: 0,
+        isAdmin: user.isAdmin || false
       };
 
       users.set(user.id, newUser);
@@ -211,12 +217,12 @@ export class DatabaseService implements DatabaseOperations {
         const sqlClient = sql;
 
         await sqlClient`
-          INSERT INTO users (id, username, password_hash)
-          VALUES (${user.id}, ${user.username}, ${user.passwordHash})
+          INSERT INTO users (id, username, password_hash, is_admin)
+          VALUES (${user.id}, ${user.username}, ${user.passwordHash}, ${user.isAdmin || false})
         `;
 
         const result = await sqlClient`
-          SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits
+          SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isAdmin"
           FROM users
           WHERE id = ${user.id}
         `;
@@ -249,7 +255,7 @@ export class DatabaseService implements DatabaseOperations {
       await this.initVercelPostgres();
 
       const result = await sqlClient`
-        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits
+        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isAdmin"
         FROM users
         WHERE username = ${username}
       `;
@@ -267,7 +273,7 @@ export class DatabaseService implements DatabaseOperations {
       const sqlClient = sql;
 
       const result = await sqlClient`
-        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits
+        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isAdmin"
         FROM users
         WHERE id = ${userId}
       `;
@@ -594,6 +600,30 @@ export class DatabaseService implements DatabaseOperations {
       } catch (error: any) {
         throw error;
       }
+    }
+  }
+
+  public async getAllUsers(): Promise<User[]> {
+    if (this.databaseType === 'memory') {
+      const users = this.getUsersTable();
+      return Array.from(users.values());
+    } else {
+      // Vercel Postgres implementation only
+      const sqlClient = sql;
+      await this.initVercelPostgres();
+      const result = await sqlClient`
+        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isAdmin"
+        FROM users
+      `;
+      return result.rows.map((row: any) => ({
+        id: row.id,
+        username: row.username,
+        passwordHash: row.passwordHash,
+        createdAt: row.createdAt,
+        earned_credits: row.earned_credits,
+        claimed_credits: row.claimed_credits,
+        isAdmin: row.isAdmin
+      }));
     }
   }
 
