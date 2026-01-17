@@ -595,6 +595,20 @@ export class MathMasterPro {
         }
     }
 
+    getQuizDisplayName(sessionType) {
+        const quizTypeDisplayNames = {
+            'simple-math': 'Multiplication Quiz',
+            'simple-math-2': 'Division Quiz',
+            'simple-math-3': 'Fraction Comparison Quiz',
+            'simple-math-4': 'BODMAS Quiz',
+            'simple-math-5': 'Factors Quiz',
+            'simple-words': 'Simple Words Quiz',
+            'math': 'Math Quiz', // fallback for old data
+            'simple_words': 'Simple Words Quiz' // fallback for old data
+        };
+        return quizTypeDisplayNames[sessionType] || 'Quiz';
+    }
+
     displaySessionReports(reports) {
         if (!reports || !Array.isArray(reports.sessions) || reports.sessions.length === 0) {
             this.reportsContainer.innerHTML = '<p class="text-center text-muted">No session reports available.</p>';
@@ -620,7 +634,7 @@ export class MathMasterPro {
             html += `
                 <div class="report-item glass-card mb-2">
                     <div class="report-info">
-                        <h5 class="mb-0">${report.sessionType === 'math' ? 'Math Quiz' : 'Simple Words Quiz'}</h5>
+                        <h5 class="mb-0">${this.getQuizDisplayName(report.sessionType)}</h5>
                     </div>
                     <div class="report-details">
                         <span class="badge ${percentage >= 70 ? 'bg-success' : 'bg-warning'}">${percentage}%</span>

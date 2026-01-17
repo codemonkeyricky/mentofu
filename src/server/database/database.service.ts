@@ -54,7 +54,7 @@ interface DatabaseOperations {
     sessionId: string,
     score: number,
     total: number,
-    sessionType: 'math' | 'simple_words',
+    sessionType: string,
     multiplier: number
   ): Promise<void>;
   getSessionScore(sessionId: string): Promise<{ score: number, total: number, multiplier?: number } | null>;
@@ -281,7 +281,7 @@ export class DatabaseService implements DatabaseOperations {
     sessionId: string,
     score: number,
     total: number,
-    sessionType: 'math' | 'simple_words',
+    sessionType: string,
     multiplier: number = 1.0
   ): Promise<void> {
     const scoreId = this.generateUUID();

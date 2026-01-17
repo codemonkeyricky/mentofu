@@ -38,6 +38,12 @@ class SessionService {
     this.databaseService = databaseService;
   }
 
+  private getMultiplierCategory(quizType: string): string {
+    if (quizType === 'simple-words') return 'simple_words';
+    if (quizType.startsWith('simple-math')) return 'math';
+    return quizType;
+  }
+
   public createQuizSession(userId: string, quizType: string): Session | SimpleWordsSession {
     const sessionId = generateUUID();
 
@@ -81,19 +87,19 @@ class SessionService {
 
   public async validateQuizAnswers(sessionId: string, userId: string, userAnswers: (number | string)[], quizType: string): Promise<{ score: number; total: number }> {
     if (quizType === 'simple-words') {
-      return this.validateSimpleWordsAnswers(sessionId, userId, userAnswers as string[]);
+      return this.validateSimpleWordsAnswers(sessionId, userId, userAnswers as string[], quizType);
     }
     if (quizType === 'simple-math' || quizType === 'simple-math-2') {
-      return this.validateAnswers(sessionId, userId, userAnswers);
+      return this.validateAnswers(sessionId, userId, userAnswers, quizType);
     }
     if (quizType === 'simple-math-3') {
-      return this.validateFractionComparisonAnswers(sessionId, userId, userAnswers);
+      return this.validateFractionComparisonAnswers(sessionId, userId, userAnswers, quizType);
     }
     if (quizType === 'simple-math-4') {
-        return this.validateBODMASAnswers(sessionId, userId, userAnswers);
+        return this.validateBODMASAnswers(sessionId, userId, userAnswers, quizType);
     }
     if (quizType === 'simple-math-5') {
-        return this.validateFactorsAnswers(sessionId, userId, userAnswers);
+        return this.validateFactorsAnswers(sessionId, userId, userAnswers, quizType);
     }
     throw new Error(`Invalid quiz type for validation: ${quizType}`);
   }
@@ -120,7 +126,7 @@ class SessionService {
     return session;
   }
 
-  public async validateAnswers(sessionId: string, userId: string, userAnswers: (number | string)[]): Promise<{ score: number; total: number }> {
+  public async validateAnswers(sessionId: string, userId: string, userAnswers: (number | string)[], quizType: string): Promise<{ score: number; total: number }> {
     const session = this.sessions.get(sessionId);
 
     if (!session) {
@@ -157,12 +163,12 @@ class SessionService {
     let multiplier = 1.0;
     if (this.databaseService) {
       try {
-        multiplier = await this.getUserMultiplier(userId, 'math');
+        multiplier = await this.getUserMultiplier(userId, this.getMultiplierCategory(quizType));
       } catch (error) {
         // If there's an error getting multiplier, default to 1.0
         multiplier = 1.0;
       }
-      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, 'math', multiplier);
+      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, quizType, multiplier);
     }
 
     return result;
@@ -186,7 +192,7 @@ class SessionService {
     }
   }
 
-  public async validateBODMASAnswers(sessionId: string, userId: string, userAnswers: (number | string)[]): Promise<{ score: number; total: number }> {
+  public async validateBODMASAnswers(sessionId: string, userId: string, userAnswers: (number | string)[], quizType: string): Promise<{ score: number; total: number }> {
     const session = this.sessions.get(sessionId);
 
     if (!session) {
@@ -223,18 +229,18 @@ class SessionService {
     let multiplier = 1.0;
     if (this.databaseService) {
       try {
-        multiplier = await this.getUserMultiplier(userId, 'math');
+        multiplier = await this.getUserMultiplier(userId, this.getMultiplierCategory(quizType));
       } catch (error) {
         // If there's an error getting multiplier, default to 1.0
         multiplier = 1.0;
       }
-      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, 'math', multiplier);
+      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, quizType, multiplier);
     }
 
     return result;
   }
 
-  public async validateFractionComparisonAnswers(sessionId: string, userId: string, userAnswers: (number | string)[]): Promise<{ score: number; total: number }> {
+  public async validateFractionComparisonAnswers(sessionId: string, userId: string, userAnswers: (number | string)[], quizType: string): Promise<{ score: number; total: number }> {
     const session = this.sessions.get(sessionId);
 
     if (!session) {
@@ -271,18 +277,18 @@ class SessionService {
     let multiplier = 1.0;
     if (this.databaseService) {
       try {
-        multiplier = await this.getUserMultiplier(userId, 'math');
+        multiplier = await this.getUserMultiplier(userId, this.getMultiplierCategory(quizType));
       } catch (error) {
         // If there's an error getting multiplier, default to 1.0
         multiplier = 1.0;
       }
-      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, 'math', multiplier);
+      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, quizType, multiplier);
     }
 
     return result;
   }
 
-  public async validateSimpleWordsAnswers(sessionId: string, userId: string, userAnswers: string[]): Promise<{ score: number; total: number }> {
+  public async validateSimpleWordsAnswers(sessionId: string, userId: string, userAnswers: string[], quizType: string): Promise<{ score: number; total: number }> {
     const session = this.simpleWordsSessions.get(sessionId);
 
     if (!session) {
@@ -312,18 +318,18 @@ class SessionService {
     let multiplier = 1.0;
     if (this.databaseService) {
       try {
-        multiplier = await this.getUserMultiplier(userId, 'simple_words');
+        multiplier = await this.getUserMultiplier(userId, this.getMultiplierCategory(quizType));
       } catch (error) {
         // If there's an error getting multiplier, default to 1.0
         multiplier = 1.0;
       }
-      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, 'simple_words', multiplier);
+      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, quizType, multiplier);
     }
 
     return result;
   }
 
-  public async validateFactorsAnswers(sessionId: string, userId: string, userAnswers: (number | string)[]): Promise<{ score: number; total: number }> {
+  public async validateFactorsAnswers(sessionId: string, userId: string, userAnswers: (number | string)[], quizType: string): Promise<{ score: number; total: number }> {
     const session = this.sessions.get(sessionId);
 
     if (!session) {
@@ -378,12 +384,12 @@ class SessionService {
     let multiplier = 1.0;
     if (this.databaseService) {
       try {
-        multiplier = await this.getUserMultiplier(userId, 'math');
+        multiplier = await this.getUserMultiplier(userId, this.getMultiplierCategory(quizType));
       } catch (error) {
         // If there's an error getting multiplier, default to 1.0
         multiplier = 1.0;
       }
-      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, 'math', multiplier);
+      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, quizType, multiplier);
     }
 
     return result;
@@ -527,7 +533,7 @@ class SessionService {
 
     for (const score of userScores) {
       // Get the multiplier for this quiz type, default to 1.0 if not found
-      const multiplier = await this.databaseService.getUserMultiplier(userId, score.sessionType);
+      const multiplier = await this.databaseService.getUserMultiplier(userId, this.getMultiplierCategory(score.sessionType));
 
       // Calculate weighted score
       const weightedScore = score.score * multiplier;
