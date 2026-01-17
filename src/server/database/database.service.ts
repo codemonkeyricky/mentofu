@@ -1,7 +1,7 @@
 import { User } from '../auth/auth.types';
 import { sql } from '@vercel/postgres';
 
-// Singleton in-memory database
+// In-memory database implementation for local development
 class MemoryDatabase {
   private static instance: MemoryDatabase;
   private db: Map<string, Map<string, any>>;
@@ -151,23 +151,6 @@ export class DatabaseService implements DatabaseOperations {
     }
   }
 
-  // Helper method to get database operations based on type
-  private getDatabaseOperations() {
-    if (this.databaseType === 'memory') {
-      return {
-        getUsersTable: () => this.memoryDB!.getTable('users'),
-        getSessionScoresTable: () => this.memoryDB!.getTable('session_scores'),
-        getMultipliersTable: () => this.memoryDB!.getTable('user_multipliers')
-      };
-    } else {
-      return {
-        getUsersTable: null,
-        getSessionScoresTable: null,
-        getMultipliersTable: null
-      };
-    }
-  }
-
   // Helper method to handle PostgreSQL query results consistently
   private handlePostgresResult<T>(result: any): T {
     if (result.rows && result.rows.length > 0) {
@@ -176,9 +159,24 @@ export class DatabaseService implements DatabaseOperations {
     return null as T;
   }
 
+  // Helper to get users table for memory database
+  private getUsersTable() {
+    return this.memoryDB!.getTable('users');
+  }
+
+  // Helper to get session scores table for memory database
+  private getSessionScoresTable() {
+    return this.memoryDB!.getTable('session_scores');
+  }
+
+  // Helper to get multipliers table for memory database
+  private getMultipliersTable() {
+    return this.memoryDB!.getTable('user_multipliers');
+  }
+
   public async createUser(user: Omit<User, 'createdAt'>): Promise<User> {
     if (this.databaseType === 'memory') {
-      const users = this.memoryDB!.getTable('users');
+      const users = this.getUsersTable();
 
       // Check if user already exists by ID or username
       if (users.has(user.id)) {
@@ -236,7 +234,7 @@ export class DatabaseService implements DatabaseOperations {
 
   public async findUserByUsername(username: string): Promise<User | null> {
     if (this.databaseType === 'memory') {
-      const users = this.memoryDB!.getTable('users');
+      const users = this.getUsersTable();
       for (const user of users.values()) {
         if (user.username === username) {
           return user;
@@ -262,7 +260,7 @@ export class DatabaseService implements DatabaseOperations {
 
   public async findUserById(userId: string): Promise<User | null> {
     if (this.databaseType === 'memory') {
-      const users = this.memoryDB!.getTable('users');
+      const users = this.getUsersTable();
       return users.get(userId) || null;
     } else {
       // Vercel Postgres implementation only
@@ -290,7 +288,7 @@ export class DatabaseService implements DatabaseOperations {
 
     if (this.databaseType === 'memory') {
       // Create the session score in memory
-      const sessionScores = this.memoryDB!.getTable('session_scores');
+      const sessionScores = this.getSessionScoresTable();
       const newScore = {
         id: scoreId,
         user_id: userId,
@@ -320,7 +318,7 @@ export class DatabaseService implements DatabaseOperations {
 
   public async getSessionScore(sessionId: string): Promise<{ score: number, total: number, multiplier?: number } | null> {
     if (this.databaseType === 'memory') {
-      const sessionScores = this.memoryDB!.getTable('session_scores');
+      const sessionScores = this.getSessionScoresTable();
       for (const score of sessionScores.values()) {
         if (score.session_id === sessionId) {
           return {
@@ -348,7 +346,7 @@ export class DatabaseService implements DatabaseOperations {
 
   public async getUserSessionScores(userId: string): Promise<Array<{ sessionId: string, score: number, total: number, sessionType: string, completedAt: Date, multiplier?: number }>> {
     if (this.databaseType === 'memory') {
-      const sessionScores = this.memoryDB!.getTable('session_scores');
+      const sessionScores = this.getSessionScoresTable();
       const userScores: Array<{ sessionId: string, score: number, total: number, sessionType: string, completedAt: Date, multiplier?: number }> = [];
 
       for (const score of sessionScores.values()) {
@@ -396,7 +394,7 @@ export class DatabaseService implements DatabaseOperations {
 
   public async getUserSessionHistory(userId: string): Promise<any[]> {
     if (this.databaseType === 'memory') {
-      const sessionScores = this.memoryDB!.getTable('session_scores');
+      const sessionScores = this.getSessionScoresTable();
       const history: any[] = [];
 
       for (const score of sessionScores.values()) {
@@ -456,7 +454,7 @@ export class DatabaseService implements DatabaseOperations {
 
   public async setUserMultiplier(userId: string, quizType: string, multiplier: number): Promise<void> {
     if (this.databaseType === 'memory') {
-      const multipliers = this.memoryDB!.getTable('user_multipliers');
+      const multipliers = this.getMultipliersTable();
       const key = `${userId}-${quizType}`;
       multipliers.set(key, Math.floor(multiplier)); // Store as integer
     } else {
@@ -478,7 +476,7 @@ export class DatabaseService implements DatabaseOperations {
 
   public async getUserMultiplier(userId: string, quizType: string): Promise<number> {
     if (this.databaseType === 'memory') {
-      const multipliers = this.memoryDB!.getTable('user_multipliers');
+      const multipliers = this.getMultipliersTable();
       const key = `${userId}-${quizType}`;
       return Math.floor(multipliers.get(key) || 1); // Default multiplier of 1 (integer)
     } else {
@@ -505,7 +503,7 @@ export class DatabaseService implements DatabaseOperations {
 
   public async addEarnedCredits(userId: string, amount: number): Promise<void> {
     if (this.databaseType === 'memory') {
-      const users = this.memoryDB!.getTable('users');
+      const users = this.getUsersTable();
       const user = users.get(userId);
       if (user) {
         user.earned_credits = (user.earned_credits || 0) + amount;
@@ -530,7 +528,7 @@ export class DatabaseService implements DatabaseOperations {
 
   public async getEarnedCredits(userId: string): Promise<number> {
     if (this.databaseType === 'memory') {
-      const users = this.memoryDB!.getTable('users');
+      const users = this.getUsersTable();
       const user = users.get(userId);
       return user?.earned_credits || 0;
     } else {
@@ -553,7 +551,7 @@ export class DatabaseService implements DatabaseOperations {
 
   public async addClaimedCredits(userId: string, amount: number): Promise<void> {
     if (this.databaseType === 'memory') {
-      const users = this.memoryDB!.getTable('users');
+      const users = this.getUsersTable();
       const user = users.get(userId);
       if (user) {
         user.claimed_credits = (user.claimed_credits || 0) + amount;
@@ -578,7 +576,7 @@ export class DatabaseService implements DatabaseOperations {
 
   public async getClaimedCredits(userId: string): Promise<number> {
     if (this.databaseType === 'memory') {
-      const users = this.memoryDB!.getTable('users');
+      const users = this.getUsersTable();
       const user = users.get(userId);
       return user?.claimed_credits || 0;
     } else {
