@@ -4,10 +4,15 @@ delete process.env.POSTGRES_URL;
 import request from 'supertest';
 import { app } from '../index';
 import { DatabaseService } from '../database/database.service';
+import { authService } from '../auth/auth.service';
 
 describe('Integration Tests', () => {
   let authToken: string;
   let userId: string;
+  let adminToken: string;
+  let adminUserId: string;
+  let regularUserToken: string;
+  let regularUserId: string;
 
   beforeEach(() => {
     // Clear the in-memory database before each test to ensure isolation
@@ -55,7 +60,7 @@ describe('Integration Tests', () => {
         .get('/credit/earned')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
-      
+
       expect(earnedResponse.body.earned).toBe(100);
 
       // 5. Add claimed credits
@@ -70,7 +75,7 @@ describe('Integration Tests', () => {
         .get('/credit/claimed')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
-      
+
       expect(claimedResponse.body.claimed).toBe(40);
 
       // 7. Try to claim more than earned (should fail)
@@ -146,8 +151,75 @@ describe('Integration Tests', () => {
         .get('/credit/claimed')
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
-      
+
       expect(claimedResponse.body.claimed).toBe(50);
+    });
+
+    it('should allow admin to update user multiplier and user to verify it works', async () => {
+      // 1. Register and login an admin user via direct database manipulation
+      const adminUser = await authService.register('adminuser', 'adminpassword123', true);
+      adminUserId = adminUser.id;
+
+      const adminLogin = await request(app)
+        .post('/auth/login')
+        .send({
+          username: 'adminuser',
+          password: 'adminpassword123'
+        })
+        .expect(200);
+
+      adminToken = adminLogin.body.token;
+
+      // 2. Register a regular user
+      const registerResponse = await request(app)
+        .post('/auth/register')
+        .send({
+          username: 'regularuser',
+          password: 'securepassword123'
+        })
+        .expect(201);
+
+      expect(registerResponse.body.user).toHaveProperty('username', 'regularuser');
+      regularUserId = registerResponse.body.user.id;
+
+      // 3. Login with the regular user
+      const loginResponse = await request(app)
+        .post('/auth/login')
+        .send({
+          username: 'regularuser',
+          password: 'securepassword123'
+        })
+        .expect(200);
+
+      regularUserToken = loginResponse.body.token;
+
+      // 4. Admin updates the user's multiplier for simple-math quiz
+      const updateMultiplierResponse = await request(app)
+        .patch(`/admin/users/${regularUserId}/multiplier`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          quizType: 'simple-math',
+          multiplier: 3
+        })
+        .expect(200);
+
+      expect(updateMultiplierResponse.body).toHaveProperty('message', 'Multiplier updated successfully');
+      expect(updateMultiplierResponse.body).toHaveProperty('userId', regularUserId);
+      expect(updateMultiplierResponse.body).toHaveProperty('quizType', 'simple-math');
+      expect(updateMultiplierResponse.body).toHaveProperty('multiplier', 3);
+
+      // 5. Verify the multiplier was actually set in the database
+      const dbService = new DatabaseService();
+      const multiplier = await dbService.getUserMultiplier(regularUserId, 'simple-math');
+      expect(multiplier).toBe(3);
+
+      // 6. Verify that the user can now see their updated multiplier
+      const userInfoResponse = await request(app)
+        .get(`/admin/users/${regularUserId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      expect(userInfoResponse.body.multipliers).toHaveProperty('simple-math', 3);
     });
   });
 });

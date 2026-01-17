@@ -1,0 +1,23 @@
+{
+  "name": "quiz-admin-cli",
+  "version": "1.0.0",
+  "description": "Admin CLI for managing quiz users and credits",
+  "main": "dist/cli.js",
+  "bin": {
+    "quiz-admin": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli.js"
+  },
+  "dependencies": {
+    "axios": "^1.13.2",
+    "commander": "^12.1.0",
+    "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.5.0",
+    "typescript": "^5.1.6"
+  },
+  "type": "commonjs"
+}
