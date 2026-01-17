@@ -66,6 +66,37 @@ describe('Admin API Integration Tests', () => {
       const regularUser = await authService.getUserById(regularUserId);
       expect(regularUser).toHaveProperty('isAdmin', false);
     });
+
+    it('should verify that the hardcoded admin account exists and is functional', async () => {
+      // Verify the default admin user exists in the database
+      const dbService = new DatabaseService();
+      const adminUser = await dbService.findUserByUsername('admin');
+
+      // The admin user should exist with isAdmin flag set to true
+      expect(adminUser).toBeDefined();
+      expect(adminUser).toHaveProperty('username', 'admin');
+      expect(adminUser).toHaveProperty('isAdmin', true);
+
+      // Verify we can login with the default admin credentials
+      const loginResponse = await request(app)
+        .post('/auth/login')
+        .send({
+          username: 'admin',
+          password: 'admin2'
+        })
+        .expect(200);
+
+      // Verify the response contains a valid token and user info
+      expect(loginResponse.body).toHaveProperty('token');
+      expect(loginResponse.body).toHaveProperty('user');
+      expect(loginResponse.body.user).toHaveProperty('username', 'admin');
+      expect(loginResponse.body.user).toHaveProperty('isAdmin', true);
+
+      // Verify that the returned token is valid by checking it's not empty
+      const token = loginResponse.body.token;
+      expect(token).toBeDefined();
+      expect(token).not.toEqual('');
+    });
   });
 
   describe('Admin Multiplier API Tests', () => {

@@ -4,12 +4,16 @@ delete process.env.POSTGRES_URL;
 import request from 'supertest';
 import { app } from '../index';
 import { DatabaseService } from '../database/database.service';
+import { authService } from '../auth/auth.service';
 
 describe('Admin Login E2E Test', () => {
   beforeEach(() => {
     // Clear the in-memory database before each test to ensure isolation
     const dbService = new DatabaseService();
     dbService.clearMemoryDatabase();
+    // Create a new DatabaseService instance to trigger admin user creation
+    // This will recreate the admin user in the cleared memory database
+    new DatabaseService();
   });
 
   it('should allow login with default admin credentials', async () => {

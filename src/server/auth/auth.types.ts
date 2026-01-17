@@ -13,5 +13,6 @@ export interface AuthResponse {
   user: {
     id: string;
     username: string;
+    isAdmin?: boolean;
   };
 }

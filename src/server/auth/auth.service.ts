@@ -43,7 +43,7 @@ class AuthService {
     return savedUser;
   }
 
-  public async login(username: string, password: string): Promise<{ token: string; user: { id: string; username: string } }> {
+  public async login(username: string, password: string): Promise<{ token: string; user: { id: string; username: string; isAdmin?: boolean } }> {
     // Find user by username in database
     const foundUser = await this.db.findUserByUsername(username);
 
@@ -68,7 +68,8 @@ class AuthService {
       token,
       user: {
         id: foundUser.id,
-        username: foundUser.username
+        username: foundUser.username,
+        isAdmin: foundUser.isAdmin
       }
     };
   }

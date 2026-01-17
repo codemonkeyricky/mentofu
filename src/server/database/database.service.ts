@@ -80,6 +80,8 @@ export class DatabaseService implements DatabaseOperations {
     if (this.databaseType === 'memory') {
       console.log('Using singleton in-memory database for local development');
       this.memoryDB = MemoryDatabase.getInstance();
+      // Ensure admin user exists in in-memory database
+      this.ensureAdminUserExists();
     } else {
       console.log('Using PostgreSQL database (Vercel)');
       // No initialization needed for Vercel Postgres
@@ -150,9 +152,37 @@ export class DatabaseService implements DatabaseOperations {
           FOREIGN KEY (user_id) REFERENCES users(id)
         )
       `;
+
+      // Create hardcoded admin user if it doesn't exist
+      await this.createAdminUserIfNotExists();
     } catch (error) {
       console.error('Error initializing Vercel Postgres tables:', error);
       throw error;
+    }
+  }
+
+  // Helper method to create admin user if not exists
+  private async createAdminUserIfNotExists(): Promise<void> {
+    try {
+      // Check if admin user exists
+      const result = await sql`
+        SELECT id FROM users WHERE username = 'admin'
+      `;
+
+      if (result.rows.length === 0) {
+        console.log('Creating hardcoded admin user: admin:admin2');
+        // Insert the admin user with a known hash for password "admin2"
+        // This hash was generated using bcrypt with salt rounds 10 and password "admin2"
+        const passwordHash = '$2b$10$ZahMR5.ug6j/ELTQ947Izu76AE.si3OOlY/tzD9VMs0oDeYSI7g.i';
+
+        await sql`
+          INSERT INTO users (id, username, password_hash, is_admin)
+          VALUES ('admin-user-id', 'admin', ${passwordHash}, true)
+        `;
+      }
+    } catch (error) {
+      console.error('Error creating admin user in PostgreSQL:', error);
+      // If we can't create the admin user, just log error and continue
     }
   }
 
@@ -640,6 +670,54 @@ export class DatabaseService implements DatabaseOperations {
   public clearMemoryDatabase(): void {
     if (this.databaseType === 'memory') {
       this.memoryDB!.clear();
+    }
+  }
+
+  // Method to ensure the hardcoded admin user exists
+  private async ensureAdminUserExists(): Promise<void> {
+    if (this.databaseType === 'memory') {
+      // For in-memory database, ensure admin user exists with consistent ID
+      const users = this.getUsersTable();
+
+      // Check if admin user already exists
+      let adminExists = false;
+      let existingAdminUser: any = null;
+      let existingAdminId: string | null = null;
+
+      for (const [userId, user] of users.entries()) {
+        if (user.username === 'admin') {
+          adminExists = true;
+          existingAdminUser = user;
+          existingAdminId = userId;
+          break;
+        }
+      }
+
+      // If admin user doesn't exist or has wrong ID, create/recreate it with consistent ID
+      if (!adminExists || existingAdminId !== 'admin-user-id') {
+        console.log('Creating hardcoded admin user: admin:admin2');
+
+        // If there was an existing admin with a different ID, remove it
+        if (existingAdminId && existingAdminId !== 'admin-user-id') {
+          users.delete(existingAdminId);
+        }
+
+        // Create the admin user in memory with a proper bcrypt hash for password "admin2"
+        const adminUser = {
+          id: 'admin-user-id',
+          username: 'admin',
+          passwordHash: '$2b$10$ZahMR5.ug6j/ELTQ947Izu76AE.si3OOlY/tzD9VMs0oDeYSI7g.i', // This hash matches "admin2"
+          createdAt: new Date(),
+          earned_credits: 0,
+          claimed_credits: 0,
+          isAdmin: true
+        };
+        users.set('admin-user-id', adminUser);
+      }
+    } else {
+      // For PostgreSQL, we'll add the admin user creation to the initVercelPostgres method
+      // This ensures the admin user exists when PostgreSQL is used
+      await this.initVercelPostgres();
     }
   }
 }
