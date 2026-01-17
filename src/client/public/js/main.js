@@ -262,6 +262,7 @@ export class MathMasterPro {
 
     showAuthenticatedScreens() {
         this.showScreen('start');
+        this.fetchAndUpdateMultipliers();
     }
 
     checkAuthentication() {
@@ -691,6 +692,83 @@ export class MathMasterPro {
             }
         });
         this.fractionCharts = [];
+    }
+
+    // Multiplier badge methods
+    async fetchMultiplier(quizCategory) {
+        try {
+            const response = await fetch(`/session/multiplier/${quizCategory}`, {
+                headers: {
+                    'Authorization': `Bearer ${this.currentToken}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.multiplier || 1.0;
+        } catch (error) {
+            console.error(`Error fetching multiplier for ${quizCategory}:`, error);
+            return 1.0; // Default to 1.0 on error
+        }
+    }
+
+    async fetchAndUpdateMultipliers() {
+        if (!this.currentToken) {
+            console.warn('No authentication token available for fetching multipliers');
+            this.setAllBadgesToDefault();
+            return;
+        }
+
+        try {
+            const mathMultiplier = await this.fetchMultiplier('math');
+            const wordsMultiplier = await this.fetchMultiplier('simple_words');
+
+            this.updateQuizCardBadges(mathMultiplier, wordsMultiplier);
+        } catch (error) {
+            console.error('Failed to fetch multipliers:', error);
+            this.setAllBadgesToDefault();
+        }
+    }
+
+    updateQuizCardBadges(mathMultiplier, wordsMultiplier) {
+        // Round multipliers to nearest integer, minimum of 1
+        const roundedMath = Math.max(1, Math.round(mathMultiplier));
+        const roundedWords = Math.max(1, Math.round(wordsMultiplier));
+
+        // Get all quiz cards
+        const quizCards = document.querySelectorAll('.quiz-card[data-quiz-type]');
+
+        quizCards.forEach(card => {
+            const quizType = card.dataset.quizType;
+            let multiplier;
+
+            // Map quiz type to multiplier category
+            if (quizType.startsWith('simple-math')) {
+                multiplier = roundedMath;
+            } else if (quizType === 'simple-words') {
+                multiplier = roundedWords;
+            } else {
+                multiplier = 1; // Default for unknown types
+            }
+
+            // Find the badge element within this card
+            const badge = card.querySelector('.multiplier-badge');
+            if (badge) {
+                badge.textContent = `x${multiplier}`;
+                badge.setAttribute('data-multiplier', multiplier);
+            }
+        });
+    }
+
+    setAllBadgesToDefault() {
+        const badges = document.querySelectorAll('.multiplier-badge');
+        badges.forEach(badge => {
+            badge.textContent = 'x1';
+            badge.setAttribute('data-multiplier', '1');
+        });
     }
 }
 

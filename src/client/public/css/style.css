@@ -390,6 +390,7 @@ main {
     gap: 15px;
     border: 1px solid var(--glass-border);
     transition: var(--transition);
+    position: relative;
 }
 
 .quiz-card:hover {
@@ -432,6 +433,46 @@ main {
     width: auto;
     padding: 6px 15px;
     font-size: 0.9rem;
+}
+
+/* Multiplier Badge Styles */
+.multiplier-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+    background: linear-gradient(135deg, #3498db, #2980b9); /* Default blue */
+}
+
+/* Color variations based on multiplier value */
+.multiplier-badge[data-multiplier="1"] {
+    background: linear-gradient(135deg, #3498db, #2980b9); /* Blue */
+}
+
+.multiplier-badge[data-multiplier="2"] {
+    background: linear-gradient(135deg, #2ecc71, #27ae60); /* Green */
+}
+
+.multiplier-badge[data-multiplier="3"] {
+    background: linear-gradient(135deg, #f39c12, #e67e22); /* Orange */
+}
+
+.multiplier-badge[data-multiplier="4"] {
+    background: linear-gradient(135deg, #e74c3c, #c0392b); /* Red */
+}
+
+.multiplier-badge[data-multiplier="5"] {
+    background: linear-gradient(135deg, #9b59b6, #8e44ad); /* Purple */
 }
 
 /* Quiz Screen */
