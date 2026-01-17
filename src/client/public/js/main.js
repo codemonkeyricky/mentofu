@@ -1,4 +1,5 @@
 import QuizManager from './modules/quiz-manager.js';
+import AdminModule from './admin/admin-main.js';
 
 // Main Application Entry Point - Professional Version
 export class MathMasterPro {
@@ -11,6 +12,9 @@ export class MathMasterPro {
 
         // Initialize quiz manager
         this.quizManager = new QuizManager(this);
+
+        // Initialize admin module
+        this.adminModule = new AdminModule(this);
     }
 
     initDOMReferences() {
