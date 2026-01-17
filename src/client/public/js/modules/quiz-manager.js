@@ -79,6 +79,8 @@ export default class QuizManager {
                 return this.fractionQuiz.restartQuiz();
             case 'simple-math-4':
                 return this.bodmasQuiz.restartQuiz();
+            case 'simple-math-5':
+                return this.factorsQuiz.restartQuiz();
             case 'simple-words':
                 return this.spellingQuiz.restartQuiz();
             default:

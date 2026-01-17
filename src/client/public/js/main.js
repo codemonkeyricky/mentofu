@@ -143,8 +143,8 @@ export class MathMasterPro {
         this.submitBtn?.addEventListener('click', () => this.quizManager.submitAnswers());
         this.submitWordsBtn?.addEventListener('click', () => this.quizManager.submitWordsAnswers());
         this.restartBtn?.addEventListener('click', () => this.quizManager.restartQuiz());
-        this.dashboardBtn?.addEventListener('click', () => this.quizManager.restartQuiz());
-        this.backToStartBtn?.addEventListener('click', () => this.quizManager.restartQuiz());
+        this.dashboardBtn?.addEventListener('click', () => this.showScreen('start'));
+        this.backToStartBtn?.addEventListener('click', () => this.showScreen('start'));
         this.logoutBtn?.addEventListener('click', () => this.logoutUser());
 
         // Handle claim credit button
@@ -601,8 +601,18 @@ export class MathMasterPro {
             return;
         }
 
+        // Sort by most recent first (newest completedAt first)
+        const sortedSessions = [...reports.sessions].sort((a, b) => {
+            const dateA = new Date(a.completedAt);
+            const dateB = new Date(b.completedAt);
+            return dateB - dateA; // Most recent first
+        });
+
+        // Take only the 10 most recent reports
+        const recentSessions = sortedSessions.slice(0, 10);
+
         let html = '<div class="reports-list">';
-        reports.sessions.forEach(report => {
+        recentSessions.forEach(report => {
             const date = new Date(report.completedAt);
             const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             const percentage = Math.round((report.score / report.total) * 100);
