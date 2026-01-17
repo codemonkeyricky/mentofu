@@ -229,6 +229,19 @@ npm run build:cli                  # Build CLI tool separately
    - Backward compatibility for existing data
    - Dual-mode database implications
 
+### Mandatory Test Execution
+
+**For every change**, the following test commands must be executed locally before committing code:
+
+```bash
+npm test                     # Run Jest unit and integration tests
+npm run playwright           # Run Playwright end-to-end tests
+```
+
+**Purpose**: These tests validate that changes do not break existing functionality and maintain system stability. While the CI pipeline will also run these tests, local execution catches issues early and reduces pipeline failures.
+
+**Note**: Additional test suites (Cypress) and build verification are part of the full post-change validation process described below.
+
 ### Testing Requirements for Changes
 
 #### Backend Changes
@@ -237,23 +250,27 @@ npm run build:cli                  # Build CLI tool separately
 - [ ] Authentication middleware tests for protected routes
 - [ ] Database operation tests for both memory and PostgreSQL modes
 - [ ] Error handling and edge cases tested
+- [ ] Mandatory test suite executed (`npm test && npm run playwright`)
 
 #### Frontend Changes
 - [ ] Visual regression testing (Cypress/Playwright)
 - [ ] User interaction flows tested end-to-end
 - [ ] 3D visualization performance validated
 - [ ] Cross-browser compatibility (Playwright multi-browser)
+- [ ] Mandatory test suite executed (`npm test && npm run playwright`)
 
 #### Database Changes
 - [ ] Migration script tested locally
 - [ ] Rollback procedure documented
 - [ ] Data integrity verified after migration
 - [ ] Both database modes tested (memory and PostgreSQL)
+- [ ] Mandatory test suite executed (`npm test && npm run playwright`)
 
 #### CLI Changes
 - [ ] Command parsing tests added
 - [ ] Admin permission validation tested
 - [ ] Integration with API endpoints verified
+- [ ] Mandatory test suite executed (`npm test && npm run playwright`)
 
 ### Post-Change Validation
 1. **Run Full Test Suite**:
