@@ -317,7 +317,7 @@ main {
 }
 
 .welcome-text {
-    color: var(--gray-light);
+    color: var(--primary-color);
 }
 
 /* User Stats Display */
@@ -342,7 +342,7 @@ main {
 }
 
 .stat-card h4 {
-    color: var(--gray-light);
+    color: var(--primary-color);
     font-size: 0.9rem;
     margin-bottom: 5px;
     font-weight: 400;
