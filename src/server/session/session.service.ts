@@ -1,5 +1,5 @@
 import { Session, Question, FactorsQuestion } from './session.types';
-import { generateQuestions, generateDivisionQuestions, generateFractionComparisonQuestions, generateBODMASQuestions, generateFactorsQuestions } from '../utils/question.generator';
+import { generateQuestions, generateDivisionQuestions, generateFractionComparisonQuestions, generateBODMASQuestions, generateFactorsQuestions, generateLCDQuestions } from '../utils/question.generator';
 import { generateSimpleWords } from '../utils/simple.words.generator';
 import { SimpleWordsSession } from './simple.words.types';
 import { DatabaseService } from '../database/database.service';
@@ -10,6 +10,7 @@ const questionGenerators: { [key: string]: (count: number) => Question[] } = {
   'simple-math-3': generateFractionComparisonQuestions,
   'simple-math-4': generateBODMASQuestions,
   'simple-math-5': generateFactorsQuestions,
+  'lcd': generateLCDQuestions,
 };
 
 
@@ -100,6 +101,9 @@ class SessionService {
     }
     if (quizType === 'simple-math-5') {
         return this.validateFactorsAnswers(sessionId, userId, userAnswers, quizType);
+    }
+    if (quizType === 'lcd') {
+        return this.validateAnswers(sessionId, userId, userAnswers, quizType);
     }
     throw new Error(`Invalid quiz type for validation: ${quizType}`);
   }

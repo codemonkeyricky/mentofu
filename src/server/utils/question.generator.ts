@@ -202,3 +202,38 @@ export function generateFractionComparisonQuestions(count: number = 10): Questio
 
   return questions;
 }
+
+// LCD (Lowest Common Denominator) quiz generator
+export function generateLCDQuestions(count: number = 10): Question[] {
+  const questions: Question[] = [];
+
+  for (let i = 0; i < count; i++) {
+    // Generate two random numbers between 2 and 20
+    const num1 = Math.floor(Math.random() * 19) + 2;
+    const num2 = Math.floor(Math.random() * 19) + 2;
+
+    // Calculate LCM (Lowest Common Multiple)
+    const gcd = (a: number, b: number): number => {
+      return b === 0 ? a : gcd(b, a % b);
+    };
+
+    const lcm = (a: number, b: number): number => {
+      return (a * b) / gcd(a, b);
+    };
+
+    const lcmValue = lcm(num1, num2);
+
+    // Create question string asking for LCM
+    const question = `Find the lowest common multiple (LCM) of ${num1} and ${num2}`;
+
+    // Answer is the LCM value
+    const answer = lcmValue;
+
+    questions.push({
+      question,
+      answer
+    });
+  }
+
+  return questions;
+}

@@ -12,6 +12,7 @@ const quizTypes = [
   'simple-math-3',
   'simple-math-4',
   'simple-math-5',
+  'lcd',
   'simple-words',
 ];
 const quizTypePattern = `:quizType(${quizTypes.join('|')})`;

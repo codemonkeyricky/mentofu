@@ -517,6 +517,202 @@ describe('Session Controller', () => {
     });
   });
 
+  describe('GET /session/lcd', () => {
+    it('should create a new LCD quiz session', async () => {
+      const response = await request(app)
+        .get('/session/lcd')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('sessionId');
+      expect(response.body).toHaveProperty('questions');
+      expect(Array.isArray(response.body.questions)).toBe(true);
+    });
+
+    it('should return 401 for unauthorized access', async () => {
+      const response = await request(app)
+        .get('/session/lcd')
+        .expect(401);
+
+      expect(response.body).toHaveProperty('error.message', 'Authorization token is missing or invalid');
+    });
+
+    it('should create sessions with unique IDs', async () => {
+      const response1 = await request(app)
+        .get('/session/lcd')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      const response2 = await request(app)
+        .get('/session/lcd')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response1.body.sessionId).not.toBe(response2.body.sessionId);
+    });
+
+    it('should create sessions with correct question structure', async () => {
+      const response = await request(app)
+        .get('/session/lcd')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.questions).toHaveLength(10);
+
+      // Check that each question has the expected properties
+      response.body.questions.forEach((question: any) => {
+        expect(question).toHaveProperty('question');
+        expect(question).toHaveProperty('answer');
+        expect(typeof question.answer).toBe('number');
+      });
+    });
+  });
+
+  describe('POST /session/lcd', () => {
+    let sessionId: string;
+    let sessionQuestions: any[];
+
+    beforeEach(async () => {
+      // Create a session first to get sessionId
+      const sessionResponse = await request(app)
+        .get('/session/lcd')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      sessionId = sessionResponse.body.sessionId;
+      sessionQuestions = sessionResponse.body.questions;
+    });
+
+    it('should validate answers and return score for correct answers', async () => {
+      // Use correct answers for validation
+      const userAnswers = sessionQuestions.map(q => q.answer);
+      const response = await request(app)
+        .post('/session/lcd')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          sessionId: sessionId,
+          answers: userAnswers
+        })
+        .expect(200);
+
+      expect(response.body).toHaveProperty('score');
+      expect(response.body).toHaveProperty('total');
+      expect(response.body.score).toBe(sessionQuestions.length);
+    });
+
+    it('should validate answers and return partial score for some correct answers', async () => {
+      // Create a predictable test case by using the first question's answer
+      const firstAnswer = sessionQuestions[0].answer;
+      const userAnswers = [firstAnswer, 99, 99, 99, 99, 99, 99, 99, 99, 99];
+      const response = await request(app)
+        .post('/session/lcd')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          sessionId: sessionId,
+          answers: userAnswers
+        })
+        .expect(200);
+
+      expect(response.body).toHaveProperty('score', 1);
+      expect(response.body).toHaveProperty('total', sessionQuestions.length);
+    });
+
+    it('should return 400 for missing session ID', async () => {
+      const response = await request(app)
+        .post('/session/lcd')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          answers: [10, 20, 30]
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty('error.message', 'Session ID is required');
+    });
+
+    it('should return 400 for missing answers array', async () => {
+      const response = await request(app)
+        .post('/session/lcd')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          sessionId: sessionId,
+          // Missing answers
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty('error.message', 'Answers array is required');
+    });
+
+    it('should return 400 for invalid answers data type', async () => {
+      const response = await request(app)
+        .post('/session/lcd')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          sessionId: sessionId,
+          answers: 'not-an-array'
+        })
+        .expect(400);
+
+      expect(response.body).toHaveProperty('error.message', 'Answers array is required');
+    });
+
+    it('should return 404 for non-existent session ID', async () => {
+      const response = await request(app)
+        .post('/session/lcd')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          sessionId: 'non-existent-id',
+          answers: [10, 20, 30]
+        })
+        .expect(404);
+
+      expect(response.body).toHaveProperty('error.message', 'Session not found');
+    });
+
+    it('should return 401 for unauthorized access', async () => {
+      const response = await request(app)
+        .post('/session/lcd')
+        .send({
+          sessionId: sessionId,
+          answers: [10, 20, 30]
+        })
+        .expect(401);
+
+      expect(response.body).toHaveProperty('error.message', 'Authorization token is missing or invalid');
+    });
+
+    it('should return 403 for unauthorized access to session (wrong user)', async () => {
+      // Create a second user
+      const username2 = 'testuser2' + Date.now();
+
+      await request(app)
+        .post('/auth/register')
+        .send({
+          username: username2,
+          password: 'testpass123'
+        });
+
+      const loginResponse2 = await request(app)
+        .post('/auth/login')
+        .send({
+          username: username2,
+          password: 'testpass123'
+        });
+
+      const authToken2 = loginResponse2.body.token;
+
+      // Try to access session created by first user with second user's token
+      const response = await request(app)
+        .post('/session/lcd')
+        .set('Authorization', `Bearer ${authToken2}`)
+        .send({
+          sessionId: sessionId,
+          answers: [10, 20, 30]
+        })
+        .expect(403);
+
+      expect(response.body).toHaveProperty('error.message', 'Unauthorized access to session');
+    });
+  });
+
   // Clean up test database after all tests in this suite are done
   afterAll(() => {
     // Clear session service timeouts to prevent Jest from hanging

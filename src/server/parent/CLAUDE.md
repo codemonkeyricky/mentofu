@@ -72,6 +72,7 @@ The parent module exposes the `adminRouter` which provides REST endpoints for:
 - `simple-math-3`
 - `simple-math-4`
 - `simple-math-5`
+- `lcd`
 - `simple-words`
 
 ## Security Considerations

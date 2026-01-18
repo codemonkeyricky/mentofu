@@ -221,5 +221,97 @@ describe('Integration Tests', () => {
 
       expect(userInfoResponse.body.multipliers).toHaveProperty('simple-math', 3);
     });
+
+    it('should handle LCD quiz sessions correctly', async () => {
+      const username = 'lcduser' + Date.now();
+      await request(app).post('/auth/register').send({ username, password: 'password123' });
+      const login = await request(app).post('/auth/login').send({ username, password: 'password123' });
+      const token = login.body.token;
+
+      // 1. Create LCD quiz session
+      const sessionResponse = await request(app)
+        .get('/session/lcd')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(sessionResponse.body).toHaveProperty('sessionId');
+      expect(sessionResponse.body).toHaveProperty('questions');
+      expect(sessionResponse.body.questions).toHaveLength(10);
+      expect(sessionResponse.body.questions[0]).toHaveProperty('question');
+      expect(sessionResponse.body.questions[0]).toHaveProperty('answer');
+
+      const sessionId = sessionResponse.body.sessionId;
+      const questions = sessionResponse.body.questions;
+
+      // 2. Submit answers for LCD quiz
+      const answers = questions.map((q: any) => q.answer);
+      const submitResponse = await request(app)
+        .post('/session/lcd')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ sessionId, answers })
+        .expect(200);
+
+      expect(submitResponse.body).toHaveProperty('score');
+      expect(submitResponse.body).toHaveProperty('total');
+      expect(submitResponse.body.score).toBe(10); // All answers correct
+      expect(submitResponse.body.total).toBe(10);
+
+      // 3. Verify session score is stored
+      const scoreResponse = await request(app)
+        .get(`/session/scores/${sessionId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(scoreResponse.body).toHaveProperty('sessionId', sessionId);
+      expect(scoreResponse.body).toHaveProperty('score', 10);
+      expect(scoreResponse.body).toHaveProperty('total', 10);
+    });
+
+    it('should handle LCD quiz with multipliers correctly', async () => {
+      // 1. Register and login a regular user
+      const username = 'lcdmultiplieruser' + Date.now();
+      await request(app).post('/auth/register').send({ username, password: 'password123' });
+      const login = await request(app).post('/auth/login').send({ username, password: 'password123' });
+      const token = login.body.token;
+
+      // 2. Create LCD quiz session
+      const sessionResponse = await request(app)
+        .get('/session/lcd')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      const sessionId = sessionResponse.body.sessionId;
+      const questions = sessionResponse.body.questions;
+      const answers = questions.map((q: any) => q.answer);
+
+      // 3. Set multiplier for LCD quiz (using 'math' category)
+      await request(app)
+        .post('/session/multiplier/math')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ multiplier: 2.0 })
+        .expect(200);
+
+      // 4. Submit answers for LCD quiz with multiplier
+      const submitResponse = await request(app)
+        .post('/session/lcd')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ sessionId, answers })
+        .expect(200);
+
+      expect(submitResponse.body).toHaveProperty('score');
+      expect(submitResponse.body).toHaveProperty('total');
+      expect(submitResponse.body.score).toBe(10); // All answers correct
+      expect(submitResponse.body.total).toBe(10);
+
+      // 5. Verify that scores are stored with correct multiplier
+      const scoreResponse = await request(app)
+        .get(`/session/scores/${sessionId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(scoreResponse.body).toHaveProperty('sessionId', sessionId);
+      expect(scoreResponse.body).toHaveProperty('score', 10);
+      expect(scoreResponse.body).toHaveProperty('total', 10);
+    });
   });
 });

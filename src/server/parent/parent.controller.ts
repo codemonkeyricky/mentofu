@@ -20,7 +20,8 @@ const VALID_QUIZ_TYPES = [
   'simple-math-3',
   'simple-math-4',
   'simple-math-5',
-  'simple-words'
+  'simple-words',
+  'lcd'
 ];
 
 const validateQuizType = (quizType: string): boolean => {

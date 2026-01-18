@@ -17,6 +17,7 @@ Supported quiz types:
 - `simple-math-3` (fraction comparison)
 - `simple-math-4` (BODMAS questions)
 - `simple-math-5` (factors questions)
+- `lcd` (lowest common denominator)
 - `simple-words` (word-based quiz)
 
 ### Submit Quiz Answers
