@@ -1,0 +1,13 @@
+Create CLAUDE.md for the following folders, skip CLAUDE.md already exists.
+* src/server/credit/
+* src/server/database/
+* src/server/index.ts
+* src/server/middleware/
+* src/server/middleware/
+* src/server/parent/
+* src/server/session/
+* src/server/test/
+* src/server/types/
+* src/server/utils
+
+For each CLAUDE.md, describe the interface offered by the module.
