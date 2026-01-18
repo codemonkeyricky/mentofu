@@ -285,8 +285,13 @@ export class MathMasterPro {
     }
 
     showAuthenticatedScreens() {
-        this.showScreen('start');
-        this.fetchAndUpdateMultipliers();
+        if (this.currentUser?.isParent) {
+            this.showScreen('parentDashboard');
+            this.initParentDashboard();
+        } else {
+            this.showScreen('start');
+            this.fetchAndUpdateMultipliers();
+        }
     }
 
     initParentDashboard() {
