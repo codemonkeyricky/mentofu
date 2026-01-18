@@ -8,6 +8,7 @@ export default defineConfig({
       '/auth': 'http://localhost:4000',
       '/session': 'http://localhost:4000',
       '/credit': 'http://localhost:4000',
+      '/parent': 'http://localhost:4000',
     }
   },
   build: {

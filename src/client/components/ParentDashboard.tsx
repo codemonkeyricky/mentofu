@@ -1,14 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ParentDashboardUser } from '../types';
 
-const ParentDashboard: React.FC = () => {
-  const [users, setUsers] = useState<ParentDashboardUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [editingMultiplier, setEditingMultiplier] = useState<{userId: string, quizType: string, value: number} | null>(null);
-  const [updateLoading, setUpdateLoading] = useState(false);
+// Use global React if available (for module consistency in browser)
+const ReactInstance = window.React && window.React.useState ? window.React : React;
+console.log('ParentDashboard: ReactInstance version:', ReactInstance.version);
 
-  useEffect(() => {
+const ParentDashboard: React.FC = () => {
+  // Safety check for React hooks
+  if (typeof ReactInstance.useState !== 'function') {
+    throw new Error('ReactInstance.useState is not a function. React may not be loaded correctly.');
+  }
+
+  const [users, setUsers] = ReactInstance.useState<ParentDashboardUser[]>([]);
+  const [loading, setLoading] = ReactInstance.useState(true);
+  const [error, setError] = ReactInstance.useState<string | null>(null);
+  const [editingMultiplier, setEditingMultiplier] = ReactInstance.useState<{userId: string, quizType: string, value: number} | null>(null);
+  const [updateLoading, setUpdateLoading] = ReactInstance.useState(false);
+
+  ReactInstance.useEffect(() => {
     const fetchUsers = async () => {
       try {
         // Get token from localStorage

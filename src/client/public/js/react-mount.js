@@ -23,17 +23,43 @@ export async function mountParentDashboard(containerId = 'parent-dashboard-conta
         // Clear any existing content
         container.innerHTML = '';
 
-        // Dynamically import React and ReactDOM
-        console.log('Loading React modules via import map...');
-        const [React, ReactDOM, ParentDashboard] = await Promise.all([
-            import('react'),
-            import('react-dom/client'),
-            import('../../components/ParentDashboard.tsx')
-        ]);
+        // Try to use global React if available, otherwise import dynamically
+        let React, ReactDOM;
+        if (window.React && window.ReactDOM) {
+            console.log('Using global React from window');
+            React = window.React;
+            ReactDOM = window.ReactDOM;
+        } else {
+            // Dynamically import React and ReactDOM first
+            console.log('Loading React modules via import map...');
+            React = await import('react');
+            ReactDOM = await import('react-dom/client');
+            // Store globally for consistency
+            window.React = React;
+            window.ReactDOM = ReactDOM;
+            console.log('Stored React on window, version:', React.version);
+            console.log('React exports:', Object.keys(React));
+            console.log('React.useState is function?', typeof React.useState);
+        }
+        console.log('React version:', React.version);
+        console.log('ReactDOM version:', ReactDOM.version);
+
+        // Then import the component
+        const ParentDashboardModule = await import('../../components/ParentDashboard.tsx');
+        const ParentDashboard = ParentDashboardModule.default;
+        console.log('ParentDashboard module:', ParentDashboardModule);
+        console.log('ParentDashboard.default:', ParentDashboard);
+        console.log('Is function?', typeof ParentDashboard);
+        console.log('Is React component?', ParentDashboard && ParentDashboard.prototype && ParentDashboard.prototype.isReactComponent);
+
+        // Validate component
+        if (typeof ParentDashboard !== 'function') {
+            throw new Error(`ParentDashboard is not a function. Type: ${typeof ParentDashboard}`);
+        }
 
         // Create root and render component
         parentDashboardRoot = ReactDOM.createRoot(container);
-        parentDashboardRoot.render(React.createElement(ParentDashboard.default));
+        parentDashboardRoot.render(React.createElement(ParentDashboard));
 
         console.log('ParentDashboard React component mounted successfully');
     } catch (error) {

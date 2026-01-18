@@ -1,5 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ParentUser } from './types';
+
+// Use global React if available (for module consistency in browser)
+const ReactInstance = window.React && window.React.useState ? window.React : React;
+console.log('ParentUserDetail: ReactInstance version:', ReactInstance.version);
 
 interface ParentUserDetailProps {
   user: ParentUser;
@@ -7,11 +11,16 @@ interface ParentUserDetailProps {
 }
 
 export const ParentUserDetail: React.FC<ParentUserDetailProps> = ({ user, onBack }) => {
-  const [userData, setUserData] = useState<any>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  // Safety check for React hooks
+  if (typeof ReactInstance.useState !== 'function') {
+    throw new Error('ReactInstance.useState is not a function. React may not be loaded correctly.');
+  }
 
-  useEffect(() => {
+  const [userData, setUserData] = ReactInstance.useState<any>(null);
+  const [loading, setLoading] = ReactInstance.useState<boolean>(true);
+  const [error, setError] = ReactInstance.useState<string | null>(null);
+
+  ReactInstance.useEffect(() => {
     const fetchUserDetails = async () => {
       try {
         setLoading(true);
