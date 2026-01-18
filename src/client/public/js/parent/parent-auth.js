@@ -7,7 +7,7 @@ export default class AdminAuth {
 
     async login(username, password) {
         try {
-            const response = await fetch('/admin/login', {
+            const response = await fetch('/parent/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -22,7 +22,7 @@ export default class AdminAuth {
             const data = await response.json();
 
             if (data.token) {
-                // Store admin token in sessionStorage (not localStorage for security)
+                // Store parent token in sessionStorage (not localStorage for security)
                 sessionStorage.setItem('adminToken', data.token);
                 this.adminModule.adminToken = data.token;
                 this.adminModule.isAdmin = true;
@@ -46,7 +46,7 @@ export default class AdminAuth {
         }
 
         try {
-            const response = await fetch('/admin/validate', {
+            const response = await fetch('/parent/validate', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${this.adminModule.adminToken}`

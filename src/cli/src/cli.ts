@@ -17,7 +17,7 @@ program
   .option('--token <token>', 'Direct JWT token')
   .option('--verbose', 'Show detailed output')
   .option('--dry-run', 'Validate without making changes')
-  .name('quiz-admin')
+  .name('quiz-parent')
   .description('Admin CLI for managing quiz users and credits')
   .version('1.0.0');
 

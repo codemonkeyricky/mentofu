@@ -35,7 +35,7 @@ export async function updateCredits(
 
   try {
     await axios.patch(
-      `${options.apiUrl}/admin/users/${userIdOrUsername}/credits`,
+      `${options.apiUrl}/parent/users/${userIdOrUsername}/credits`,
       updates,
       {
         headers: {

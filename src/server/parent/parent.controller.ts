@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { requireAdmin } from '../middleware/admin.middleware';
+import { requireAdmin } from '../middleware/parent.middleware';
 import { DatabaseService } from '../database/database.service';
 import { authService } from '../auth/auth.service';
 import { User } from '../auth/auth.types';
@@ -7,7 +7,7 @@ import { User } from '../auth/auth.types';
 const adminRouter = Router();
 const databaseService = new DatabaseService();
 
-// Middleware to set database service for admin routes
+// Middleware to set database service for parent routes
 adminRouter.use((req, res, next) => {
   // Make sure database service is initialized
   next();
@@ -223,7 +223,7 @@ adminRouter.patch('/users/:userId/credits', requireAdmin, async (req: Request, r
   }
 });
 
-// GET /api/admin/users
+// GET /api/parent/users
 adminRouter.get('/users', requireAdmin, async (req: Request, res: Response) => {
   try {
     const { search, limit } = req.query;
@@ -283,7 +283,7 @@ adminRouter.get('/users', requireAdmin, async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/admin/users/:userId
+// GET /api/parent/users/:userId
 adminRouter.get('/users/:userId', requireAdmin, async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;

@@ -1,10 +1,10 @@
 {
-  "name": "quiz-admin-cli",
+  "name": "quiz-parent-cli",
   "version": "1.0.0",
   "description": "Admin CLI for managing quiz users and credits",
   "main": "dist/cli.js",
   "bin": {
-    "quiz-admin": "./dist/cli.js"
+    "quiz-parent": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc",

@@ -21,7 +21,7 @@ export async function getUserInfo(
 
   try {
     const response = await axios.get(
-      `${options.apiUrl}/admin/users/${userIdOrUsername}`,
+      `${options.apiUrl}/parent/users/${userIdOrUsername}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`

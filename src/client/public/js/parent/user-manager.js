@@ -7,22 +7,22 @@ export default class UserManager {
     }
 
     async loadUsers() {
-        const tabContent = document.getElementById('admin-users-tab');
+        const tabContent = document.getElementById('parent-users-tab');
         if (!tabContent) return;
 
         try {
-            tabContent.innerHTML = '<div class="admin-loading">Loading users...</div>';
+            tabContent.innerHTML = '<div class="parent-loading">Loading users...</div>';
 
-            const data = await this.adminModule.makeAdminRequest('/admin/users');
+            const data = await this.adminModule.makeAdminRequest('/parent/users');
             this.users = data.users || [];
 
             this.renderUsersTable();
         } catch (error) {
             console.error('Failed to load users:', error);
             tabContent.innerHTML = `
-                <div class="admin-error">
+                <div class="parent-error">
                     <p>Failed to load users: ${error.message}</p>
-                    <button class="admin-btn admin-btn-secondary" onclick="window.adminModule.userManager.loadUsers()">
+                    <button class="parent-btn parent-btn-secondary" onclick="window.adminModule.userManager.loadUsers()">
                         Retry
                     </button>
                 </div>
@@ -31,24 +31,24 @@ export default class UserManager {
     }
 
     renderUsersTable() {
-        const tabContent = document.getElementById('admin-users-tab');
+        const tabContent = document.getElementById('parent-users-tab');
         if (!tabContent) return;
 
         if (this.users.length === 0) {
-            tabContent.innerHTML = '<div class="admin-empty">No users found</div>';
+            tabContent.innerHTML = '<div class="parent-empty">No users found</div>';
             return;
         }
 
         let html = `
-            <div class="admin-users-header">
+            <div class="parent-users-header">
                 <h4>User Management (${this.users.length} users)</h4>
-                <div class="admin-search-box">
-                    <input type="text" id="admin-user-search" placeholder="Search users...">
+                <div class="parent-search-box">
+                    <input type="text" id="parent-user-search" placeholder="Search users...">
                     <i class="fas fa-search"></i>
                 </div>
             </div>
-            <div class="admin-table-container">
-                <table class="admin-table">
+            <div class="parent-table-container">
+                <table class="parent-table">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -66,7 +66,7 @@ export default class UserManager {
         this.users.forEach(user => {
             const createdDate = new Date(user.createdAt).toLocaleDateString();
             const isVerified = user.isVerified ? 'Yes' : 'No';
-            const verifiedClass = user.isVerified ? 'admin-badge-success' : 'admin-badge-warning';
+            const verifiedClass = user.isVerified ? 'parent-badge-success' : 'parent-badge-warning';
 
             html += `
                 <tr data-user-id="${user.id}">
@@ -75,18 +75,18 @@ export default class UserManager {
                     <td>${createdDate}</td>
                     <td>${user.earnedCredits || 0}</td>
                     <td>${user.claimedCredits || 0}</td>
-                    <td><span class="admin-badge ${verifiedClass}">${isVerified}</span></td>
+                    <td><span class="parent-badge ${verifiedClass}">${isVerified}</span></td>
                     <td>
-                        <div class="admin-action-buttons">
-                            <button class="admin-btn admin-btn-sm admin-btn-info edit-user-btn"
+                        <div class="parent-action-buttons">
+                            <button class="parent-btn parent-btn-sm parent-btn-info edit-user-btn"
                                     data-user-id="${user.id}" title="Edit User">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="admin-btn admin-btn-sm admin-btn-warning toggle-verify-btn"
+                            <button class="parent-btn parent-btn-sm parent-btn-warning toggle-verify-btn"
                                     data-user-id="${user.id}" title="${user.isVerified ? 'Unverify' : 'Verify'}">
                                 <i class="fas ${user.isVerified ? 'fa-times-circle' : 'fa-check-circle'}"></i>
                             </button>
-                            <button class="admin-btn admin-btn-sm admin-btn-danger delete-user-btn"
+                            <button class="parent-btn parent-btn-sm parent-btn-danger delete-user-btn"
                                     data-user-id="${user.id}" title="Delete User">
                                 <i class="fas fa-trash"></i>
                             </button>
@@ -108,7 +108,7 @@ export default class UserManager {
 
     setupUserTableEventListeners() {
         // Search functionality
-        const searchInput = document.getElementById('admin-user-search');
+        const searchInput = document.getElementById('parent-user-search');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => this.filterUsers(e.target.value));
         }
@@ -142,7 +142,7 @@ export default class UserManager {
     }
 
     filterUsers(searchTerm) {
-        const rows = document.querySelectorAll('#admin-users-tab tbody tr');
+        const rows = document.querySelectorAll('#parent-users-tab tbody tr');
         const term = searchTerm.toLowerCase();
 
         rows.forEach(row => {
@@ -169,7 +169,7 @@ export default class UserManager {
         try {
             const newVerifiedState = !user.isVerified;
             const response = await this.adminModule.makeAdminRequest(
-                `/admin/users/${userId}/verify`,
+                `/parent/users/${userId}/verify`,
                 {
                     method: 'PUT',
                     body: JSON.stringify({ verified: newVerifiedState })
@@ -200,7 +200,7 @@ export default class UserManager {
 
         try {
             const response = await this.adminModule.makeAdminRequest(
-                `/admin/users/${userId}`,
+                `/parent/users/${userId}`,
                 { method: 'DELETE' }
             );
 
@@ -217,7 +217,7 @@ export default class UserManager {
 
     async createUser(username, password) {
         try {
-            const response = await this.adminModule.makeAdminRequest('/admin/users', {
+            const response = await this.adminModule.makeAdminRequest('/parent/users', {
                 method: 'POST',
                 body: JSON.stringify({ username, password })
             });

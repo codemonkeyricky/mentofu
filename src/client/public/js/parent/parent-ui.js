@@ -1,4 +1,4 @@
-// Admin UI Module - Handles admin interface rendering and interactions
+// Admin UI Module - Handles parent interface rendering and interactions
 export default class AdminUI {
     constructor(adminModule) {
         this.adminModule = adminModule;
@@ -14,41 +14,41 @@ export default class AdminUI {
     }
 
     createAdminElements() {
-        // Create admin login modal
+        // Create parent login modal
         this.createLoginModal();
 
-        // Create admin panel (hidden by default)
+        // Create parent panel (hidden by default)
         this.createAdminPanel();
 
-        // Create admin toggle button (hidden by default, shown after login)
+        // Create parent toggle button (hidden by default, shown after login)
         this.createAdminToggleButton();
     }
 
     createLoginModal() {
         this.modal = document.createElement('div');
-        this.modal.id = 'admin-login-modal';
-        this.modal.className = 'admin-modal';
+        this.modal.id = 'parent-login-modal';
+        this.modal.className = 'parent-modal';
         this.modal.innerHTML = `
-            <div class="admin-modal-content">
-                <div class="admin-modal-header">
+            <div class="parent-modal-content">
+                <div class="parent-modal-header">
                     <h3>Admin Login</h3>
-                    <button class="admin-close-btn">&times;</button>
+                    <button class="parent-close-btn">&times;</button>
                 </div>
-                <div class="admin-modal-body">
-                    <form id="admin-login-form">
-                        <div class="admin-form-group">
-                            <label for="admin-username">Username</label>
-                            <input type="text" id="admin-username" required>
+                <div class="parent-modal-body">
+                    <form id="parent-login-form">
+                        <div class="parent-form-group">
+                            <label for="parent-username">Username</label>
+                            <input type="text" id="parent-username" required>
                         </div>
-                        <div class="admin-form-group">
-                            <label for="admin-password">Password</label>
-                            <input type="password" id="admin-password" required>
+                        <div class="parent-form-group">
+                            <label for="parent-password">Password</label>
+                            <input type="password" id="parent-password" required>
                         </div>
-                        <div class="admin-form-actions">
-                            <button type="submit" class="admin-btn admin-btn-primary">
+                        <div class="parent-form-actions">
+                            <button type="submit" class="parent-btn parent-btn-primary">
                                 <i class="fas fa-sign-in-alt"></i> Login
                             </button>
-                            <button type="button" class="admin-btn admin-btn-secondary admin-cancel-btn">
+                            <button type="button" class="parent-btn parent-btn-secondary parent-cancel-btn">
                                 Cancel
                             </button>
                         </div>
@@ -61,36 +61,36 @@ export default class AdminUI {
 
     createAdminPanel() {
         this.adminPanel = document.createElement('div');
-        this.adminPanel.id = 'admin-panel';
-        this.adminPanel.className = 'admin-panel';
+        this.adminPanel.id = 'parent-panel';
+        this.adminPanel.className = 'parent-panel';
         this.adminPanel.innerHTML = `
-            <div class="admin-panel-header">
+            <div class="parent-panel-header">
                 <h3>Admin Control Panel</h3>
-                <button class="admin-close-panel-btn">&times;</button>
+                <button class="parent-close-panel-btn">&times;</button>
             </div>
-            <div class="admin-panel-body">
-                <div class="admin-tabs">
-                    <button class="admin-tab active" data-tab="users">Users</button>
-                    <button class="admin-tab" data-tab="credits">Credits</button>
-                    <button class="admin-tab" data-tab="multipliers">Multipliers</button>
+            <div class="parent-panel-body">
+                <div class="parent-tabs">
+                    <button class="parent-tab active" data-tab="users">Users</button>
+                    <button class="parent-tab" data-tab="credits">Credits</button>
+                    <button class="parent-tab" data-tab="multipliers">Multipliers</button>
                 </div>
-                <div class="admin-tab-content">
-                    <div id="admin-users-tab" class="admin-tab-pane active">
+                <div class="parent-tab-content">
+                    <div id="parent-users-tab" class="parent-tab-pane active">
                         <!-- User management content will be loaded here -->
-                        <div class="admin-loading">Loading users...</div>
+                        <div class="parent-loading">Loading users...</div>
                     </div>
-                    <div id="admin-credits-tab" class="admin-tab-pane">
+                    <div id="parent-credits-tab" class="parent-tab-pane">
                         <!-- Credit editing content will be loaded here -->
-                        <div class="admin-loading">Loading credit editor...</div>
+                        <div class="parent-loading">Loading credit editor...</div>
                     </div>
-                    <div id="admin-multipliers-tab" class="admin-tab-pane">
+                    <div id="parent-multipliers-tab" class="parent-tab-pane">
                         <!-- Multiplier editing content will be loaded here -->
-                        <div class="admin-loading">Loading multiplier editor...</div>
+                        <div class="parent-loading">Loading multiplier editor...</div>
                     </div>
                 </div>
             </div>
-            <div class="admin-panel-footer">
-                <button class="admin-btn admin-btn-secondary admin-logout-btn">
+            <div class="parent-panel-footer">
+                <button class="parent-btn parent-btn-secondary parent-logout-btn">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </button>
             </div>
@@ -100,8 +100,8 @@ export default class AdminUI {
 
     createAdminToggleButton() {
         this.toggleButton = document.createElement('button');
-        this.toggleButton.id = 'admin-toggle-btn';
-        this.toggleButton.className = 'admin-toggle-btn';
+        this.toggleButton.id = 'parent-toggle-btn';
+        this.toggleButton.className = 'parent-toggle-btn';
         this.toggleButton.innerHTML = '<i class="fas fa-cog"></i>';
         this.toggleButton.title = 'Admin Panel';
         document.body.appendChild(this.toggleButton);
@@ -109,7 +109,7 @@ export default class AdminUI {
 
     setupEventListeners() {
         // Login form submission
-        const loginForm = document.getElementById('admin-login-form');
+        const loginForm = document.getElementById('parent-login-form');
         if (loginForm) {
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -118,13 +118,13 @@ export default class AdminUI {
         }
 
         // Close modal buttons
-        const closeBtn = this.modal.querySelector('.admin-close-btn');
-        const cancelBtn = this.modal.querySelector('.admin-cancel-btn');
+        const closeBtn = this.modal.querySelector('.parent-close-btn');
+        const cancelBtn = this.modal.querySelector('.parent-cancel-btn');
         if (closeBtn) closeBtn.addEventListener('click', () => this.hideLoginModal());
         if (cancelBtn) cancelBtn.addEventListener('click', () => this.hideLoginModal());
 
         // Admin panel close button
-        const closePanelBtn = this.adminPanel.querySelector('.admin-close-panel-btn');
+        const closePanelBtn = this.adminPanel.querySelector('.parent-close-panel-btn');
         if (closePanelBtn) {
             closePanelBtn.addEventListener('click', () => this.hideAdminPanel());
         }
@@ -135,21 +135,21 @@ export default class AdminUI {
         }
 
         // Admin logout button
-        const logoutBtn = this.adminPanel.querySelector('.admin-logout-btn');
+        const logoutBtn = this.adminPanel.querySelector('.parent-logout-btn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => this.adminModule.logoutAdmin());
         }
 
         // Tab switching
-        const tabs = this.adminPanel.querySelectorAll('.admin-tab');
+        const tabs = this.adminPanel.querySelectorAll('.parent-tab');
         tabs.forEach(tab => {
             tab.addEventListener('click', () => this.switchTab(tab.dataset.tab));
         });
     }
 
     async handleLogin() {
-        const username = document.getElementById('admin-username').value;
-        const password = document.getElementById('admin-password').value;
+        const username = document.getElementById('parent-username').value;
+        const password = document.getElementById('parent-password').value;
 
         const result = await this.adminModule.auth.login(username, password);
 
@@ -164,12 +164,12 @@ export default class AdminUI {
 
     showLoginModal() {
         this.modal.classList.add('active');
-        document.getElementById('admin-username').focus();
+        document.getElementById('parent-username').focus();
     }
 
     hideLoginModal() {
         this.modal.classList.remove('active');
-        document.getElementById('admin-login-form').reset();
+        document.getElementById('parent-login-form').reset();
     }
 
     showAdminInterface() {
@@ -202,15 +202,15 @@ export default class AdminUI {
 
     switchTab(tabName) {
         // Update active tab
-        const tabs = this.adminPanel.querySelectorAll('.admin-tab');
+        const tabs = this.adminPanel.querySelectorAll('.parent-tab');
         tabs.forEach(tab => {
             tab.classList.toggle('active', tab.dataset.tab === tabName);
         });
 
         // Update active tab pane
-        const tabPanes = this.adminPanel.querySelectorAll('.admin-tab-pane');
+        const tabPanes = this.adminPanel.querySelectorAll('.parent-tab-pane');
         tabPanes.forEach(pane => {
-            pane.classList.toggle('active', pane.id === `admin-${tabName}-tab`);
+            pane.classList.toggle('active', pane.id === `parent-${tabName}-tab`);
         });
 
         // Load tab content if needed

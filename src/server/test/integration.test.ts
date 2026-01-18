@@ -155,8 +155,8 @@ describe('Integration Tests', () => {
       expect(claimedResponse.body.claimed).toBe(50);
     });
 
-    it('should allow admin to update user multiplier and user to verify it works', async () => {
-      // 1. Register and login an admin user via direct database manipulation
+    it('should allow parent to update user multiplier and user to verify it works', async () => {
+      // 1. Register and login an parent user via direct database manipulation
       const adminUser = await authService.register('adminuser', 'adminpassword123', true);
       adminUserId = adminUser.id;
 
@@ -195,7 +195,7 @@ describe('Integration Tests', () => {
 
       // 4. Admin updates the user's multiplier for simple-math quiz
       const updateMultiplierResponse = await request(app)
-        .patch(`/admin/users/${regularUserId}/multiplier`)
+        .patch(`/parent/users/${regularUserId}/multiplier`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           quizType: 'simple-math',
@@ -215,7 +215,7 @@ describe('Integration Tests', () => {
 
       // 6. Verify that the user can now see their updated multiplier
       const userInfoResponse = await request(app)
-        .get(`/admin/users/${regularUserId}`)
+        .get(`/parent/users/${regularUserId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 

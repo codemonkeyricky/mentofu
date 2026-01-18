@@ -6,23 +6,23 @@ export default class CreditEditor {
     }
 
     async loadCreditEditor() {
-        const tabContent = document.getElementById('admin-credits-tab');
+        const tabContent = document.getElementById('parent-credits-tab');
         if (!tabContent) return;
 
         try {
-            tabContent.innerHTML = '<div class="admin-loading">Loading credit editor...</div>';
+            tabContent.innerHTML = '<div class="parent-loading">Loading credit editor...</div>';
 
             // Load users for the dropdown
-            const usersData = await this.adminModule.makeAdminRequest('/admin/users');
+            const usersData = await this.adminModule.makeAdminRequest('/parent/users');
             const users = usersData.users || [];
 
             this.renderCreditEditor(users);
         } catch (error) {
             console.error('Failed to load credit editor:', error);
             tabContent.innerHTML = `
-                <div class="admin-error">
+                <div class="parent-error">
                     <p>Failed to load credit editor: ${error.message}</p>
-                    <button class="admin-btn admin-btn-secondary" onclick="window.adminModule.creditEditor.loadCreditEditor()">
+                    <button class="parent-btn parent-btn-secondary" onclick="window.adminModule.creditEditor.loadCreditEditor()">
                         Retry
                     </button>
                 </div>
@@ -31,19 +31,19 @@ export default class CreditEditor {
     }
 
     renderCreditEditor(users) {
-        const tabContent = document.getElementById('admin-credits-tab');
+        const tabContent = document.getElementById('parent-credits-tab');
         if (!tabContent) return;
 
         let html = `
-            <div class="admin-credits-header">
+            <div class="parent-credits-header">
                 <h4>Credit Management</h4>
-                <p class="admin-subtitle">Adjust earned and claimed credits for users</p>
+                <p class="parent-subtitle">Adjust earned and claimed credits for users</p>
             </div>
 
-            <div class="admin-credit-controls">
-                <div class="admin-form-group">
+            <div class="parent-credit-controls">
+                <div class="parent-form-group">
                     <label for="credit-user-select">Select User</label>
-                    <select id="credit-user-select" class="admin-select">
+                    <select id="credit-user-select" class="parent-select">
                         <option value="">-- Select a user --</option>
         `;
 
@@ -55,86 +55,86 @@ export default class CreditEditor {
                     </select>
                 </div>
 
-                <div class="admin-credit-stats" id="credit-user-stats" style="display: none;">
-                    <div class="admin-stat-card">
+                <div class="parent-credit-stats" id="credit-user-stats" style="display: none;">
+                    <div class="parent-stat-card">
                         <h5>Current Credits</h5>
-                        <div class="admin-stat-grid">
-                            <div class="admin-stat-item">
-                                <span class="admin-stat-label">Earned:</span>
-                                <span class="admin-stat-value" id="current-earned">0</span>
+                        <div class="parent-stat-grid">
+                            <div class="parent-stat-item">
+                                <span class="parent-stat-label">Earned:</span>
+                                <span class="parent-stat-value" id="current-earned">0</span>
                             </div>
-                            <div class="admin-stat-item">
-                                <span class="admin-stat-label">Claimed:</span>
-                                <span class="admin-stat-value" id="current-claimed">0</span>
+                            <div class="parent-stat-item">
+                                <span class="parent-stat-label">Claimed:</span>
+                                <span class="parent-stat-value" id="current-claimed">0</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="admin-credit-forms">
-                    <div class="admin-form-card">
+                <div class="parent-credit-forms">
+                    <div class="parent-form-card">
                         <h5>Adjust Earned Credits</h5>
-                        <div class="admin-form-group">
+                        <div class="parent-form-group">
                             <label for="earned-action">Action</label>
-                            <select id="earned-action" class="admin-select">
+                            <select id="earned-action" class="parent-select">
                                 <option value="set">Set to specific value</option>
                                 <option value="add">Add amount</option>
                                 <option value="subtract">Subtract amount</option>
                             </select>
                         </div>
-                        <div class="admin-form-group">
+                        <div class="parent-form-group">
                             <label for="earned-amount">Amount</label>
-                            <input type="number" id="earned-amount" class="admin-input" min="0" step="1" value="0">
+                            <input type="number" id="earned-amount" class="parent-input" min="0" step="1" value="0">
                         </div>
-                        <button id="adjust-earned-btn" class="admin-btn admin-btn-primary" disabled>
+                        <button id="adjust-earned-btn" class="parent-btn parent-btn-primary" disabled>
                             <i class="fas fa-coins"></i> Adjust Earned Credits
                         </button>
                     </div>
 
-                    <div class="admin-form-card">
+                    <div class="parent-form-card">
                         <h5>Adjust Claimed Credits</h5>
-                        <div class="admin-form-group">
+                        <div class="parent-form-group">
                             <label for="claimed-action">Action</label>
-                            <select id="claimed-action" class="admin-select">
+                            <select id="claimed-action" class="parent-select">
                                 <option value="set">Set to specific value</option>
                                 <option value="add">Add amount</option>
                                 <option value="subtract">Subtract amount</option>
                             </select>
                         </div>
-                        <div class="admin-form-group">
+                        <div class="parent-form-group">
                             <label for="claimed-amount">Amount</label>
-                            <input type="number" id="claimed-amount" class="admin-input" min="0" step="1" value="0">
+                            <input type="number" id="claimed-amount" class="parent-input" min="0" step="1" value="0">
                         </div>
-                        <button id="adjust-claimed-btn" class="admin-btn admin-btn-primary" disabled>
+                        <button id="adjust-claimed-btn" class="parent-btn parent-btn-primary" disabled>
                             <i class="fas fa-hand-holding-usd"></i> Adjust Claimed Credits
                         </button>
                     </div>
                 </div>
 
-                <div class="admin-bulk-actions">
+                <div class="parent-bulk-actions">
                     <h5>Bulk Operations</h5>
-                    <div class="admin-form-group">
+                    <div class="parent-form-group">
                         <label for="bulk-action">Action</label>
-                        <select id="bulk-action" class="admin-select">
+                        <select id="bulk-action" class="parent-select">
                             <option value="add-earned">Add earned credits to all users</option>
                             <option value="reset-claimed">Reset claimed credits for all users</option>
                             <option value="sync-earned">Sync earned credits from sessions</option>
                         </select>
                     </div>
-                    <div class="admin-form-group" id="bulk-amount-group" style="display: none;">
+                    <div class="parent-form-group" id="bulk-amount-group" style="display: none;">
                         <label for="bulk-amount">Amount</label>
-                        <input type="number" id="bulk-amount" class="admin-input" min="0" step="1" value="0">
+                        <input type="number" id="bulk-amount" class="parent-input" min="0" step="1" value="0">
                     </div>
-                    <button id="execute-bulk-btn" class="admin-btn admin-btn-warning">
+                    <button id="execute-bulk-btn" class="parent-btn parent-btn-warning">
                         <i class="fas fa-bolt"></i> Execute Bulk Operation
                     </button>
                 </div>
             </div>
 
-            <div class="admin-credit-history" id="credit-history" style="display: none;">
+            <div class="parent-credit-history" id="credit-history" style="display: none;">
                 <h5>Recent Credit Adjustments</h5>
-                <div class="admin-table-container">
-                    <table class="admin-table">
+                <div class="parent-table-container">
+                    <table class="parent-table">
                         <thead>
                             <tr>
                                 <th>Date</th>
@@ -239,7 +239,7 @@ export default class CreditEditor {
 
     async loadUserCreditStats(userId) {
         try {
-            const userData = await this.adminModule.makeAdminRequest(`/admin/users/${userId}/credits`);
+            const userData = await this.adminModule.makeAdminRequest(`/parent/users/${userId}/credits`);
             const statsElement = document.getElementById('credit-user-stats');
             const adjustEarnedBtn = document.getElementById('adjust-earned-btn');
             const adjustClaimedBtn = document.getElementById('adjust-claimed-btn');
@@ -282,7 +282,7 @@ export default class CreditEditor {
 
         try {
             const response = await this.adminModule.makeAdminRequest(
-                `/admin/users/${userId}/credits/${creditType}`,
+                `/parent/users/${userId}/credits/${creditType}`,
                 {
                     method: 'PUT',
                     body: JSON.stringify({ action, amount })
@@ -313,7 +313,7 @@ export default class CreditEditor {
 
     async loadCreditHistory(userId) {
         try {
-            const historyData = await this.adminModule.makeAdminRequest(`/admin/users/${userId}/credits/history`);
+            const historyData = await this.adminModule.makeAdminRequest(`/parent/users/${userId}/credits/history`);
             const historyElement = document.getElementById('credit-history');
             const historyBody = document.getElementById('credit-history-body');
 
@@ -327,7 +327,7 @@ export default class CreditEditor {
                         const row = document.createElement('tr');
                         row.innerHTML = `
                             <td>${date}</td>
-                            <td><span class="admin-badge ${entry.creditType === 'earned' ? 'admin-badge-info' : 'admin-badge-success'}">
+                            <td><span class="parent-badge ${entry.creditType === 'earned' ? 'parent-badge-info' : 'parent-badge-success'}">
                                 ${entry.creditType}
                             </span></td>
                             <td>${entry.action}</td>
@@ -352,15 +352,15 @@ export default class CreditEditor {
 
             switch (action) {
                 case 'add-earned':
-                    endpoint = '/admin/credits/bulk/add-earned';
+                    endpoint = '/parent/credits/bulk/add-earned';
                     body = { amount };
                     break;
                 case 'reset-claimed':
-                    endpoint = '/admin/credits/bulk/reset-claimed';
+                    endpoint = '/parent/credits/bulk/reset-claimed';
                     body = {};
                     break;
                 case 'sync-earned':
-                    endpoint = '/admin/credits/bulk/sync-earned';
+                    endpoint = '/parent/credits/bulk/sync-earned';
                     body = {};
                     break;
                 default:

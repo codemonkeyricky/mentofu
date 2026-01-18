@@ -17,7 +17,7 @@ npm run build
 ## Usage
 
 ```bash
-quiz-admin [global-options] <command> [command-options]
+quiz-parent [global-options] <command> [command-options]
 ```
 
 ### Global Options
@@ -34,7 +34,7 @@ quiz-admin [global-options] <command> [command-options]
 #### Update Multiplier
 
 ```bash
-quiz-admin update-multiplier \
+quiz-parent update-multiplier \
   --user <userId|username> \
   --quiz-type <quiz-type> \
   --value <integer-multiplier>
@@ -49,7 +49,7 @@ Options:
 #### Update Credits
 
 ```bash
-quiz-admin update-credits \
+quiz-parent update-credits \
   --user <userId|username> \
   --earned <value> \
   --claimed <value> \
@@ -65,7 +65,7 @@ Options:
 #### List Users
 
 ```bash
-quiz-admin list-users \
+quiz-parent list-users \
   --search <username> \
   --limit <number> \
   --show-multipliers \
@@ -75,7 +75,7 @@ quiz-admin list-users \
 #### Get User Info
 
 ```bash
-quiz-admin get-user --user <userId|username>
+quiz-parent get-user --user <userId|username>
 ```
 
 ## Configuration
@@ -84,7 +84,7 @@ You can configure the CLI using environment variables in a `.env` file:
 
 ```env
 API_URL=http://localhost:3000
-ADMIN_USERNAME=admin
+ADMIN_USERNAME=parent
 ADMIN_PASSWORD=secret
 VERBOSE=true
 DRY_RUN=false
@@ -94,20 +94,20 @@ DRY_RUN=false
 
 Set multiplier for a user:
 ```bash
-quiz-admin update-multiplier --user john --quiz-type simple-math --value 3
+quiz-parent update-multiplier --user john --quiz-type simple-math --value 3
 ```
 
 Update credits for a user:
 ```bash
-quiz-admin update-credits --user john --earned 100 --claimed 50
+quiz-parent update-credits --user john --earned 100 --claimed 50
 ```
 
 List all users:
 ```bash
-quiz-admin list-users --limit 10
+quiz-parent list-users --limit 10
 ```
 
 Get user info:
 ```bash
-quiz-admin get-user --user john
+quiz-parent get-user --user john
 ```

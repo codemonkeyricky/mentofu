@@ -1,6 +1,6 @@
-// Admin Main Module - Entry point for admin functionality
-import AdminAuth from './admin-auth.js';
-import AdminUI from './admin-ui.js';
+// Admin Main Module - Entry point for parent functionality
+import AdminAuth from './parent-auth.js';
+import AdminUI from './parent-ui.js';
 import UserManager from './user-manager.js';
 import CreditEditor from './credit-editor.js';
 import MultiplierEditor from './multiplier-editor.js';
@@ -18,13 +18,13 @@ export default class AdminModule {
         this.creditEditor = new CreditEditor(this);
         this.multiplierEditor = new MultiplierEditor(this);
 
-        // Initialize admin module
+        // Initialize parent module
         this.init();
     }
 
     init() {
         console.log('Admin module initialized');
-        // Check for existing admin session
+        // Check for existing parent session
         this.checkAdminSession();
     }
 

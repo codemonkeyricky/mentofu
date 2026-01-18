@@ -28,7 +28,7 @@ export async function listUsers(
 
   try {
     const response = await axios.get(
-      `${options.apiUrl}/admin/users`,
+      `${options.apiUrl}/parent/users`,
       {
         headers: {
           'Authorization': `Bearer ${token}`

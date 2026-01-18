@@ -10,6 +10,7 @@ test.describe('Quiz Functionality', () => {
     // Register and login
     await page.getByRole('button', { name: 'Register' }).click();
 
+
     // Wait for registration form to appear
     await expect(page.getByRole('heading', { name: 'Create Account' })).toBeVisible();
 
@@ -78,6 +79,7 @@ test.describe('Quiz Functionality', () => {
 
     // Register and login
     await page.getByRole('button', { name: 'Register' }).click();
+
 
     // Wait for registration form to appear
     await expect(page.getByRole('heading', { name: 'Create Account' })).toBeVisible();

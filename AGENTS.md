@@ -26,10 +26,10 @@ src/server/
 │   └── auth.types.ts
 ├── session/             # Quiz session management
 ├── credit/              # Credit system with earned/claimed tracking
-├── admin/               # Administrative functionality (CLI and API)
+├── parent/               # Administrative functionality (CLI and API)
 ├── database/            # Dual-mode database service
 │   └── database.service.ts
-├── middleware/          # Authentication and admin middleware
+├── middleware/          # Authentication and parent middleware
 ├── test/               # Backend test suite
 └── utils/              # Utility functions
 ```
@@ -305,7 +305,7 @@ npm run playwright           # Run Playwright end-to-end tests
 1. **Caching Layer**: Redis for session storage and API response caching
 2. **Message Queue**: Async processing for credit calculations and notifications
 3. **CDN**: Static asset delivery optimization
-4. **Microservices**: Split quiz, credit, and admin functionality
+4. **Microservices**: Split quiz, credit, and parent functionality
 
 ### Feature Roadmap
 1. **Real-time Updates**: WebSocket connections for live quiz competitions

@@ -2,7 +2,7 @@ import express, { Application, Request, Response } from 'express';
 import { sessionRouter } from './session/session.controller';
 import { authRouter } from './auth/auth.controller';
 import { creditRouter } from './credit/credit.controller';
-import { adminRouter } from './admin/admin.controller';
+import { adminRouter } from './parent/parent.controller';
 import path from 'path';
 import { DatabaseService } from './database/database.service';
 import { sessionService } from './session/session.service';
@@ -46,7 +46,7 @@ app.use(express.static(publicPath));
 app.use('/auth', authRouter);
 app.use('/session', sessionRouter);
 app.use('/credit', creditRouter);
-app.use('/admin', adminRouter);
+app.use('/parent', adminRouter);
 
 // Health check endpoint
 app.get('/', (req: Request, res: Response) => {

@@ -19,7 +19,7 @@ describe('Admin API Integration Tests', () => {
   });
 
   describe('Admin Authentication and Setup', () => {
-    it('should register and promote a user to admin via direct database manipulation', async () => {
+    it('should register and promote a user to parent via direct database manipulation', async () => {
       // Register a regular user
       const registerResponse = await request(app)
         .post('/auth/register')
@@ -32,7 +32,7 @@ describe('Admin API Integration Tests', () => {
       expect(registerResponse.body.user).toHaveProperty('username', 'regularuser');
       regularUserId = registerResponse.body.user.id;
 
-      // Register an admin user via direct database manipulation to bypass API limitation
+      // Register an parent user via direct database manipulation to bypass API limitation
       const adminUser = await authService.register('adminuser', 'adminpassword123', true);
       adminUserId = adminUser.id;
 
@@ -47,7 +47,7 @@ describe('Admin API Integration Tests', () => {
 
       regularUserToken = loginResponse.body.token;
 
-      // Login with admin user
+      // Login with parent user
       const adminLoginResponse = await request(app)
         .post('/auth/login')
         .send({
@@ -58,30 +58,30 @@ describe('Admin API Integration Tests', () => {
 
       adminToken = adminLoginResponse.body.token;
 
-      // Verify admin user has isAdmin flag set
+      // Verify parent user has isAdmin flag set
       const adminUserFromDB = await authService.getUserById(adminUserId);
       expect(adminUserFromDB).toHaveProperty('isAdmin', true);
 
-      // Verify regular user doesn't have admin flag
+      // Verify regular user doesn't have parent flag
       const regularUser = await authService.getUserById(regularUserId);
       expect(regularUser).toHaveProperty('isAdmin', false);
     });
 
-    it('should verify that the hardcoded admin account exists and is functional', async () => {
-      // Verify the default admin user exists in the database
+    it('should verify that the hardcoded parent account exists and is functional', async () => {
+      // Verify the default parent user exists in the database
       const dbService = new DatabaseService();
-      const adminUser = await dbService.findUserByUsername('admin');
+      const adminUser = await dbService.findUserByUsername('parent');
 
-      // The admin user should exist with isAdmin flag set to true
+      // The parent user should exist with isAdmin flag set to true
       expect(adminUser).toBeDefined();
-      expect(adminUser).toHaveProperty('username', 'admin');
+      expect(adminUser).toHaveProperty('username', 'parent');
       expect(adminUser).toHaveProperty('isAdmin', true);
 
-      // Verify we can login with the default admin credentials
+      // Verify we can login with the default parent credentials
       const loginResponse = await request(app)
         .post('/auth/login')
         .send({
-          username: 'admin',
+          username: 'parent',
           password: 'admin2'
         })
         .expect(200);
@@ -89,7 +89,7 @@ describe('Admin API Integration Tests', () => {
       // Verify the response contains a valid token and user info
       expect(loginResponse.body).toHaveProperty('token');
       expect(loginResponse.body).toHaveProperty('user');
-      expect(loginResponse.body.user).toHaveProperty('username', 'admin');
+      expect(loginResponse.body.user).toHaveProperty('username', 'parent');
       expect(loginResponse.body.user).toHaveProperty('isAdmin', true);
 
       // Verify that the returned token is valid by checking it's not empty
@@ -101,7 +101,7 @@ describe('Admin API Integration Tests', () => {
 
   describe('Admin Multiplier API Tests', () => {
     it('should update user multipliers with valid quiz types', async () => {
-      // First register and login an admin user
+      // First register and login an parent user
       const adminRegister = await request(app)
         .post('/auth/register')
         .send({
@@ -134,7 +134,7 @@ describe('Admin API Integration Tests', () => {
 
       // Update multiplier for simple-math quiz type
       const updateResponse = await request(app)
-        .patch(`/admin/users/${userId}/multiplier`)
+        .patch(`/parent/users/${userId}/multiplier`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           quizType: 'simple-math',
@@ -154,7 +154,7 @@ describe('Admin API Integration Tests', () => {
     });
 
     it('should reject invalid quiz types', async () => {
-      // Register and login an admin user
+      // Register and login an parent user
       const adminRegister = await request(app)
         .post('/auth/register')
         .send({
@@ -187,7 +187,7 @@ describe('Admin API Integration Tests', () => {
 
       // Try to update with invalid quiz type
       const updateResponse = await request(app)
-        .patch(`/admin/users/${userId}/multiplier`)
+        .patch(`/parent/users/${userId}/multiplier`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           quizType: 'invalid-quiz-type',
@@ -199,7 +199,7 @@ describe('Admin API Integration Tests', () => {
     });
 
     it('should reject negative multipliers', async () => {
-      // Register and login an admin user
+      // Register and login an parent user
       const adminRegister = await request(app)
         .post('/auth/register')
         .send({
@@ -232,7 +232,7 @@ describe('Admin API Integration Tests', () => {
 
       // Try to update with negative multiplier
       const updateResponse = await request(app)
-        .patch(`/admin/users/${userId}/multiplier`)
+        .patch(`/parent/users/${userId}/multiplier`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           quizType: 'simple-math',
@@ -243,7 +243,7 @@ describe('Admin API Integration Tests', () => {
       expect(updateResponse.body.error).toHaveProperty('message', 'Multiplier must be an integer greater than or equal to 0');
     });
 
-    it('should reject non-admin users from updating multipliers', async () => {
+    it('should reject non-parent users from updating multipliers', async () => {
       // Register a regular user
       const userRegister = await request(app)
         .post('/auth/register')
@@ -263,7 +263,7 @@ describe('Admin API Integration Tests', () => {
 
       const regularUserToken = userLogin.body.token;
 
-      // Register an admin user
+      // Register an parent user
       const adminRegister = await request(app)
         .post('/auth/register')
         .send({
@@ -286,7 +286,7 @@ describe('Admin API Integration Tests', () => {
 
       // Regular user tries to update multiplier (should be forbidden)
       const updateResponse = await request(app)
-        .patch(`/admin/users/${adminUserId}/multiplier`)
+        .patch(`/parent/users/${adminUserId}/multiplier`)
         .set('Authorization', `Bearer ${regularUserToken}`)
         .send({
           quizType: 'simple-math',
@@ -300,7 +300,7 @@ describe('Admin API Integration Tests', () => {
 
   describe('Admin Credits API Tests', () => {
     it('should update user credits with absolute values', async () => {
-      // Register and login an admin user
+      // Register and login an parent user
       const adminRegister = await request(app)
         .post('/auth/register')
         .send({
@@ -333,7 +333,7 @@ describe('Admin API Integration Tests', () => {
 
       // Update credits with absolute values
       const updateResponse = await request(app)
-        .patch(`/admin/users/${userId}/credits`)
+        .patch(`/parent/users/${userId}/credits`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           earnedCredits: 150,
@@ -355,7 +355,7 @@ describe('Admin API Integration Tests', () => {
     });
 
     it('should update user credits with delta values', async () => {
-      // Register and login an admin user
+      // Register and login an parent user
       const adminRegister = await request(app)
         .post('/auth/register')
         .send({
@@ -388,7 +388,7 @@ describe('Admin API Integration Tests', () => {
 
       // First, set some initial credits
       await request(app)
-        .patch(`/admin/users/${userId}/credits`)
+        .patch(`/parent/users/${userId}/credits`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           earnedCredits: 100,
@@ -397,7 +397,7 @@ describe('Admin API Integration Tests', () => {
 
       // Update credits with delta values
       const updateResponse = await request(app)
-        .patch(`/admin/users/${userId}/credits`)
+        .patch(`/parent/users/${userId}/credits`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           earnedDelta: 50,
@@ -419,7 +419,7 @@ describe('Admin API Integration Tests', () => {
     });
 
     it('should reject claimed credits exceeding earned credits', async () => {
-      // Register and login an admin user
+      // Register and login an parent user
       const adminRegister = await request(app)
         .post('/auth/register')
         .send({
@@ -452,7 +452,7 @@ describe('Admin API Integration Tests', () => {
 
       // Try to set claimed credits higher than earned credits
       const updateResponse = await request(app)
-        .patch(`/admin/users/${userId}/credits`)
+        .patch(`/parent/users/${userId}/credits`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           earnedCredits: 100,
@@ -463,7 +463,7 @@ describe('Admin API Integration Tests', () => {
       expect(updateResponse.body.error).toHaveProperty('message', 'Claimed credits cannot exceed earned credits');
     });
 
-    it('should reject non-admin users from updating credits', async () => {
+    it('should reject non-parent users from updating credits', async () => {
       // Register a regular user
       const userRegister = await request(app)
         .post('/auth/register')
@@ -483,7 +483,7 @@ describe('Admin API Integration Tests', () => {
 
       const regularUserToken = userLogin.body.token;
 
-      // Register an admin user
+      // Register an parent user
       const adminRegister = await request(app)
         .post('/auth/register')
         .send({
@@ -506,7 +506,7 @@ describe('Admin API Integration Tests', () => {
 
       // Regular user tries to update credits (should be forbidden)
       const updateResponse = await request(app)
-        .patch(`/admin/users/${adminUserId}/credits`)
+        .patch(`/parent/users/${adminUserId}/credits`)
         .set('Authorization', `Bearer ${regularUserToken}`)
         .send({
           earnedCredits: 100,
@@ -520,7 +520,7 @@ describe('Admin API Integration Tests', () => {
 
   describe('Admin Users API Tests', () => {
     it('should list users with multipliers and credits', async () => {
-      // Register and login an admin user
+      // Register and login an parent user
       const adminRegister = await request(app)
         .post('/auth/register')
         .send({
@@ -553,7 +553,7 @@ describe('Admin API Integration Tests', () => {
 
       // Set some credits for the user
       await request(app)
-        .patch(`/admin/users/${userId}/credits`)
+        .patch(`/parent/users/${userId}/credits`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           earnedCredits: 200,
@@ -562,7 +562,7 @@ describe('Admin API Integration Tests', () => {
 
       // Set multipliers for the user
       await request(app)
-        .patch(`/admin/users/${userId}/multiplier`)
+        .patch(`/parent/users/${userId}/multiplier`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           quizType: 'simple-math',
@@ -570,7 +570,7 @@ describe('Admin API Integration Tests', () => {
         });
 
       await request(app)
-        .patch(`/admin/users/${userId}/multiplier`)
+        .patch(`/parent/users/${userId}/multiplier`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           quizType: 'simple-words',
@@ -579,7 +579,7 @@ describe('Admin API Integration Tests', () => {
 
       // Get list of users
       const listResponse = await request(app)
-        .get('/admin/users')
+        .get('/parent/users')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
@@ -597,7 +597,7 @@ describe('Admin API Integration Tests', () => {
     });
 
     it('should get detailed user information', async () => {
-      // Register and login an admin user
+      // Register and login an parent user
       const adminRegister = await request(app)
         .post('/auth/register')
         .send({
@@ -630,7 +630,7 @@ describe('Admin API Integration Tests', () => {
 
       // Set some credits and multipliers for the user
       await request(app)
-        .patch(`/admin/users/${userId}/credits`)
+        .patch(`/parent/users/${userId}/credits`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           earnedCredits: 150,
@@ -638,7 +638,7 @@ describe('Admin API Integration Tests', () => {
         });
 
       await request(app)
-        .patch(`/admin/users/${userId}/multiplier`)
+        .patch(`/parent/users/${userId}/multiplier`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           quizType: 'simple-math',
@@ -647,7 +647,7 @@ describe('Admin API Integration Tests', () => {
 
       // Get detailed user information
       const getResponse = await request(app)
-        .get(`/admin/users/${userId}`)
+        .get(`/parent/users/${userId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
@@ -661,7 +661,7 @@ describe('Admin API Integration Tests', () => {
 
   describe('Error Handling Tests', () => {
     it('should return 404 when updating multiplier for non-existent user', async () => {
-      // Register and login an admin user
+      // Register and login an parent user
       const adminRegister = await request(app)
         .post('/auth/register')
         .send({
@@ -683,7 +683,7 @@ describe('Admin API Integration Tests', () => {
 
       // Try to update multiplier for non-existent user
       const updateResponse = await request(app)
-        .patch('/admin/users/nonexistentuser/multiplier')
+        .patch('/parent/users/nonexistentuser/multiplier')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           quizType: 'simple-math',
@@ -695,7 +695,7 @@ describe('Admin API Integration Tests', () => {
     });
 
     it('should return 404 when getting info for non-existent user', async () => {
-      // Register and login an admin user
+      // Register and login an parent user
       const adminRegister = await request(app)
         .post('/auth/register')
         .send({
@@ -717,7 +717,7 @@ describe('Admin API Integration Tests', () => {
 
       // Try to get info for non-existent user
       const getResponse = await request(app)
-        .get('/admin/users/nonexistentuser')
+        .get('/parent/users/nonexistentuser')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
 

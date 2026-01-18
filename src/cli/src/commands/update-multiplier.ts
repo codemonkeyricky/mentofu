@@ -29,7 +29,7 @@ export async function updateMultiplier(
 
   try {
     await axios.patch(
-      `${options.apiUrl}/admin/users/${userIdOrUsername}/multiplier`,
+      `${options.apiUrl}/parent/users/${userIdOrUsername}/multiplier`,
       {
         quizType,
         multiplier: value

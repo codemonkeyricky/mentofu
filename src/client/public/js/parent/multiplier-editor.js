@@ -7,23 +7,23 @@ export default class MultiplierEditor {
     }
 
     async loadMultiplierEditor() {
-        const tabContent = document.getElementById('admin-multipliers-tab');
+        const tabContent = document.getElementById('parent-multipliers-tab');
         if (!tabContent) return;
 
         try {
-            tabContent.innerHTML = '<div class="admin-loading">Loading multiplier editor...</div>';
+            tabContent.innerHTML = '<div class="parent-loading">Loading multiplier editor...</div>';
 
             // Load current multipliers
-            const data = await this.adminModule.makeAdminRequest('/admin/multipliers');
+            const data = await this.adminModule.makeAdminRequest('/parent/multipliers');
             this.multipliers = data.multipliers || {};
 
             this.renderMultiplierEditor();
         } catch (error) {
             console.error('Failed to load multiplier editor:', error);
             tabContent.innerHTML = `
-                <div class="admin-error">
+                <div class="parent-error">
                     <p>Failed to load multiplier editor: ${error.message}</p>
-                    <button class="admin-btn admin-btn-secondary" onclick="window.adminModule.multiplierEditor.loadMultiplierEditor()">
+                    <button class="parent-btn parent-btn-secondary" onclick="window.adminModule.multiplierEditor.loadMultiplierEditor()">
                         Retry
                     </button>
                 </div>
@@ -32,7 +32,7 @@ export default class MultiplierEditor {
     }
 
     renderMultiplierEditor() {
-        const tabContent = document.getElementById('admin-multipliers-tab');
+        const tabContent = document.getElementById('parent-multipliers-tab');
         if (!tabContent) return;
 
         const quizTypes = [
@@ -41,39 +41,39 @@ export default class MultiplierEditor {
         ];
 
         let html = `
-            <div class="admin-multipliers-header">
+            <div class="parent-multipliers-header">
                 <h4>Multiplier Management</h4>
-                <p class="admin-subtitle">Adjust quiz multipliers for different quiz types</p>
+                <p class="parent-subtitle">Adjust quiz multipliers for different quiz types</p>
             </div>
 
-            <div class="admin-multiplier-controls">
-                <div class="admin-multiplier-grid">
+            <div class="parent-multiplier-controls">
+                <div class="parent-multiplier-grid">
         `;
 
         quizTypes.forEach(quizType => {
             const currentMultiplier = this.multipliers[quizType.id] || 1.0;
-            const badgeClass = currentMultiplier > 1.0 ? 'admin-badge-success' : 'admin-badge-info';
+            const badgeClass = currentMultiplier > 1.0 ? 'parent-badge-success' : 'parent-badge-info';
 
             html += `
-                    <div class="admin-multiplier-card">
-                        <div class="admin-multiplier-card-header">
+                    <div class="parent-multiplier-card">
+                        <div class="parent-multiplier-card-header">
                             <h5>${quizType.name}</h5>
-                            <span class="admin-badge ${badgeClass}">x${currentMultiplier.toFixed(1)}</span>
+                            <span class="parent-badge ${badgeClass}">x${currentMultiplier.toFixed(1)}</span>
                         </div>
-                        <div class="admin-multiplier-card-body">
-                            <p class="admin-multiplier-description">${quizType.description}</p>
+                        <div class="parent-multiplier-card-body">
+                            <p class="parent-multiplier-description">${quizType.description}</p>
 
-                            <div class="admin-form-group">
+                            <div class="parent-form-group">
                                 <label for="multiplier-${quizType.id}">Multiplier Value</label>
-                                <div class="admin-input-with-slider">
+                                <div class="parent-input-with-slider">
                                     <input type="range" id="multiplier-slider-${quizType.id}"
-                                           class="admin-slider" min="0.1" max="5.0" step="0.1"
+                                           class="parent-slider" min="0.1" max="5.0" step="0.1"
                                            value="${currentMultiplier}">
                                     <input type="number" id="multiplier-${quizType.id}"
-                                           class="admin-input admin-input-sm"
+                                           class="parent-input parent-input-sm"
                                            min="0.1" max="5.0" step="0.1" value="${currentMultiplier}">
                                 </div>
-                                <div class="admin-slider-labels">
+                                <div class="parent-slider-labels">
                                     <span>0.1x</span>
                                     <span>1.0x</span>
                                     <span>2.0x</span>
@@ -83,16 +83,16 @@ export default class MultiplierEditor {
                                 </div>
                             </div>
 
-                            <div class="admin-form-group">
+                            <div class="parent-form-group">
                                 <label for="multiplier-action-${quizType.id}">Apply To</label>
-                                <select id="multiplier-action-${quizType.id}" class="admin-select">
+                                <select id="multiplier-action-${quizType.id}" class="parent-select">
                                     <option value="all">All users</option>
                                     <option value="verified">Verified users only</option>
                                     <option value="unverified">Unverified users only</option>
                                 </select>
                             </div>
 
-                            <button class="admin-btn admin-btn-primary update-multiplier-btn"
+                            <button class="parent-btn parent-btn-primary update-multiplier-btn"
                                     data-quiz-type="${quizType.id}">
                                 <i class="fas fa-sync-alt"></i> Update Multiplier
                             </button>
@@ -104,13 +104,13 @@ export default class MultiplierEditor {
         html += `
                 </div>
 
-                <div class="admin-multiplier-bulk">
-                    <div class="admin-form-card">
+                <div class="parent-multiplier-bulk">
+                    <div class="parent-form-card">
                         <h5>Bulk Multiplier Operations</h5>
 
-                        <div class="admin-form-group">
+                        <div class="parent-form-group">
                             <label for="bulk-multiplier-action">Action</label>
-                            <select id="bulk-multiplier-action" class="admin-select">
+                            <select id="bulk-multiplier-action" class="parent-select">
                                 <option value="reset-all">Reset all to 1.0x</option>
                                 <option value="increase-all">Increase all by 0.5x</option>
                                 <option value="decrease-all">Decrease all by 0.5x</option>
@@ -118,31 +118,31 @@ export default class MultiplierEditor {
                             </select>
                         </div>
 
-                        <div class="admin-form-group" id="bulk-multiplier-value-group" style="display: none;">
+                        <div class="parent-form-group" id="bulk-multiplier-value-group" style="display: none;">
                             <label for="bulk-multiplier-value">Value</label>
-                            <input type="number" id="bulk-multiplier-value" class="admin-input"
+                            <input type="number" id="bulk-multiplier-value" class="parent-input"
                                    min="0.1" max="5.0" step="0.1" value="1.0">
                         </div>
 
-                        <div class="admin-form-group">
+                        <div class="parent-form-group">
                             <label for="bulk-multiplier-target">Target Users</label>
-                            <select id="bulk-multiplier-target" class="admin-select">
+                            <select id="bulk-multiplier-target" class="parent-select">
                                 <option value="all">All users</option>
                                 <option value="verified">Verified users only</option>
                                 <option value="unverified">Unverified users only</option>
                             </select>
                         </div>
 
-                        <button id="execute-bulk-multiplier-btn" class="admin-btn admin-btn-warning">
+                        <button id="execute-bulk-multiplier-btn" class="parent-btn parent-btn-warning">
                             <i class="fas fa-bolt"></i> Execute Bulk Operation
                         </button>
                     </div>
                 </div>
 
-                <div class="admin-multiplier-history">
+                <div class="parent-multiplier-history">
                     <h5>Multiplier Change History</h5>
-                    <div class="admin-table-container">
-                        <table class="admin-table">
+                    <div class="parent-table-container">
+                        <table class="parent-table">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -244,7 +244,7 @@ export default class MultiplierEditor {
 
         try {
             const response = await this.adminModule.makeAdminRequest(
-                `/admin/multipliers/${quizType}`,
+                `/parent/multipliers/${quizType}`,
                 {
                     method: 'PUT',
                     body: JSON.stringify({ value, target })
@@ -275,19 +275,19 @@ export default class MultiplierEditor {
 
             switch (action) {
                 case 'reset-all':
-                    endpoint = '/admin/multipliers/bulk/reset';
+                    endpoint = '/parent/multipliers/bulk/reset';
                     body = { target };
                     break;
                 case 'increase-all':
-                    endpoint = '/admin/multipliers/bulk/increase';
+                    endpoint = '/parent/multipliers/bulk/increase';
                     body = { target, amount: 0.5 };
                     break;
                 case 'decrease-all':
-                    endpoint = '/admin/multipliers/bulk/decrease';
+                    endpoint = '/parent/multipliers/bulk/decrease';
                     body = { target, amount: 0.5 };
                     break;
                 case 'set-all':
-                    endpoint = '/admin/multipliers/bulk/set';
+                    endpoint = '/parent/multipliers/bulk/set';
                     body = { target, value };
                     break;
                 default:
@@ -312,7 +312,7 @@ export default class MultiplierEditor {
 
     async loadMultiplierHistory() {
         try {
-            const historyData = await this.adminModule.makeAdminRequest('/admin/multipliers/history');
+            const historyData = await this.adminModule.makeAdminRequest('/parent/multipliers/history');
             const historyBody = document.getElementById('multiplier-history-body');
 
             if (historyBody && historyData.history) {
@@ -330,7 +330,7 @@ export default class MultiplierEditor {
                             <td>${this.getQuizTypeName(entry.quizType)}</td>
                             <td>x${entry.oldValue.toFixed(1)}</td>
                             <td>x${entry.newValue.toFixed(1)}</td>
-                            <td><span class="admin-badge ${this.getTargetBadgeClass(entry.target)}">
+                            <td><span class="parent-badge ${this.getTargetBadgeClass(entry.target)}">
                                 ${entry.target}
                             </span></td>
                             <td>${entry.adminUsername || 'System'}</td>
@@ -357,10 +357,10 @@ export default class MultiplierEditor {
 
     getTargetBadgeClass(target) {
         const classes = {
-            'all': 'admin-badge-info',
-            'verified': 'admin-badge-success',
-            'unverified': 'admin-badge-warning'
+            'all': 'parent-badge-info',
+            'verified': 'parent-badge-success',
+            'unverified': 'parent-badge-warning'
         };
-        return classes[target] || 'admin-badge-secondary';
+        return classes[target] || 'parent-badge-secondary';
     }
 }
