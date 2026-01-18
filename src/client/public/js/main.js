@@ -152,6 +152,15 @@ export class MathMasterPro {
         this.backToStartBtn?.addEventListener('click', () => this.showScreen('start'));
         this.logoutBtn?.addEventListener('click', () => this.logoutUser());
 
+        // Parent dashboard buttons
+        document.getElementById('back-to-start-from-parent')?.addEventListener('click', () => {
+            this.showScreen('start');
+        });
+
+        document.getElementById('parent-logout-btn')?.addEventListener('click', () => {
+            this.logoutUser();
+        });
+
         // Handle claim credit button
         const claimCreditsBtn = document.getElementById('claim-credits-btn');
         claimCreditsBtn?.addEventListener('click', () => {
