@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { ParentDashboardUser } from '../types';
 
 const ParentDashboard: React.FC = () => {
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<ParentDashboardUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // In a real implementation, this would fetch user data from the API
     const fetchUsers = async () => {
       try {
         // Get token from localStorage
@@ -17,23 +17,36 @@ const ParentDashboard: React.FC = () => {
           return;
         }
 
-        // For demo purposes, we'll show a sample structure
-        // In a real implementation, this would be an API call:
-        // const response = await fetch('/parent/users', {
-        //   headers: {
-        //     'Authorization': `Bearer ${token}`
-        //   }
-        // });
-        // const data = await response.json();
+        // Fetch real user data from the API
+        const response = await fetch('/parent/users', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
 
-        // Mock data for demonstration
-        const mockUsers = [
-          { id: 'user1', username: 'student1', earnedCredits: 150, claimedCredits: 75, multipliers: { 'simple-math': 2, 'simple-words': 1 } },
-          { id: 'user2', username: 'student2', earnedCredits: 200, claimedCredits: 100, multipliers: { 'simple-math': 1, 'simple-words': 2 } },
-          { id: 'user3', username: 'student3', earnedCredits: 75, claimedCredits: 25, multipliers: { 'simple-math': 3, 'simple-words': 1 } }
-        ];
+        if (!response.ok) {
+          if (response.status === 401) {
+            // Redirect to login page if unauthorized
+            window.location.href = '/login';
+            return;
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-        setUsers(mockUsers);
+        const data = await response.json();
+
+        // The API returns snake_case fields, but our component expects them
+        // We'll transform the data to match our TypeScript interface
+        const transformedUsers: ParentDashboardUser[] = data.map((user: any) => ({
+          id: user.id,
+          username: user.username,
+          earned_credits: user.earned_credits || 0,
+          claimed_credits: user.claimed_credits || 0,
+          multipliers: user.multipliers || {}
+        }));
+
+        setUsers(transformedUsers);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching users:', err);
@@ -65,11 +78,11 @@ const ParentDashboard: React.FC = () => {
         </div>
         <div className="stat-card">
           <h3>Total Credits Earned</h3>
-          <p>{users.reduce((sum, user) => sum + user.earnedCredits, 0)}</p>
+          <p>{users.reduce((sum, user) => sum + (user.earned_credits || 0), 0)}</p>
         </div>
         <div className="stat-card">
           <h3>Total Credits Claimed</h3>
-          <p>{users.reduce((sum, user) => sum + user.claimedCredits, 0)}</p>
+          <p>{users.reduce((sum, user) => sum + (user.claimed_credits || 0), 0)}</p>
         </div>
       </div>
 
@@ -90,12 +103,13 @@ const ParentDashboard: React.FC = () => {
               {users.map(user => (
                 <tr key={user.id}>
                   <td>{user.username}</td>
-                  <td>{user.earnedCredits}</td>
-                  <td>{user.claimedCredits}</td>
+                  <td>{user.earned_credits || 0}</td>
+                  <td>{user.claimed_credits || 0}</td>
                   <td>
                     <div className="multiplier-list">
-                      <span>M: {user.multipliers['simple-math']}</span>
-                      <span>W: {user.multipliers['simple-words']}</span>
+                      {user.multipliers && Object.entries(user.multipliers).map(([quizType, multiplier]) => (
+                        <span key={quizType}>{quizType}: {multiplier}</span>
+                      ))}
                     </div>
                   </td>
                   <td>

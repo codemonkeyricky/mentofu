@@ -14,3 +14,7 @@ export interface ParentUser {
   children: string[];
   role: string;
 }
+
+export interface ParentDashboardUser extends User {
+  multipliers?: Record<string, number>;
+}
