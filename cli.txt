@@ -1,5 +1,0 @@
-Create a cli to connect to db directly. The cli allows:
-* Update per user per quiz multiplier 
-* Update per user earned credits
-* Update per user claimed credits
-
