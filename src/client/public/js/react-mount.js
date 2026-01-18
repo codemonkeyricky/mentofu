@@ -24,6 +24,7 @@ export async function mountParentDashboard(containerId = 'parent-dashboard-conta
         container.innerHTML = '';
 
         // Dynamically import React and ReactDOM
+        console.log('Loading React modules via import map...');
         const [React, ReactDOM, ParentDashboard] = await Promise.all([
             import('react'),
             import('react-dom/client'),
