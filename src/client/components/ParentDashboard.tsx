@@ -38,13 +38,13 @@ const ParentDashboard: React.FC = () => {
 
         const data = await response.json();
 
-        // The API returns snake_case fields, but our component expects them
+        // The API returns { users: [...] } with snake_case fields, but our component expects them
         // We'll transform the data to match our TypeScript interface
-        const transformedUsers: ParentDashboardUser[] = data.map((user: any) => ({
+        const transformedUsers: ParentDashboardUser[] = data.users.map((user: any) => ({
           id: user.id,
           username: user.username,
-          earned_credits: user.earned_credits || 0,
-          claimed_credits: user.claimed_credits || 0,
+          earned_credits: user.earnedCredits || 0,
+          claimed_credits: user.claimedCredits || 0,
           multipliers: user.multipliers || {}
         }));
 
