@@ -332,7 +332,7 @@ export class MathMasterPro {
             localStorage.setItem('user', JSON.stringify(data.user));
 
             // NEW: Check if user is parent and redirect accordingly
-            if (data.user.isParent) {
+            if (data.user?.isParent === true) {
                 this.showScreen('parentDashboard');
                 this.initParentDashboard();
             } else {
@@ -395,7 +395,13 @@ export class MathMasterPro {
             // Clear form and show success
             this.registerForm.reset();
             this.showNotification('Account created successfully!', 'success');
-            this.showAuthenticatedScreens();
+            // Check if user is parent and redirect accordingly
+            if (loginData.user?.isParent === true) {
+                this.showScreen('parentDashboard');
+                this.initParentDashboard();
+            } else {
+                this.showAuthenticatedScreens();
+            }
 
         } catch (error) {
             console.error('Registration error:', error);
