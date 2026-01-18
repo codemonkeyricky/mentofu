@@ -27,7 +27,8 @@ export class MathMasterPro {
             quiz: document.getElementById('quiz-screen'),
             words: document.getElementById('simple-words-screen'),
             results: document.getElementById('results-screen'),
-            claimCredit: document.getElementById('claim-credit-screen')
+            claimCredit: document.getElementById('claim-credit-screen'),
+            parentDashboard: document.getElementById('parent-dashboard-screen')
         };
 
         // Auth Elements
