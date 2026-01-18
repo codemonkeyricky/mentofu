@@ -47,7 +47,7 @@ describe('Admin API Integration Tests', () => {
 
       regularUserToken = loginResponse.body.token;
 
-      // Login with parent user
+      // Login with parent user and verify isParent flag in response
       const adminLoginResponse = await request(app)
         .post('/auth/login')
         .send({
@@ -58,11 +58,25 @@ describe('Admin API Integration Tests', () => {
 
       adminToken = adminLoginResponse.body.token;
 
-      // Verify parent user has isParent flag set
+      // Verify parent user login response contains isParent flag set to true
+      expect(adminLoginResponse.body.user).toHaveProperty('isParent', true);
+
+      // Verify regular user login response contains isParent flag set to false
+      const regularUserLoginResponse = await request(app)
+        .post('/auth/login')
+        .send({
+          username: 'regularuser',
+          password: 'securepassword123'
+        })
+        .expect(200);
+
+      expect(regularUserLoginResponse.body.user).toHaveProperty('isParent', false);
+
+      // Verify parent user has isParent flag set in database
       const adminUserFromDB = await authService.getUserById(adminUserId);
       expect(adminUserFromDB).toHaveProperty('isParent', true);
 
-      // Verify regular user doesn't have parent flag
+      // Verify regular user doesn't have parent flag in database
       const regularUser = await authService.getUserById(regularUserId);
       expect(regularUser).toHaveProperty('isParent', false);
     });
@@ -90,6 +104,8 @@ describe('Admin API Integration Tests', () => {
       expect(loginResponse.body).toHaveProperty('token');
       expect(loginResponse.body).toHaveProperty('user');
       expect(loginResponse.body.user).toHaveProperty('username', 'parent');
+
+      // Explicitly check that the login response contains isParent flag set to true
       expect(loginResponse.body.user).toHaveProperty('isParent', true);
 
       // Verify that the returned token is valid by checking it's not empty
@@ -118,6 +134,9 @@ describe('Admin API Integration Tests', () => {
           password: 'adminpassword123'
         })
         .expect(200);
+
+      // Verify parent user login response contains isParent flag set to true
+      expect(adminLogin.body.user).toHaveProperty('isParent', true);
 
       const adminToken = adminLogin.body.token;
 
@@ -261,6 +280,9 @@ describe('Admin API Integration Tests', () => {
         })
         .expect(200);
 
+      // Verify regular user login response contains isParent flag set to false
+      expect(userLogin.body.user).toHaveProperty('isParent', false);
+
       const regularUserToken = userLogin.body.token;
 
       // Register an parent user
@@ -280,6 +302,9 @@ describe('Admin API Integration Tests', () => {
           password: 'adminpassword123'
         })
         .expect(200);
+
+      // Verify parent user login response contains isParent flag set to true
+      expect(adminLogin.body.user).toHaveProperty('isParent', true);
 
       const adminUserId = adminRegister.body.user.id;
       const adminToken = adminLogin.body.token;
