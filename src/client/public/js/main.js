@@ -1,6 +1,5 @@
 import QuizManager from './modules/quiz-manager.js';
 import AdminModule from './parent/parent-main.js';
-import { mountParentDashboard, unmountParentDashboard } from './react-mount.js';
 
 // Main Application Entry Point - Professional Version
 export class MathMasterPro {
@@ -207,7 +206,12 @@ export class MathMasterPro {
     showScreen(screenName) {
         // Cleanup: if leaving parentDashboard screen, unmount React component
         if (screenName !== 'parentDashboard' && this.currentScreen === 'parentDashboard') {
-            unmountParentDashboard();
+            // Use dynamic import for code splitting
+            import('./react-mount.js').then(module => {
+                module.unmountParentDashboard();
+            }).catch(error => {
+                console.error('Failed to unmount parent dashboard:', error);
+            });
         }
 
         // Hide all screens
@@ -306,8 +310,10 @@ export class MathMasterPro {
 
     initParentDashboard() {
         console.log('Parent dashboard initialized');
-        // Mount React component
-        mountParentDashboard().catch(error => {
+        // Mount React component using dynamic import for code splitting
+        import('./react-mount.js').then(module => {
+            module.mountParentDashboard();
+        }).catch(error => {
             console.error('Failed to initialize parent dashboard:', error);
         });
     }
