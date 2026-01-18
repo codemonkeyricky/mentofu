@@ -27,7 +27,7 @@ export async function mountParentDashboard(containerId = 'parent-dashboard-conta
         const [React, ReactDOM, ParentDashboard] = await Promise.all([
             import('react'),
             import('react-dom/client'),
-            import('/src/client/components/ParentDashboard.tsx')
+            import('../../components/ParentDashboard.tsx')
         ]);
 
         // Create root and render component
@@ -65,11 +65,8 @@ export function unmountParentDashboard(containerId = 'parent-dashboard-container
             console.log('ParentDashboard React component unmounted successfully');
         }
 
-        // Clear container content
+        // Get container reference (kept for potential future use)
         const container = document.getElementById(containerId);
-        if (container) {
-            container.innerHTML = '';
-        }
     } catch (error) {
         console.error('Failed to unmount ParentDashboard React component:', error);
     }
