@@ -5,6 +5,8 @@ const ParentDashboard: React.FC = () => {
   const [users, setUsers] = useState<ParentDashboardUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingMultiplier, setEditingMultiplier] = useState<{userId: string, quizType: string, value: number} | null>(null);
+  const [updateLoading, setUpdateLoading] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -58,6 +60,90 @@ const ParentDashboard: React.FC = () => {
     fetchUsers();
   }, []);
 
+  const updateMultiplier = async (userId: string, quizType: string, multiplier: number) => {
+    try {
+      setUpdateLoading(true);
+
+      // Get token from localStorage
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('No authentication token found. Please log in again.');
+        return;
+      }
+
+      // Update local state optimistically
+      setUsers((prevUsers: ParentDashboardUser[]) =>
+        prevUsers.map((user: ParentDashboardUser) => {
+          if (user.id === userId) {
+            return {
+              ...user,
+              multipliers: {
+                ...user.multipliers,
+                [quizType]: multiplier
+              }
+            };
+          }
+          return user;
+        })
+      );
+
+      // Make API request
+      const response = await fetch(`/parent/users/${userId}/multiplier`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ quizType, multiplier })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+      }
+
+      // Clear editing state
+      setEditingMultiplier(null);
+
+    } catch (err: any) {
+      console.error('Error updating multiplier:', err);
+
+      // Revert optimistic update on error
+      setUsers((prevUsers: ParentDashboardUser[]) =>
+        prevUsers.map((user: ParentDashboardUser) => {
+          if (user.id === userId) {
+            return {
+              ...user,
+              multipliers: {
+                ...user.multipliers,
+                [quizType]: editingMultiplier?.value || 0
+              }
+            };
+          }
+          return user;
+        })
+      );
+
+      alert(`Failed to update multiplier: ${err.message}`);
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
+  const startEditing = (userId: string, quizType: string, currentValue: number) => {
+    setEditingMultiplier({ userId, quizType, value: currentValue });
+  };
+
+  const cancelEditing = () => {
+    setEditingMultiplier(null);
+  };
+
+  const handleSave = () => {
+    if (editingMultiplier) {
+      updateMultiplier(editingMultiplier.userId, editingMultiplier.quizType, editingMultiplier.value);
+    }
+  };
+
   if (loading) {
     return <div className="loading">Loading user data...</div>;
   }
@@ -107,13 +193,63 @@ const ParentDashboard: React.FC = () => {
                   <td>{user.claimed_credits || 0}</td>
                   <td>
                     <div className="multiplier-list">
-                      {user.multipliers && Object.entries(user.multipliers).map(([quizType, multiplier]) => (
-                        <span key={quizType}>{quizType}: {multiplier}</span>
-                      ))}
+                      {user.multipliers && Object.entries(user.multipliers).map(([quizType, multiplier]) => {
+                        const isEditing = editingMultiplier?.userId === user.id && editingMultiplier?.quizType === quizType;
+
+                        return (
+                          <div key={quizType} className="multiplier-item">
+                            {isEditing ? (
+                              <div className="multiplier-edit">
+                                <span className="quiz-type-label">{quizType}: </span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="1"
+                                  value={editingMultiplier.value}
+                                  onChange={(e) => setEditingMultiplier({
+                                    ...editingMultiplier,
+                                    value: parseInt(e.target.value) || 0
+                                  })}
+                                  disabled={updateLoading}
+                                  className="multiplier-input"
+                                />
+                                <div className="multiplier-actions">
+                                  <button
+                                    onClick={handleSave}
+                                    disabled={updateLoading}
+                                    className="btn btn-sm btn-success"
+                                  >
+                                    {updateLoading ? 'Saving...' : 'Save'}
+                                  </button>
+                                  <button
+                                    onClick={cancelEditing}
+                                    disabled={updateLoading}
+                                    className="btn btn-sm btn-outline"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="multiplier-display">
+                                <span className="quiz-type-label">{quizType}: </span>
+                                <span className="multiplier-value">{multiplier}</span>
+                                <button
+                                  onClick={() => startEditing(user.id, quizType, multiplier)}
+                                  className="btn btn-sm btn-outline edit-btn"
+                                >
+                                  Edit
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </td>
                   <td>
-                    <button className="btn btn-sm btn-outline">Edit</button>
+                    {/* Actions column - can be used for other user actions */}
+                    <button className="btn btn-sm btn-outline">View Details</button>
                   </td>
                 </tr>
               ))}
