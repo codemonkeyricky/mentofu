@@ -1,5 +1,6 @@
 import QuizManager from './modules/quiz-manager.js';
 import AdminModule from './parent/parent-main.js';
+import { mountParentDashboard, unmountParentDashboard } from './react-mount.js';
 
 // Main Application Entry Point - Professional Version
 export class MathMasterPro {
@@ -86,6 +87,7 @@ export class MathMasterPro {
         this.currentQuizType = 'math';
         this.currentUser = null;
         this.currentToken = null;
+        this.currentScreen = null;
         this.fractionCharts = [];
         this.quizStats = {
             totalQuizzes: 0,
@@ -203,6 +205,11 @@ export class MathMasterPro {
     }
 
     showScreen(screenName) {
+        // Cleanup: if leaving parentDashboard screen, unmount React component
+        if (screenName !== 'parentDashboard' && this.currentScreen === 'parentDashboard') {
+            unmountParentDashboard();
+        }
+
         // Hide all screens
         Object.values(this.screens).forEach(screen => {
             screen.classList.remove('active');
@@ -244,6 +251,9 @@ export class MathMasterPro {
                 }
             }
         }, 100);
+
+        // Update current screen tracking
+        this.currentScreen = screenName;
     }
 
     setupDashboardVisibilityListener() {
@@ -296,7 +306,10 @@ export class MathMasterPro {
 
     initParentDashboard() {
         console.log('Parent dashboard initialized');
-        // React mounting will be added later
+        // Mount React component
+        mountParentDashboard().catch(error => {
+            console.error('Failed to initialize parent dashboard:', error);
+        });
     }
 
     checkAuthentication() {
