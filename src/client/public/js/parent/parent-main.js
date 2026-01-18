@@ -8,7 +8,7 @@ import MultiplierEditor from './multiplier-editor.js';
 export default class AdminModule {
     constructor(app) {
         this.app = app;
-        this.isAdmin = false;
+        this.isParent = false;
         this.adminToken = null;
 
         // Initialize sub-modules
@@ -32,7 +32,7 @@ export default class AdminModule {
         const adminToken = sessionStorage.getItem('adminToken');
         if (adminToken) {
             this.adminToken = adminToken;
-            this.isAdmin = true;
+            this.isParent = true;
             console.log('Admin session found');
         }
     }
@@ -45,7 +45,7 @@ export default class AdminModule {
     logoutAdmin() {
         sessionStorage.removeItem('adminToken');
         this.adminToken = null;
-        this.isAdmin = false;
+        this.isParent = false;
         this.ui.hideAdminInterface();
         console.log('Admin logged out');
     }
@@ -59,7 +59,7 @@ export default class AdminModule {
     }
 
     async makeAdminRequest(url, options = {}) {
-        if (!this.isAdmin) {
+        if (!this.isParent) {
             throw new Error('Admin authentication required');
         }
 

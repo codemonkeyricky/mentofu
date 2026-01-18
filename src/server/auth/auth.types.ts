@@ -5,7 +5,7 @@ export interface User {
   createdAt: Date;
   earned_credits?: number;
   claimed_credits?: number;
-  isAdmin?: boolean;
+  isParent?: boolean;
 }
 
 export interface AuthResponse {
@@ -13,6 +13,6 @@ export interface AuthResponse {
   user: {
     id: string;
     username: string;
-    isAdmin?: boolean;
+    isParent?: boolean;
   };
 }

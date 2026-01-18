@@ -7,7 +7,7 @@ export const authRouter = Router();
 // POST /auth/register - Register a new user
 authRouter.post('/register', async (req: Request, res: Response) => {
   try {
-    const { username, password, isAdmin } = req.body;
+    const { username, password, isParent } = req.body;
 
     // Validate input
     if (!username || !password) {
@@ -20,7 +20,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     }
 
     // Register user
-    const user = await authService.register(username, password, isAdmin || false);
+    const user = await authService.register(username, password, isParent || false);
 
     res.status(201).json({
       message: 'User registered successfully',

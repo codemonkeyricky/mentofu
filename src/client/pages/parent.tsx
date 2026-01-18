@@ -38,7 +38,7 @@ export default function ParentDashboardPage() {
         setUser({
           id: 'parent-user-id',
           username: 'parent',
-          isAdmin: true
+          isParent: true
         } as User);
 
         setLoading(false);

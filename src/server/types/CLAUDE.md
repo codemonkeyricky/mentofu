@@ -23,7 +23,7 @@ Used throughout authentication and database modules:
 - `createdAt`: Date - When user was created
 - `earned_credits`: number - Total earned credits
 - `claimed_credits`: number - Total claimed credits
-- `isAdmin`: boolean - Whether user has admin privileges
+- `isParent`: boolean - Whether user has admin privileges
 
 ### Session Types
 Used in session management:

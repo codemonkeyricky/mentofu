@@ -18,7 +18,7 @@ class AuthService {
     this.db = databaseService;
   }
 
-  public async register(username: string, password: string, isAdmin: boolean = false): Promise<User> {
+  public async register(username: string, password: string, isParent: boolean = false): Promise<User> {
     // Check if user already exists by querying the database
     const existingUser = await this.db.findUserByUsername(username);
     if (existingUser) {
@@ -35,7 +35,7 @@ class AuthService {
       id: userId,
       username,
       passwordHash,
-      isAdmin
+      isParent
     };
 
     // Save to database
@@ -43,7 +43,7 @@ class AuthService {
     return savedUser;
   }
 
-  public async login(username: string, password: string): Promise<{ token: string; user: { id: string; username: string; isAdmin?: boolean } }> {
+  public async login(username: string, password: string): Promise<{ token: string; user: { id: string; username: string; isParent?: boolean } }> {
     // Find user by username in database
     const foundUser = await this.db.findUserByUsername(username);
 
@@ -69,7 +69,7 @@ class AuthService {
       user: {
         id: foundUser.id,
         username: foundUser.username,
-        isAdmin: foundUser.isAdmin
+        isParent: foundUser.isParent
       }
     };
   }

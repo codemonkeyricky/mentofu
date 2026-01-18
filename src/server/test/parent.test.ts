@@ -58,13 +58,13 @@ describe('Admin API Integration Tests', () => {
 
       adminToken = adminLoginResponse.body.token;
 
-      // Verify parent user has isAdmin flag set
+      // Verify parent user has isParent flag set
       const adminUserFromDB = await authService.getUserById(adminUserId);
-      expect(adminUserFromDB).toHaveProperty('isAdmin', true);
+      expect(adminUserFromDB).toHaveProperty('isParent', true);
 
       // Verify regular user doesn't have parent flag
       const regularUser = await authService.getUserById(regularUserId);
-      expect(regularUser).toHaveProperty('isAdmin', false);
+      expect(regularUser).toHaveProperty('isParent', false);
     });
 
     it('should verify that the hardcoded parent account exists and is functional', async () => {
@@ -72,10 +72,10 @@ describe('Admin API Integration Tests', () => {
       const dbService = new DatabaseService();
       const adminUser = await dbService.findUserByUsername('parent');
 
-      // The parent user should exist with isAdmin flag set to true
+      // The parent user should exist with isParent flag set to true
       expect(adminUser).toBeDefined();
       expect(adminUser).toHaveProperty('username', 'parent');
-      expect(adminUser).toHaveProperty('isAdmin', true);
+      expect(adminUser).toHaveProperty('isParent', true);
 
       // Verify we can login with the default parent credentials
       const loginResponse = await request(app)
@@ -90,7 +90,7 @@ describe('Admin API Integration Tests', () => {
       expect(loginResponse.body).toHaveProperty('token');
       expect(loginResponse.body).toHaveProperty('user');
       expect(loginResponse.body.user).toHaveProperty('username', 'parent');
-      expect(loginResponse.body.user).toHaveProperty('isAdmin', true);
+      expect(loginResponse.body.user).toHaveProperty('isParent', true);
 
       // Verify that the returned token is valid by checking it's not empty
       const token = loginResponse.body.token;
@@ -107,7 +107,7 @@ describe('Admin API Integration Tests', () => {
         .send({
           username: 'adminuser',
           password: 'adminpassword123',
-          isAdmin: true
+          isParent: true
         })
         .expect(201);
 
@@ -160,7 +160,7 @@ describe('Admin API Integration Tests', () => {
         .send({
           username: 'adminuser',
           password: 'adminpassword123',
-          isAdmin: true
+          isParent: true
         })
         .expect(201);
 
@@ -205,7 +205,7 @@ describe('Admin API Integration Tests', () => {
         .send({
           username: 'adminuser',
           password: 'adminpassword123',
-          isAdmin: true
+          isParent: true
         })
         .expect(201);
 
@@ -269,7 +269,7 @@ describe('Admin API Integration Tests', () => {
         .send({
           username: 'adminuser',
           password: 'adminpassword123',
-          isAdmin: true
+          isParent: true
         })
         .expect(201);
 
@@ -306,7 +306,7 @@ describe('Admin API Integration Tests', () => {
         .send({
           username: 'adminuser',
           password: 'adminpassword123',
-          isAdmin: true
+          isParent: true
         })
         .expect(201);
 
@@ -361,7 +361,7 @@ describe('Admin API Integration Tests', () => {
         .send({
           username: 'adminuser',
           password: 'adminpassword123',
-          isAdmin: true
+          isParent: true
         })
         .expect(201);
 
@@ -425,7 +425,7 @@ describe('Admin API Integration Tests', () => {
         .send({
           username: 'adminuser',
           password: 'adminpassword123',
-          isAdmin: true
+          isParent: true
         })
         .expect(201);
 
@@ -489,7 +489,7 @@ describe('Admin API Integration Tests', () => {
         .send({
           username: 'adminuser',
           password: 'adminpassword123',
-          isAdmin: true
+          isParent: true
         })
         .expect(201);
 
@@ -526,7 +526,7 @@ describe('Admin API Integration Tests', () => {
         .send({
           username: 'adminuser',
           password: 'adminpassword123',
-          isAdmin: true
+          isParent: true
         })
         .expect(201);
 
@@ -603,7 +603,7 @@ describe('Admin API Integration Tests', () => {
         .send({
           username: 'adminuser',
           password: 'adminpassword123',
-          isAdmin: true
+          isParent: true
         })
         .expect(201);
 
@@ -667,7 +667,7 @@ describe('Admin API Integration Tests', () => {
         .send({
           username: 'adminuser',
           password: 'adminpassword123',
-          isAdmin: true
+          isParent: true
         })
         .expect(201);
 
@@ -701,7 +701,7 @@ describe('Admin API Integration Tests', () => {
         .send({
           username: 'adminuser',
           password: 'adminpassword123',
-          isAdmin: true
+          isParent: true
         })
         .expect(201);
 

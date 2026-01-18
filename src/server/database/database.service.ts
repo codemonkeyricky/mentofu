@@ -233,7 +233,7 @@ export class DatabaseService implements DatabaseOperations {
         createdAt: new Date(),
         earned_credits: 0,
         claimed_credits: 0,
-        isAdmin: user.isAdmin || false
+        isParent: user.isParent || false
       };
 
       users.set(user.id, newUser);
@@ -248,11 +248,11 @@ export class DatabaseService implements DatabaseOperations {
 
         await sqlClient`
           INSERT INTO users (id, username, password_hash, is_admin)
-          VALUES (${user.id}, ${user.username}, ${user.passwordHash}, ${user.isAdmin || false})
+          VALUES (${user.id}, ${user.username}, ${user.passwordHash}, ${user.isParent || false})
         `;
 
         const result = await sqlClient`
-          SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isAdmin"
+          SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isParent"
           FROM users
           WHERE id = ${user.id}
         `;
@@ -285,7 +285,7 @@ export class DatabaseService implements DatabaseOperations {
       await this.initVercelPostgres();
 
       const result = await sqlClient`
-        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isAdmin"
+        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isParent"
         FROM users
         WHERE username = ${username}
       `;
@@ -303,7 +303,7 @@ export class DatabaseService implements DatabaseOperations {
       const sqlClient = sql;
 
       const result = await sqlClient`
-        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isAdmin"
+        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isParent"
         FROM users
         WHERE id = ${userId}
       `;
@@ -642,7 +642,7 @@ export class DatabaseService implements DatabaseOperations {
       const sqlClient = sql;
       await this.initVercelPostgres();
       const result = await sqlClient`
-        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isAdmin"
+        SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isParent"
         FROM users
       `;
       return result.rows.map((row: any) => ({
@@ -652,7 +652,7 @@ export class DatabaseService implements DatabaseOperations {
         createdAt: row.createdAt,
         earned_credits: row.earned_credits,
         claimed_credits: row.claimed_credits,
-        isAdmin: row.isAdmin
+        isParent: row.isParent
       }));
     }
   }
@@ -710,7 +710,7 @@ export class DatabaseService implements DatabaseOperations {
           createdAt: new Date(),
           earned_credits: 0,
           claimed_credits: 0,
-          isAdmin: true
+          isParent: true
         };
         users.set('parent-user-id', adminUser);
       }

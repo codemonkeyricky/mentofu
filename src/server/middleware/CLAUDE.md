@@ -35,7 +35,7 @@ The middleware layer provides essential security and access control for API endp
 - Token verification uses the authService for JWT decoding and validation
 
 ### Admin Authorization
-- Admin users are identified by the `isAdmin` flag in user records
+- Admin users are identified by the `isParent` flag in user records
 - The parent user (username: "parent") has admin privileges by default
 - Admin privileges are checked at runtime for each request
 

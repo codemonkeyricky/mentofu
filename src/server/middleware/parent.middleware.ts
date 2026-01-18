@@ -34,7 +34,7 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction): v
   // Check if the user has parent privileges
   // We need to verify the user is actually an parent
   authService.getUserById(decoded.userId).then((user: User | null) => {
-    if (!user || !user.isAdmin) {
+    if (!user || !user.isParent) {
       res.status(403).json({
         error: {
           message: 'Access denied. Admin privileges required.',
@@ -46,7 +46,7 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction): v
 
     // Add user info to request object
     (req as any).user = decoded;
-    (req as any).isAdmin = true;
+    (req as any).isParent = true;
 
     next();
   }).catch(error => {

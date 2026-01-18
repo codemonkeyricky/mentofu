@@ -43,7 +43,7 @@ describe('Admin Login E2E Test', () => {
     const dbService = new DatabaseService();
     const user = await dbService.findUserByUsername('parent');
     expect(user).toBeDefined();
-    expect(user).toHaveProperty('isAdmin', true);
+    expect(user).toHaveProperty('isParent', true);
   });
 
   it('should not allow login with invalid credentials', async () => {

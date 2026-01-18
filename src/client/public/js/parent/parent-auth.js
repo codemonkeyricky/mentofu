@@ -25,7 +25,7 @@ export default class AdminAuth {
                 // Store parent token in sessionStorage (not localStorage for security)
                 sessionStorage.setItem('adminToken', data.token);
                 this.adminModule.adminToken = data.token;
-                this.adminModule.isAdmin = true;
+                this.adminModule.isParent = true;
 
                 return { success: true, message: 'Admin login successful' };
             } else {
@@ -63,6 +63,6 @@ export default class AdminAuth {
     logout() {
         sessionStorage.removeItem('adminToken');
         this.adminModule.adminToken = null;
-        this.adminModule.isAdmin = false;
+        this.adminModule.isParent = false;
     }
 }

@@ -1,7 +1,7 @@
 export interface User {
   id: string;
   username: string;
-  isAdmin?: boolean;
+  isParent?: boolean;
   createdAt?: Date;
   earned_credits?: number;
   claimed_credits?: number;
