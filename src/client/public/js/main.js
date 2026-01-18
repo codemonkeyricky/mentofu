@@ -289,6 +289,11 @@ export class MathMasterPro {
         this.fetchAndUpdateMultipliers();
     }
 
+    initParentDashboard() {
+        console.log('Parent dashboard initialized');
+        // React mounting will be added later
+    }
+
     checkAuthentication() {
         const token = localStorage.getItem('token');
         if (token) {
@@ -326,10 +331,17 @@ export class MathMasterPro {
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
 
+            // NEW: Check if user is parent and redirect accordingly
+            if (data.user.isParent) {
+                this.showScreen('parentDashboard');
+                this.initParentDashboard();
+            } else {
+                this.showAuthenticatedScreens();
+            }
+
             // Clear form and show success
             this.loginForm.reset();
             this.showNotification('Login successful!', 'success');
-            this.showAuthenticatedScreens();
 
         } catch (error) {
             console.error('Login error:', error);
