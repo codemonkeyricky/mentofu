@@ -259,7 +259,14 @@ test.describe('Parent Dashboard', () => {
       }
     }
 
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 10000 });
+    // Instead of expecting a "Dashboard" heading, we should expect that user is on start screen (which has dashboard heading)
+    // The heading text might be slightly different in different browsers, so let's look for a heading containing "Dashboard"
+    const dashboardHeading = page.getByRole('heading', { level: 2 });
+    await expect(dashboardHeading).toBeVisible({ timeout: 10000 });
+
+    // Check that the heading text contains "Dashboard"
+    const headingText = await dashboardHeading.textContent();
+    expect(headingText).toContain('Dashboard');
     const userId = await page.evaluate(() => localStorage.getItem('user')).then(userStr => {
       if (!userStr) return null;
       const user = JSON.parse(userStr);
@@ -334,22 +341,9 @@ test.describe('Parent Dashboard', () => {
     // Take screenshot of current state
     await page.screenshot({ path: 'debug-before-parent-dashboard.png', fullPage: true });
 
-    // Ensure parent dashboard screen is shown (user is parent)
-    await page.evaluate(() => {
-      if (window.app && typeof window.app.showScreen === 'function') {
-        console.log('Calling window.app.showScreen("parentDashboard")');
-        window.app.showScreen('parentDashboard');
-        if (typeof window.app.initParentDashboard === 'function') {
-          console.log('Calling window.app.initParentDashboard()');
-          window.app.initParentDashboard();
-        }
-      } else {
-        console.error('window.app or showScreen not found');
-        // Fallback: try to navigate directly to /parent-dashboard
-        window.location.href = '/parent-dashboard';
-      }
-    });
-    await page.waitForTimeout(2000); // Wait for screen transition
+    // Instead of manually calling showScreen, let's navigate to the page directly and wait for parent dashboard to appear
+    await page.goto('/parent-dashboard');
+    await page.waitForTimeout(3000); // Wait for screen to load
 
     // Take screenshot after attempting to show parent dashboard
     await page.screenshot({ path: 'debug-after-parent-dashboard.png', fullPage: true });
@@ -448,12 +442,14 @@ test.describe('Parent Dashboard', () => {
 
     // Step 9: Log in as the regular user via UI login
     await page.getByRole('button', { name: 'Login' }).click();
-    await expect(page.getByRole('heading', { name: 'Login' })).toBeVisible();
-    await page.getByPlaceholder('Username').fill(username);
-    await page.getByPlaceholder('Password').fill('testpass123');
-    await page.getByRole('button', { name: 'Login' }).click();
+    // Instead of expecting 'Login' heading, check for the login screen elements
+    await expect(page.locator('#login-form')).toBeVisible();
+    // Use more specific selectors to target the login form inputs
+    await page.locator('#login-username').fill(username);
+    await page.locator('#login-password').fill('testpass123');
+    await page.getByRole('button', { name: 'Sign In' }).click();
 
-    // Wait for dashboard to load
+    // Wait for dashboard to load (after login)
     await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
 
     // Step 10: Verify multiplier badge for simple-math quiz card shows x3
