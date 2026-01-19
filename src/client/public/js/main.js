@@ -814,20 +814,36 @@ export class MathMasterPro {
         }
 
         try {
-            const mathMultiplier = await this.fetchMultiplier('math');
-            const wordsMultiplier = await this.fetchMultiplier('simple_words');
+            // Fetch multipliers for all quiz types
+            const multipliers = await Promise.all([
+                this.fetchMultiplier('simple-math'),
+                this.fetchMultiplier('simple-math-2'),
+                this.fetchMultiplier('simple-math-3'),
+                this.fetchMultiplier('simple-math-4'),
+                this.fetchMultiplier('simple-math-5'),
+                this.fetchMultiplier('simple-words')
+            ]);
 
-            this.updateQuizCardBadges(mathMultiplier, wordsMultiplier);
+            // Return array of multipliers in the same order as fetched
+            this.updateQuizCardBadges(multipliers);
         } catch (error) {
             console.error('Failed to fetch multipliers:', error);
             this.setAllBadgesToDefault();
         }
     }
 
-    updateQuizCardBadges(mathMultiplier, wordsMultiplier) {
+    updateQuizCardBadges(multipliers) {
+        // Expecting array of 6 multipliers in this order:
+        // [simple-math, simple-math-2, simple-math-3, simple-math-4, simple-math-5, simple-words]
+        const [simpleMath1, simpleMath2, simpleMath3, simpleMath4, simpleMath5, simpleWords] = multipliers;
+
         // Round multipliers to nearest integer, minimum of 1
-        const roundedMath = Math.max(1, Math.round(mathMultiplier));
-        const roundedWords = Math.max(1, Math.round(wordsMultiplier));
+        const roundedSimpleMath1 = Math.max(1, Math.round(simpleMath1));
+        const roundedSimpleMath2 = Math.max(1, Math.round(simpleMath2));
+        const roundedSimpleMath3 = Math.max(1, Math.round(simpleMath3));
+        const roundedSimpleMath4 = Math.max(1, Math.round(simpleMath4));
+        const roundedSimpleMath5 = Math.max(1, Math.round(simpleMath5));
+        const roundedSimpleWords = Math.max(1, Math.round(simpleWords));
 
         // Get all quiz cards
         const quizCards = document.querySelectorAll('.quiz-card[data-quiz-type]');
@@ -837,10 +853,18 @@ export class MathMasterPro {
             let multiplier;
 
             // Map quiz type to multiplier category
-            if (quizType.startsWith('simple-math')) {
-                multiplier = roundedMath;
+            if (quizType === 'simple-math') {
+                multiplier = roundedSimpleMath1;
+            } else if (quizType === 'simple-math-2') {
+                multiplier = roundedSimpleMath2;
+            } else if (quizType === 'simple-math-3') {
+                multiplier = roundedSimpleMath3;
+            } else if (quizType === 'simple-math-4') {
+                multiplier = roundedSimpleMath4;
+            } else if (quizType === 'simple-math-5') {
+                multiplier = roundedSimpleMath5;
             } else if (quizType === 'simple-words') {
-                multiplier = roundedWords;
+                multiplier = roundedSimpleWords;
             } else {
                 multiplier = 1; // Default for unknown types
             }

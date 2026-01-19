@@ -233,11 +233,11 @@ describe('Parent Dashboard E2E Test', () => {
 
       // Fetch multiplier via session endpoint (quizType 'math' maps to simple-math)
       const multiplierResponse = await request(app)
-        .get('/session/multiplier/math')
+        .get('/session/multiplier/simple-math')
         .set('Authorization', `Bearer ${regularToken}`)
         .expect(200);
 
-      expect(multiplierResponse.body).toHaveProperty('quizType', 'math');
+      expect(multiplierResponse.body).toHaveProperty('quizType', 'simple-math');
       expect(multiplierResponse.body).toHaveProperty('multiplier', 3);
     });
 

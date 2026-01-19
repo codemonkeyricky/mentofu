@@ -201,9 +201,16 @@ sessionRouter.get('/multiplier/:quizType', authenticate, async (req: Request, re
     // Get user from auth middleware
     const user = (req as any).user;
 
-    // Validate quiz type
-    const validQuizTypes = ['math', 'simple_words'];
-    if (!validQuizTypes.includes(quizType)) {
+    // Validate quiz type - support all quiz types
+    const quizTypes = [
+      'simple-math',
+      'simple-math-2',
+      'simple-math-3',
+      'simple-math-4',
+      'simple-math-5',
+      'simple-words'
+    ];
+    if (!quizTypes.includes(quizType)) {
       return res.status(400).json({
         error: {
           message: 'Invalid quiz type'
@@ -235,9 +242,16 @@ sessionRouter.post('/multiplier/:quizType', authenticate, async (req: Request, r
     // Get user from auth middleware
     const user = (req as any).user;
 
-    // Validate quiz type
-    const validQuizTypes = ['math', 'simple_words'];
-    if (!validQuizTypes.includes(quizType)) {
+    // Validate quiz type - support all quiz types
+    const quizTypes = [
+      'simple-math',
+      'simple-math-2',
+      'simple-math-3',
+      'simple-math-4',
+      'simple-math-5',
+      'simple-words'
+    ];
+    if (!quizTypes.includes(quizType)) {
       return res.status(400).json({
         error: {
           message: 'Invalid quiz type'

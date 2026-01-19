@@ -91,6 +91,6 @@ Supported quiz types:
 - Sessions are tied to specific user IDs for security
 
 ### Multiplier System
-- Users can set multipliers for different quiz types (`math` or `simple_words`)
+- Users can set multipliers for different quiz types (all quiz types supported)
 - Multipliers affect score calculation and are stored in the database
 - Default multiplier is 1.0
