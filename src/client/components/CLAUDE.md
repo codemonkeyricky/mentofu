@@ -1,6 +1,6 @@
 # ParentDashboard Component
 
-This component implements the parent dashboard functionality for the MathMaster Pro educational platform. It provides a centralized interface for parents to manage user accounts, view credit information, and adjust multipliers for different quiz types.
+This component implements the parent dashboard functionality for the Mentofu educational platform. It provides a centralized interface for parents to manage user accounts, view credit information, and adjust multipliers for different quiz types.
 
 ## Overview
 

@@ -1,7 +1,7 @@
 # Recipe for Adding a New Quiz Type - End-to-End Implementation
 
 ## Overview
-This recipe provides a step-by-step guide to add a new quiz type to the MathMaster Pro platform, following the established patterns in the codebase.
+This recipe provides a step-by-step guide to add a new quiz type to the Mentofu platform, following the established patterns in the codebase.
 
 ## Prerequisites
 - Understanding of existing quiz types (math, division, fractions, etc.)

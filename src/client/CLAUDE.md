@@ -1,6 +1,6 @@
 # @src/client/ - Client Module Documentation
 
-This directory contains the client-side code for the MathMaster Pro educational platform, including the main application interface, 3D forest background, and interactive quiz modules.
+This directory contains the client-side code for the Mentofu educational platform, including the main application interface, 3D forest background, and interactive quiz modules.
 
 ## Overview
 
