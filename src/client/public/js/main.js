@@ -311,7 +311,7 @@ export class MathMasterPro {
     initParentDashboard() {
         console.log('Parent dashboard initialized - calling react-mount.js');
         // Mount React component using dynamic import for code splitting
-        import('../js/react-mount.js').then(module => {
+        import('./react-mount.js').then(module => {
             console.log('react-mount.js loaded, calling mountParentDashboard');
             module.mountParentDashboard();
         }).catch(error => {
