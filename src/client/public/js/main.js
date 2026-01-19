@@ -207,7 +207,7 @@ export class MathMasterPro {
         // Cleanup: if leaving parentDashboard screen, unmount React component
         if (screenName !== 'parentDashboard' && this.currentScreen === 'parentDashboard') {
             // Use dynamic import for code splitting
-            import('/js/react-mount.js').then(module => {
+            import('../js/react-mount.js').then(module => {
                 module.unmountParentDashboard();
             }).catch(error => {
                 console.error('Failed to unmount parent dashboard:', error);
@@ -311,7 +311,7 @@ export class MathMasterPro {
     initParentDashboard() {
         console.log('Parent dashboard initialized - calling react-mount.js');
         // Mount React component using dynamic import for code splitting
-        import('/js/react-mount.js').then(module => {
+        import('../js/react-mount.js').then(module => {
             console.log('react-mount.js loaded, calling mountParentDashboard');
             module.mountParentDashboard();
         }).catch(error => {
