@@ -192,6 +192,55 @@ describe('Parent Dashboard E2E Test', () => {
       expect(userResponse.body.multipliers).toHaveProperty('simple-math', 3);
     });
 
+    it('should allow user to fetch updated multiplier via session endpoint', async () => {
+      // Create parent user
+      const parentUser = await authService.register('parentuser', 'parentpass123', true);
+      parentUserId = parentUser.id;
+
+      // Create regular user
+      const regularUser = await authService.register('regularuser', 'regularpass123', false);
+      regularUserId = regularUser.id;
+
+      // Login as parent
+      const parentLoginResponse = await request(app)
+        .post('/auth/login')
+        .send({
+          username: 'parentuser',
+          password: 'parentpass123'
+        })
+        .expect(200);
+      parentToken = parentLoginResponse.body.token;
+
+      // Update multiplier for regular user
+      await request(app)
+        .patch(`/parent/users/${regularUserId}/multiplier`)
+        .set('Authorization', `Bearer ${parentToken}`)
+        .send({
+          quizType: 'simple-math',
+          multiplier: 3
+        })
+        .expect(200);
+
+      // Login as regular user to get token
+      const regularLoginResponse = await request(app)
+        .post('/auth/login')
+        .send({
+          username: 'regularuser',
+          password: 'regularpass123'
+        })
+        .expect(200);
+      const regularToken = regularLoginResponse.body.token;
+
+      // Fetch multiplier via session endpoint (quizType 'math' maps to simple-math)
+      const multiplierResponse = await request(app)
+        .get('/session/multiplier/math')
+        .set('Authorization', `Bearer ${regularToken}`)
+        .expect(200);
+
+      expect(multiplierResponse.body).toHaveProperty('quizType', 'math');
+      expect(multiplierResponse.body).toHaveProperty('multiplier', 3);
+    });
+
     it('should handle multiple multiplier updates for different quiz types', async () => {
       // Create parent user
       const parentUser = await authService.register('parentuser', 'parentpass123', true);

@@ -192,4 +192,263 @@ test.describe('Parent Dashboard', () => {
       expect(parentDashboardHeadings).toBe(0);
     }
   });
+
+  test('should create user account, update multiplier via parent, and user sees updated multiplier', async ({ page }) => {
+    // Increase test timeout
+    test.setTimeout(60000);
+
+    // Capture console logs for debugging
+    page.on('console', msg => console.log(`[Browser Console] ${msg.type()}: ${msg.text()}`));
+
+    // Step 1: Create a regular user account via UI registration
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: 'Register' })).toBeVisible();
+    await page.getByRole('button', { name: 'Register' }).click();
+    await expect(page.getByRole('heading', { name: 'Create Account' })).toBeVisible();
+
+    const username = 'testuser' + Date.now() + Math.floor(Math.random() * 1000);
+    console.log(`Creating regular user: ${username}`);
+
+    // Fill username and password with validation
+    const usernameInput = page.getByPlaceholder('Choose username');
+    const passwordInput = page.getByPlaceholder('Create password');
+
+    await usernameInput.fill(username);
+    await expect(usernameInput).toHaveValue(username);
+    await passwordInput.fill('testpass123');
+    // Password value may not be visible for security
+
+    // Take screenshot for debugging
+    await page.screenshot({ path: 'debug-registration.png', fullPage: true });
+
+    await page.getByRole('button', { name: 'Register' }).click();
+
+    // Wait for dashboard to load (user auto-logged in after registration)
+    // First check for any error messages
+    await page.waitForTimeout(1000);
+
+    // Check for error notifications
+    const errorNotification = page.locator('.notification-error');
+    if (await errorNotification.count() > 0) {
+      const errorText = await errorNotification.textContent();
+      console.error(`Registration error: ${errorText}`);
+    }
+
+    // Check if we're still on registration screen
+    const createAccountHeading = page.getByRole('heading', { name: 'Create Account' });
+    if (await createAccountHeading.count() > 0) {
+      console.log('Still on registration screen, checking for validation errors');
+      // Look for validation errors
+      const validationErrors = page.locator('.text-danger, .invalid-feedback');
+      if (await validationErrors.count() > 0) {
+        const errorTexts = await validationErrors.allTextContents();
+        console.error(`Validation errors: ${errorTexts.join(', ')}`);
+      }
+    }
+
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 10000 });
+    const userId = await page.evaluate(() => localStorage.getItem('user')).then(userStr => {
+      if (!userStr) return null;
+      const user = JSON.parse(userStr);
+      return user.id;
+    });
+    expect(userId).toBeTruthy();
+
+    // Step 2: Log out user
+    await page.evaluate(() => localStorage.clear());
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: 'Register' })).toBeVisible();
+
+    // Step 3: Create a parent user via API and log in to get valid token
+    const parentUsername = 'parent' + Date.now() + Math.floor(Math.random() * 1000);
+    const parentPassword = 'parentpass123';
+
+    // Register parent user via API
+    const registerResponse = await page.evaluate(async ({ username, password }) => {
+      const response = await fetch('/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username,
+          password,
+          isParent: true
+        })
+      });
+      return response.json();
+    }, { username: parentUsername, password: parentPassword });
+
+    expect(registerResponse).toBeDefined();
+    expect(registerResponse.user).toBeDefined();
+    expect(registerResponse.user.id).toBeTruthy();
+
+    // Login as parent via API to get token
+    const loginResponse = await page.evaluate(async ({ username, password }) => {
+      const response = await fetch('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username,
+          password
+        })
+      });
+      return response.json();
+    }, { username: parentUsername, password: parentPassword });
+
+    expect(loginResponse.token).toBeTruthy();
+    expect(loginResponse.user.isParent).toBe(true);
+    const parentToken = loginResponse.token;
+    const parentUser = loginResponse.user;
+
+    // Set valid token in localStorage
+    await page.evaluate(({ token, user }) => {
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+    }, { token: parentToken, user: parentUser });
+
+    // Step 4: Navigate to main app and trigger parent dashboard screen
+    await page.goto('/');
+    await page.waitForTimeout(2000); // Let the app initialize
+
+    // Debug: Check if window.app exists
+    const appExists = await page.evaluate(() => {
+      console.log('window.app exists?', !!window.app);
+      console.log('window.app.showScreen exists?', window.app && typeof window.app.showScreen);
+      console.log('window.app.initParentDashboard exists?', window.app && typeof window.app.initParentDashboard);
+      return !!window.app;
+    });
+    console.log(`window.app exists: ${appExists}`);
+
+    // Take screenshot of current state
+    await page.screenshot({ path: 'debug-before-parent-dashboard.png', fullPage: true });
+
+    // Ensure parent dashboard screen is shown (user is parent)
+    await page.evaluate(() => {
+      if (window.app && typeof window.app.showScreen === 'function') {
+        console.log('Calling window.app.showScreen("parentDashboard")');
+        window.app.showScreen('parentDashboard');
+        if (typeof window.app.initParentDashboard === 'function') {
+          console.log('Calling window.app.initParentDashboard()');
+          window.app.initParentDashboard();
+        }
+      } else {
+        console.error('window.app or showScreen not found');
+        // Fallback: try to navigate directly to /parent-dashboard
+        window.location.href = '/parent-dashboard';
+      }
+    });
+    await page.waitForTimeout(2000); // Wait for screen transition
+
+    // Take screenshot after attempting to show parent dashboard
+    await page.screenshot({ path: 'debug-after-parent-dashboard.png', fullPage: true });
+
+    // Wait for parent dashboard screen to be active
+    await expect(page.locator('#parent-dashboard-screen.active')).toBeVisible({ timeout: 15000 });
+
+    // Debug: Check container state
+    const containerState = await page.evaluate(() => {
+      const container = document.getElementById('parent-dashboard-container');
+      return {
+        exists: !!container,
+        childrenCount: container ? container.children.length : 0,
+        innerHTML: container ? container.innerHTML.substring(0, 200) : 'null'
+      };
+    });
+    console.log('Container state:', containerState);
+
+    // Wait for React component to mount (container should have children)
+    await page.waitForFunction(() => {
+      const container = document.getElementById('parent-dashboard-container');
+      const hasChildren = container && container.children.length > 0;
+      if (!hasChildren) {
+        console.log('Container still empty, checking for React mounting...');
+        // Check for React mounting errors
+        const errorDiv = document.querySelector('.error-message');
+        if (errorDiv) {
+          console.log('Error message found:', errorDiv.textContent);
+        }
+      }
+      return hasChildren;
+    }, { timeout: 15000 });
+
+    // Now container should be visible
+    await expect(page.locator('#parent-dashboard-container')).toBeVisible({ timeout: 5000 });
+
+    // Debug: log current URL and localStorage token presence
+    const tokenPresent = await page.evaluate(() => localStorage.getItem('token') !== null);
+    console.log(`Token present in localStorage: ${tokenPresent}`);
+
+    // Check for error state
+    const errorDiv = page.locator('.error');
+    if (await errorDiv.count() > 0) {
+      const errorText = await errorDiv.textContent();
+      console.error(`Parent dashboard error: ${errorText}`);
+      throw new Error(`Parent dashboard error: ${errorText}`);
+    }
+
+    // Check for loading state
+    const loadingDiv = page.locator('.loading');
+    if (await loadingDiv.count() > 0) {
+      console.log('Parent dashboard is still loading');
+      await expect(loadingDiv).toBeHidden({ timeout: 10000 });
+    }
+
+    // Wait for the users table to load
+    await expect(page.locator('.users-table')).toBeVisible({ timeout: 10000 });
+    // Wait for any rows to appear (could be multiple)
+    await page.waitForSelector('.users-table tr', { timeout: 10000 });
+    const rowCount = await page.locator('.users-table tr').count();
+    console.log(`Found ${rowCount} rows in users table`);
+    expect(rowCount).toBeGreaterThan(0);
+
+    // Look for user row with the username we created
+    const userRow = page.locator('tr').filter({ hasText: username });
+    await expect(userRow).toBeVisible({ timeout: 5000 });
+
+    // Step 5: Find the multiplier edit button for simple-math quiz type
+    // The multipliers are listed in a div with class "multiplier-list"
+    const multiplierList = userRow.locator('.multiplier-list');
+    await expect(multiplierList).toBeVisible();
+
+    // Find the specific multiplier display for simple-math
+    // The UI shows quiz type labels like "simple-math: 0" (default 0)
+    const simpleMathMultiplierDisplay = multiplierList.locator('.multiplier-display').filter({ hasText: 'simple-math' });
+    await expect(simpleMathMultiplierDisplay).toBeVisible();
+
+    // Click the edit button within this display
+    const editButton = simpleMathMultiplierDisplay.locator('button', { hasText: 'Edit' });
+    await editButton.click();
+
+    // Step 6: Update multiplier value
+    const multiplierInput = multiplierList.locator('input[type="number"]');
+    await expect(multiplierInput).toBeVisible();
+    await multiplierInput.fill('3');
+    await multiplierInput.press('Tab'); // blur to ensure change
+
+    // Step 7: Click save button
+    const saveButton = multiplierList.locator('button', { hasText: 'Save' });
+    await saveButton.click();
+    await page.waitForTimeout(1000); // Wait for update to complete
+
+    // Step 8: Log out parent
+    await page.evaluate(() => localStorage.clear());
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: 'Register' })).toBeVisible();
+
+    // Step 9: Log in as the regular user via UI login
+    await page.getByRole('button', { name: 'Login' }).click();
+    await expect(page.getByRole('heading', { name: 'Login' })).toBeVisible();
+    await page.getByPlaceholder('Username').fill(username);
+    await page.getByPlaceholder('Password').fill('testpass123');
+    await page.getByRole('button', { name: 'Login' }).click();
+
+    // Wait for dashboard to load
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+
+    // Step 10: Verify multiplier badge for simple-math quiz card shows x3
+    const simpleMathQuizCard = page.locator('.quiz-card[data-quiz-type="simple-math"]');
+    await expect(simpleMathQuizCard).toBeVisible();
+    const multiplierBadge = simpleMathQuizCard.locator('.multiplier-badge');
+    await expect(multiplierBadge).toHaveText('x3');
+    await expect(multiplierBadge).toHaveAttribute('data-multiplier', '3');
+  });
 });

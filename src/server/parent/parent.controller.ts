@@ -76,8 +76,19 @@ adminRouter.patch('/users/:userId/multiplier', requireAdmin, async (req: Request
       });
     }
 
-    // Update the multiplier
+    // Update the multiplier for the specific quiz type
     await databaseService.setUserMultiplier(user.id, quizType, multiplier);
+
+    // Also update the category multiplier for session endpoints
+    let category = quizType;
+    if (quizType.startsWith('simple-math')) {
+      category = 'math';
+    } else if (quizType === 'simple-words') {
+      category = 'simple_words';
+    }
+    if (category !== quizType) {
+      await databaseService.setUserMultiplier(user.id, category, multiplier);
+    }
 
     res.json({
       message: 'Multiplier updated successfully',
