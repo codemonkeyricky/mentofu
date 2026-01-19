@@ -2,3 +2,5 @@ node_modules/*
 dist/*
 .worktrees/
 .worktrees/*
+test-results/
+playwright-report/
