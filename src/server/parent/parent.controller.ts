@@ -13,6 +13,102 @@ adminRouter.use((req, res, next) => {
   next();
 });
 
+// POST /parent/login - Parent login endpoint (delegates to auth login)
+adminRouter.post('/login', async (req: Request, res: Response) => {
+  try {
+    const { username, password } = req.body;
+
+    // Validate input
+    if (!username || !password) {
+      return res.status(400).json({
+        error: {
+          message: 'Username and password are required',
+          code: 'MISSING_CREDENTIALS'
+        }
+      });
+    }
+
+    // Delegate to auth service login
+    const authResponse = await authService.login(username, password);
+
+    // Check if user is parent
+    if (!authResponse.user.isParent) {
+      return res.status(403).json({
+        error: {
+          message: 'Access denied. Admin privileges required.',
+          code: 'FORBIDDEN'
+        }
+      });
+    }
+
+    res.status(200).json(authResponse);
+  } catch (error: any) {
+    if (error.message === 'Invalid credentials') {
+      return res.status(401).json({
+        error: {
+          message: 'Invalid username or password',
+          code: 'INVALID_CREDENTIALS'
+        }
+      });
+    }
+
+    console.error('Error in parent login:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to login',
+        code: 'LOGIN_FAILED'
+      }
+    });
+  }
+});
+
+// GET /parent/validate - Validate parent token
+adminRouter.get('/validate', async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        error: {
+          message: 'Authorization token is missing or invalid',
+          code: 'AUTH_TOKEN_REQUIRED'
+        }
+      });
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = authService.verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({
+        error: {
+          message: 'Invalid or expired token',
+          code: 'INVALID_TOKEN'
+        }
+      });
+    }
+
+    // Check if user is parent
+    const user = await authService.getUserById(decoded.userId);
+    if (!user || !user.isParent) {
+      return res.status(403).json({
+        error: {
+          message: 'Access denied. Admin privileges required.',
+          code: 'FORBIDDEN'
+        }
+      });
+    }
+
+    res.status(200).json({ valid: true, user: { id: user.id, username: user.username } });
+  } catch (error: any) {
+    console.error('Error validating token:', error);
+    res.status(500).json({
+      error: {
+        message: 'Internal server error',
+        code: 'INTERNAL_ERROR'
+      }
+    });
+  }
+});
+
 // Helper function to validate quiz types
 const VALID_QUIZ_TYPES = [
   'simple-math',

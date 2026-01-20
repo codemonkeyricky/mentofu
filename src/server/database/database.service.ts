@@ -82,6 +82,11 @@ export class DatabaseService implements DatabaseOperations {
       this.memoryDB = MemoryDatabase.getInstance();
       // Ensure parent user exists in in-memory database
       this.ensureAdminUserExists();
+
+      // Warn if in production environment (Vercel)
+      if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+        console.warn('WARNING: Using in-memory database in production. This is not persistent across serverless functions. Set POSTGRES_URL environment variable.');
+      }
     } else {
       console.log('Using PostgreSQL database (Vercel)');
       // No initialization needed for Vercel Postgres
@@ -164,9 +169,9 @@ export class DatabaseService implements DatabaseOperations {
   // Helper method to create parent user if not exists
   private async createAdminUserIfNotExists(): Promise<void> {
     try {
-      // Check if parent user exists
+      // Check if parent user exists and has admin privileges
       const result = await sql`
-        SELECT id FROM users WHERE username = 'parent'
+        SELECT id, is_admin FROM users WHERE username = 'parent'
       `;
 
       if (result.rows.length === 0) {
@@ -179,6 +184,15 @@ export class DatabaseService implements DatabaseOperations {
           INSERT INTO users (id, username, password_hash, is_admin)
           VALUES ('parent-user-id', 'parent', ${passwordHash}, true)
         `;
+      } else {
+        // Ensure existing parent user has is_admin = true
+        const user = result.rows[0];
+        if (!user.is_admin) {
+          console.log('Updating existing parent user to have admin privileges');
+          await sql`
+            UPDATE users SET is_admin = true WHERE username = 'parent'
+          `;
+        }
       }
     } catch (error) {
       console.error('Error creating parent user in PostgreSQL:', error);

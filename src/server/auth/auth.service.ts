@@ -10,6 +10,10 @@ class AuthService {
   private readonly JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || '24h';
 
   constructor(databaseService?: DatabaseService) {
+    // Log warning if using default JWT secret (for security awareness)
+    if (!process.env.JWT_SECRET) {
+      console.warn('JWT_SECRET environment variable not set. Using default secret. This is insecure for production.');
+    }
     // Initialize database service
     this.db = databaseService || new DatabaseService();
   }

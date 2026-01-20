@@ -55,6 +55,14 @@
       "destination": "/api/index.ts"
     },
     {
+      "source": "/parent/users",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/parent/users/(.*)",
+      "destination": "/api/index.ts"
+    },
+    {
       "source": "/(.*)",
       "destination": "/$1"
     }
