@@ -1,5 +1,5 @@
-import { defineConfig } from 'vite';
 import path from 'path';
+import {defineConfig} from 'vite';
 
 export default defineConfig({
   root: 'src/client',
@@ -9,11 +9,11 @@ export default defineConfig({
       '/auth': 'http://localhost:4000',
       '/session': 'http://localhost:4000',
       '/credit': 'http://localhost:4000',
-    // Only proxy API calls, not static JS files
-    '/parent/api': 'http://localhost:4000',
-    '/parent/login': 'http://localhost:4000',
-    '/parent/users': 'http://localhost:4000',
-    '/parent/credits': 'http://localhost:4000',
+      // Only proxy API calls, not static JS files
+      '/parent/api': 'http://localhost:4000',
+      '/parent/login': 'http://localhost:4000',
+      '/parent/users': 'http://localhost:4000',
+      '/parent/credits': 'http://localhost:4000',
     }
   },
   build: {
@@ -39,5 +39,5 @@ export default defineConfig({
     extensions: ['.js', '.ts', '.jsx', '.tsx', '.json']
   },
   // Try adding this to prevent SPA fallback for .js files
-  appType: 'mpa', // "multi-page app" instead of default "spa"
+  appType: 'mpa',  // "multi-page app" instead of default "spa"
 });
