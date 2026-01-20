@@ -45,7 +45,7 @@ export async function mountParentDashboard(containerId = 'parent-dashboard-conta
         console.log('ReactDOM version:', ReactDOM.version);
 
         // Then import the component
-        const ParentDashboardModule = await import('/components/ParentDashboard');
+        const ParentDashboardModule = await import('./components/ParentDashboard');
         const ParentDashboard = ParentDashboardModule.default;
         console.log('ParentDashboard module:', ParentDashboardModule);
         console.log('ParentDashboard.default:', ParentDashboard);

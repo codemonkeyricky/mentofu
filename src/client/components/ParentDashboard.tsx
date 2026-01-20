@@ -1,5 +1,5 @@
 import React from 'react';
-import { ParentDashboardUser } from '../types';
+import { ParentDashboardUser } from '../types/index';
 
 // Use global React if available (for module consistency in browser)
 const ReactInstance = window.React && window.React.useState ? window.React : React;
