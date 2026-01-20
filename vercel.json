@@ -43,6 +43,18 @@
       "destination": "/api/index.ts"
     },
     {
+      "source": "/parent/api/(.*)",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/parent/login",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/parent/user",
+      "destination": "/api/index.ts"
+    },
+    {
       "source": "/(.*)",
       "destination": "/$1"
     }
