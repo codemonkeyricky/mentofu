@@ -1,7 +1,6 @@
 import { User } from '../auth/auth.types';
 import { sql } from '@vercel/postgres';
 
-// In-memory database implementation for local development
 class MemoryDatabase {
   private static instance: MemoryDatabase;
   private db: Map<string, Map<string, any>>;
@@ -19,21 +18,13 @@ class MemoryDatabase {
   }
 
   private init(): void {
-    if (!this.db.has('users')) {
-      this.db.set('users', new Map());
-    }
-    if (!this.db.has('session_scores')) {
-      this.db.set('session_scores', new Map());
-    }
-    if (!this.db.has('user_multipliers')) {
-      this.db.set('user_multipliers', new Map());
-    }
+    if (!this.db.has('users')) this.db.set('users', new Map());
+    if (!this.db.has('session_scores')) this.db.set('session_scores', new Map());
+    if (!this.db.has('user_multipliers')) this.db.set('user_multipliers', new Map());
   }
 
   public getTable(tableName: string): Map<string, any> {
-    if (!this.db.has(tableName)) {
-      this.db.set(tableName, new Map());
-    }
+    if (!this.db.has(tableName)) this.db.set(tableName, new Map());
     return this.db.get(tableName)!;
   }
 
@@ -43,20 +34,12 @@ class MemoryDatabase {
   }
 }
 
-// Base database operations interface
 interface DatabaseOperations {
   initVercelPostgres(): Promise<void>;
   createUser(user: Omit<User, 'createdAt'>): Promise<User>;
   findUserByUsername(username: string): Promise<User | null>;
   findUserById(userId: string): Promise<User | null>;
-  saveSessionScore(
-    userId: string,
-    sessionId: string,
-    score: number,
-    total: number,
-    sessionType: string,
-    multiplier: number
-  ): Promise<void>;
+  saveSessionScore(userId: string, sessionId: string, score: number, total: number, sessionType: string, multiplier: number): Promise<void>;
   getSessionScore(sessionId: string): Promise<{ score: number, total: number, multiplier?: number } | null>;
   getUserSessionScores(userId: string): Promise<Array<{ sessionId: string, score: number, total: number, sessionType: string, completedAt: Date, multiplier?: number }>>;
   getUserSessionHistory(userId: string): Promise<any[]>;
@@ -74,27 +57,71 @@ export class DatabaseService implements DatabaseOperations {
   private memoryDB: MemoryDatabase | null = null;
 
   constructor(databasePath: string = './quiz.db') {
-    // Check if we're running in Vercel environment
     this.databaseType = process.env.POSTGRES_URL ? 'vercel-postgres' : 'memory';
 
     if (this.databaseType === 'memory') {
       console.log('Using singleton in-memory database for local development');
       this.memoryDB = MemoryDatabase.getInstance();
-      // Ensure parent user exists in in-memory database
       this.ensureAdminUserExists();
-
-      // Warn if in production environment (Vercel)
       if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
         console.warn('WARNING: Using in-memory database in production. This is not persistent across serverless functions. Set POSTGRES_URL environment variable.');
       }
     } else {
       console.log('Using PostgreSQL database (Vercel)');
-      // No initialization needed for Vercel Postgres
+    }
+  }
+
+  private getUsersTable() {
+    return this.memoryDB!.getTable('users');
+  }
+
+  private getSessionScoresTable() {
+    return this.memoryDB!.getTable('session_scores');
+  }
+
+  private getMultipliersTable() {
+    return this.memoryDB!.getTable('user_multipliers');
+  }
+
+  private handlePostgresResult<T>(result: any): T {
+    return result.rows && result.rows.length > 0 ? result.rows[0] as T : null as T;
+  }
+
+  private generateUUID(): string {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
+  private async ensureAdminUserExists(): Promise<void> {
+    if (this.databaseType === 'memory') {
+      const users = this.getUsersTable();
+      let adminExists = false;
+      for (const [userId, user] of users.entries()) {
+        if (user.username === 'parent') {
+          adminExists = true;
+          break;
+        }
+      }
+      if (!adminExists || !users.has('parent-user-id')) {
+        console.log('Creating hardcoded parent user: parent:admin2');
+        const adminUser = {
+          id: 'parent-user-id',
+          username: 'parent',
+          passwordHash: '$2b$10$ZahMR5.ug6j/ELTQ947Izu76AE.si3OOlY/tzD9VMs0oDeYSI7g.i',
+          createdAt: new Date(),
+          earned_credits: 0,
+          claimed_credits: 0,
+          isParent: true
+        };
+        users.set('parent-user-id', adminUser);
+      }
     }
   }
 
   public async initVercelPostgres(): Promise<void> {
-    // Initialize tables in Vercel Postgres if they don't exist
     try {
       await sql`
         CREATE TABLE IF NOT EXISTS users (
@@ -108,7 +135,6 @@ export class DatabaseService implements DatabaseOperations {
         )
       `;
 
-      // Migration: Add columns if they don't exist
       await sql`
         DO $$
         BEGIN
@@ -138,7 +164,6 @@ export class DatabaseService implements DatabaseOperations {
         )
       `;
 
-      // Migration: Add 'multiplier' column to 'session_scores' if it doesn't exist
       await sql`
         DO $$
         BEGIN
@@ -158,7 +183,6 @@ export class DatabaseService implements DatabaseOperations {
         )
       `;
 
-      // Create hardcoded parent user if it doesn't exist
       await this.createAdminUserIfNotExists();
     } catch (error) {
       console.error('Error initializing Vercel Postgres tables:', error);
@@ -166,80 +190,34 @@ export class DatabaseService implements DatabaseOperations {
     }
   }
 
-  // Helper method to create parent user if not exists
   private async createAdminUserIfNotExists(): Promise<void> {
     try {
-      // Check if parent user exists and has admin privileges
-      const result = await sql`
-        SELECT id, is_admin FROM users WHERE username = 'parent'
-      `;
-
+      const result = await sql`SELECT id, is_admin FROM users WHERE username = 'parent'`;
       if (result.rows.length === 0) {
         console.log('Creating hardcoded parent user: parent:admin2');
-        // Insert the parent user with a known hash for password "admin2"
-        // This hash was generated using bcrypt with salt rounds 10 and password "admin2"
-        const passwordHash = '$2b$10$ZahMR5.ug6j/ELTQ947Izu76AE.si3OOlY/tzD9VMs0oDeYSI7g.i';
-
         await sql`
           INSERT INTO users (id, username, password_hash, is_admin)
-          VALUES ('parent-user-id', 'parent', ${passwordHash}, true)
+          VALUES ('parent-user-id', 'parent', \$2b\$10\$ZahMR5.ug6j/ELTQ947Izu76AE.si3OOlY/tzD9VMs0oDeYSI7g.i, true)
         `;
       } else {
-        // Ensure existing parent user has is_admin = true
         const user = result.rows[0];
         if (!user.is_admin) {
           console.log('Updating existing parent user to have admin privileges');
-          await sql`
-            UPDATE users SET is_admin = true WHERE username = 'parent'
-          `;
+          await sql`UPDATE users SET is_admin = true WHERE username = 'parent'`;
         }
       }
     } catch (error) {
       console.error('Error creating parent user in PostgreSQL:', error);
-      // If we can't create the parent user, just log error and continue
     }
-  }
-
-  // Helper method to handle PostgreSQL query results consistently
-  private handlePostgresResult<T>(result: any): T {
-    if (result.rows && result.rows.length > 0) {
-      return result.rows[0] as T;
-    }
-    return null as T;
-  }
-
-  // Helper to get users table for memory database
-  private getUsersTable() {
-    return this.memoryDB!.getTable('users');
-  }
-
-  // Helper to get session scores table for memory database
-  private getSessionScoresTable() {
-    return this.memoryDB!.getTable('session_scores');
-  }
-
-  // Helper to get multipliers table for memory database
-  private getMultipliersTable() {
-    return this.memoryDB!.getTable('user_multipliers');
   }
 
   public async createUser(user: Omit<User, 'createdAt'>): Promise<User> {
     if (this.databaseType === 'memory') {
       const users = this.getUsersTable();
-
-      // Check if user already exists by ID or username
-      if (users.has(user.id)) {
-        throw new Error('User already exists');
-      }
-
-      // Also check for duplicate username
+      if (users.has(user.id)) throw new Error('User already exists');
       for (const existingUser of users.values()) {
-        if (existingUser.username === user.username) {
-          throw new Error('User already exists');
-        }
+        if (existingUser.username === user.username) throw new Error('User already exists');
       }
-
-      // Create the user in memory
       const newUser = {
         id: user.id,
         username: user.username,
@@ -249,31 +227,21 @@ export class DatabaseService implements DatabaseOperations {
         claimed_credits: 0,
         isParent: user.isParent || false
       };
-
       users.set(user.id, newUser);
-
       return newUser;
     } else {
-      // Vercel Postgres implementation only
       try {
-        await this.initVercelPostgres(); // Ensure tables exist
-
-        const sqlClient = sql;
-
-        await sqlClient`
+        await this.initVercelPostgres();
+        await sql`
           INSERT INTO users (id, username, password_hash, is_admin)
           VALUES (${user.id}, ${user.username}, ${user.passwordHash}, ${user.isParent || false})
         `;
-
-        const result = await sqlClient`
+        const result = await sql`
           SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isParent"
-          FROM users
-          WHERE id = ${user.id}
+          FROM users WHERE id = ${user.id}
         `;
-
         return this.handlePostgresResult<User>(result);
       } catch (error: any) {
-        // Handle unique constraint violation for Postgres
         if (error.message.includes('duplicate key') || error.code === '23505') {
           throw new Error('User already exists');
         }
@@ -286,111 +254,64 @@ export class DatabaseService implements DatabaseOperations {
     if (this.databaseType === 'memory') {
       const users = this.getUsersTable();
       for (const user of users.values()) {
-        if (user.username === username) {
-          return user;
-        }
+        if (user.username === username) return user;
       }
       return null;
     } else {
-      // Vercel Postgres implementation only
-      const sqlClient = sql;
-
-      // Initialize tables if they don't exist (for PostgreSQL databases)
-      await this.initVercelPostgres();
-
-      const result = await sqlClient`
+      const result = await sql`
         SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isParent"
-        FROM users
-        WHERE username = ${username}
+        FROM users WHERE username = ${username}
       `;
-
       return this.handlePostgresResult<User>(result);
     }
   }
 
   public async findUserById(userId: string): Promise<User | null> {
     if (this.databaseType === 'memory') {
-      const users = this.getUsersTable();
-      return users.get(userId) || null;
+      return this.getUsersTable().get(userId) || null;
     } else {
-      // Vercel Postgres implementation only
-      const sqlClient = sql;
-
-      const result = await sqlClient`
+      const result = await sql`
         SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isParent"
-        FROM users
-        WHERE id = ${userId}
+        FROM users WHERE id = ${userId}
       `;
-
       return this.handlePostgresResult<User>(result);
     }
   }
 
-  public async saveSessionScore(
-    userId: string,
-    sessionId: string,
-    score: number,
-    total: number,
-    sessionType: string,
-    multiplier: number = 1.0
-  ): Promise<void> {
+  public async saveSessionScore(userId: string, sessionId: string, score: number, total: number, sessionType: string, multiplier: number = 1.0): Promise<void> {
     const scoreId = this.generateUUID();
 
     if (this.databaseType === 'memory') {
-      // Create the session score in memory
       const sessionScores = this.getSessionScoresTable();
-      const newScore = {
+      sessionScores.set(scoreId, {
         id: scoreId,
         user_id: userId,
         session_id: sessionId,
-        score: score,
-        total: total,
+        score,
+        total,
         session_type: sessionType,
         multiplier: Math.floor(multiplier),
         completed_at: new Date()
-      };
-
-      sessionScores.set(scoreId, newScore);
+      });
     } else {
-      // Vercel Postgres implementation only
-      const sqlClient = sql;
-
-      try {
-        await sqlClient`
-          INSERT INTO session_scores (id, user_id, session_id, score, total, session_type, multiplier)
-          VALUES (${scoreId}, ${userId}, ${sessionId}, ${score}, ${total}, ${sessionType}, ${Math.floor(multiplier)})
-        `;
-      } catch (error: any) {
-        throw error;
-      }
+      await sql`
+        INSERT INTO session_scores (id, user_id, session_id, score, total, session_type, multiplier)
+        VALUES (${scoreId}, ${userId}, ${sessionId}, ${score}, ${total}, ${sessionType}, ${Math.floor(multiplier)})
+      `;
     }
   }
 
   public async getSessionScore(sessionId: string): Promise<{ score: number, total: number, multiplier?: number } | null> {
     if (this.databaseType === 'memory') {
-      const sessionScores = this.getSessionScoresTable();
-      for (const score of sessionScores.values()) {
-        if (score.session_id === sessionId) {
-          return {
-            score: score.score,
-            total: score.total,
-            multiplier: score.multiplier
-          };
-        }
+      for (const score of this.getSessionScoresTable().values()) {
+        if (score.session_id === sessionId) return { score: score.score, total: score.total, multiplier: score.multiplier };
       }
       return null;
     } else {
-      // Vercel Postgres implementation only
-      const sqlClient = sql;
-
-      const result = await sqlClient`
-        SELECT score, total, multiplier
-        FROM session_scores
-        WHERE session_id = ${sessionId}
+      const result = await sql`
+        SELECT score, total, multiplier FROM session_scores WHERE session_id = ${sessionId}
       `;
-
-      const postgresResult = this.handlePostgresResult<{ score: number, total: number, multiplier?: number }>(result);
-      return postgresResult;
+      return this.handlePostgresResult<{ score: number, total: number, multiplier?: number }>(result);
     }
   }
 
@@ -398,7 +319,6 @@ export class DatabaseService implements DatabaseOperations {
     if (this.databaseType === 'memory') {
       const sessionScores = this.getSessionScoresTable();
       const userScores: Array<{ sessionId: string, score: number, total: number, sessionType: string, completedAt: Date, multiplier?: number }> = [];
-
       for (const score of sessionScores.values()) {
         if (score.user_id === userId) {
           userScores.push({
@@ -411,14 +331,9 @@ export class DatabaseService implements DatabaseOperations {
           });
         }
       }
-
-      // Sort by completed_at descending
       return userScores.sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
     } else {
-      // Vercel Postgres implementation only
-      const sqlClient = sql;
-
-      const result = await sqlClient`
+      const result = await sql`
         SELECT
           session_id as "sessionId",
           score,
@@ -430,7 +345,6 @@ export class DatabaseService implements DatabaseOperations {
         WHERE user_id = ${userId}
         ORDER BY completed_at DESC
       `;
-
       return result.rows.map((row: any) => ({
         sessionId: row.sessionId,
         score: row.score,
@@ -446,7 +360,6 @@ export class DatabaseService implements DatabaseOperations {
     if (this.databaseType === 'memory') {
       const sessionScores = this.getSessionScoresTable();
       const history: any[] = [];
-
       for (const score of sessionScores.values()) {
         if (score.user_id === userId) {
           history.push({
@@ -460,14 +373,9 @@ export class DatabaseService implements DatabaseOperations {
           });
         }
       }
-
-      // Sort by completed_at descending
       return history.sort((a, b) => b.completed_at.getTime() - a.completed_at.getTime());
     } else {
-      // Vercel Postgres implementation only
-      const sqlClient = sql;
-
-      const result = await sqlClient`
+      const result = await sql`
         SELECT
           id,
           user_id as "userId",
@@ -480,71 +388,35 @@ export class DatabaseService implements DatabaseOperations {
         WHERE user_id = ${userId}
         ORDER BY completed_at DESC
       `;
-
       return result.rows;
     }
-  }
-
-  // Simple UUID generator function
-  private generateUUID(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  }
-
-  public async close(): Promise<void> {
-    // In-memory database doesn't need explicit closing
-    if (this.databaseType === 'memory') {
-      // Nothing to do for in-memory db
-    }
-    // Vercel Postgres connections are managed automatically
   }
 
   public async setUserMultiplier(userId: string, quizType: string, multiplier: number): Promise<void> {
     if (this.databaseType === 'memory') {
       const multipliers = this.getMultipliersTable();
-      const key = `${userId}-${quizType}`;
-      multipliers.set(key, Math.floor(multiplier)); // Store as integer
+      multipliers.set(`${userId}-${quizType}`, Math.floor(multiplier));
     } else {
-      // Vercel Postgres implementation only
-      const sqlClient = sql;
-
-      try {
-        await sqlClient`
-          INSERT INTO user_multipliers (user_id, quiz_type, multiplier)
-          VALUES (${userId}, ${quizType}, ${Math.floor(multiplier)})
-          ON CONFLICT (user_id, quiz_type)
-          DO UPDATE SET multiplier = EXCLUDED.multiplier
-        `;
-      } catch (error: any) {
-        throw error;
-      }
+      await sql`
+        INSERT INTO user_multipliers (user_id, quiz_type, multiplier)
+        VALUES (${userId}, ${quizType}, ${Math.floor(multiplier)})
+        ON CONFLICT (user_id, quiz_type)
+        DO UPDATE SET multiplier = EXCLUDED.multiplier
+      `;
     }
   }
 
   public async getUserMultiplier(userId: string, quizType: string): Promise<number> {
     if (this.databaseType === 'memory') {
-      const multipliers = this.getMultipliersTable();
-      const key = `${userId}-${quizType}`;
-      return Math.floor(multipliers.get(key) || 1); // Default multiplier of 1 (integer)
+      return Math.floor(this.getMultipliersTable().get(`${userId}-${quizType}`) || 1);
     } else {
-      // Vercel Postgres implementation only
-      const sqlClient = sql;
-
       try {
-        const result = await sqlClient`
-          SELECT multiplier
-          FROM user_multipliers
-          WHERE user_id = ${userId} AND quiz_type = ${quizType}
+        const result = await sql`
+          SELECT multiplier FROM user_multipliers WHERE user_id = ${userId} AND quiz_type = ${quizType}
         `;
-
         const postgresResult = this.handlePostgresResult<{ multiplier: number }>(result);
-        if (postgresResult) {
-          return Math.floor(postgresResult.multiplier);
-        }
-        return 1; // Default multiplier of 1 (integer)
+        if (postgresResult) return Math.floor(postgresResult.multiplier);
+        return 1;
       } catch (error: any) {
         throw error;
       }
@@ -555,47 +427,21 @@ export class DatabaseService implements DatabaseOperations {
     if (this.databaseType === 'memory') {
       const users = this.getUsersTable();
       const user = users.get(userId);
-      if (user) {
-        user.earned_credits = (user.earned_credits || 0) + amount;
-      } else {
-        throw new Error('User not found');
-      }
+      if (user) user.earned_credits = (user.earned_credits || 0) + amount;
+      else throw new Error('User not found');
     } else {
-      try {
-        const result = await sql`
-          UPDATE users
-          SET earned_credits = earned_credits + ${amount}
-          WHERE id = ${userId}
-        `;
-        if (result.rowCount === 0) {
-          throw new Error('User not found');
-        }
-      } catch (error: any) {
-        throw error;
-      }
+      const result = await sql`UPDATE users SET earned_credits = earned_credits + ${amount} WHERE id = ${userId}`;
+      if (result.rowCount === 0) throw new Error('User not found');
     }
   }
 
   public async getEarnedCredits(userId: string): Promise<number> {
     if (this.databaseType === 'memory') {
-      const users = this.getUsersTable();
-      const user = users.get(userId);
-      return user?.earned_credits || 0;
+      return this.getUsersTable().get(userId)?.earned_credits || 0;
     } else {
-      try {
-        const result = await sql`
-          SELECT earned_credits
-          FROM users
-          WHERE id = ${userId}
-        `;
-        const postgresResult = this.handlePostgresResult<{ earned_credits: number }>(result);
-        if (postgresResult) {
-          return postgresResult.earned_credits || 0;
-        }
-        return 0;
-      } catch (error: any) {
-        throw error;
-      }
+      const result = await sql`SELECT earned_credits FROM users WHERE id = ${userId}`;
+      const postgresResult = this.handlePostgresResult<{ earned_credits: number }>(result);
+      return postgresResult?.earned_credits || 0;
     }
   }
 
@@ -603,59 +449,29 @@ export class DatabaseService implements DatabaseOperations {
     if (this.databaseType === 'memory') {
       const users = this.getUsersTable();
       const user = users.get(userId);
-      if (user) {
-        user.claimed_credits = (user.claimed_credits || 0) + amount;
-      } else {
-        throw new Error('User not found');
-      }
+      if (user) user.claimed_credits = (user.claimed_credits || 0) + amount;
+      else throw new Error('User not found');
     } else {
-      try {
-        const result = await sql`
-          UPDATE users
-          SET claimed_credits = claimed_credits + ${amount}
-          WHERE id = ${userId}
-        `;
-        if (result.rowCount === 0) {
-          throw new Error('User not found');
-        }
-      } catch (error: any) {
-        throw error;
-      }
+      const result = await sql`UPDATE users SET claimed_credits = claimed_credits + ${amount} WHERE id = ${userId}`;
+      if (result.rowCount === 0) throw new Error('User not found');
     }
   }
 
   public async getClaimedCredits(userId: string): Promise<number> {
     if (this.databaseType === 'memory') {
-      const users = this.getUsersTable();
-      const user = users.get(userId);
-      return user?.claimed_credits || 0;
+      return this.getUsersTable().get(userId)?.claimed_credits || 0;
     } else {
-      try {
-        const result = await sql`
-          SELECT claimed_credits
-          FROM users
-          WHERE id = ${userId}
-        `;
-        const postgresResult = this.handlePostgresResult<{ claimed_credits: number }>(result);
-        if (postgresResult) {
-          return postgresResult.claimed_credits || 0;
-        }
-        return 0;
-      } catch (error: any) {
-        throw error;
-      }
+      const result = await sql`SELECT claimed_credits FROM users WHERE id = ${userId}`;
+      const postgresResult = this.handlePostgresResult<{ claimed_credits: number }>(result);
+      return postgresResult?.claimed_credits || 0;
     }
   }
 
   public async getAllUsers(): Promise<User[]> {
     if (this.databaseType === 'memory') {
-      const users = this.getUsersTable();
-      return Array.from(users.values());
+      return Array.from(this.getUsersTable().values());
     } else {
-      // Vercel Postgres implementation only
-      const sqlClient = sql;
-      await this.initVercelPostgres();
-      const result = await sqlClient`
+      const result = await sql`
         SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isParent"
         FROM users
       `;
@@ -671,67 +487,11 @@ export class DatabaseService implements DatabaseOperations {
     }
   }
 
-  // Compatibility methods for existing code
-  public async setUserClaim(userId: string, claimAmount: number): Promise<void> {
-    await this.addClaimedCredits(userId, claimAmount - await this.getClaimedCredits(userId));
-  }
+  public async close(): Promise<void> {}
 
-  public async getUserClaim(userId: string): Promise<number> {
-    return await this.getClaimedCredits(userId);
-  }
-
-  // Optional: Add a method to clear the in-memory database (useful for testing)
   public clearMemoryDatabase(): void {
     if (this.databaseType === 'memory') {
       this.memoryDB!.clear();
-    }
-  }
-
-  // Method to ensure the hardcoded parent user exists
-  private async ensureAdminUserExists(): Promise<void> {
-    if (this.databaseType === 'memory') {
-      // For in-memory database, ensure parent user exists with consistent ID
-      const users = this.getUsersTable();
-
-      // Check if parent user already exists
-      let adminExists = false;
-      let existingAdminUser: any = null;
-      let existingAdminId: string | null = null;
-
-      for (const [userId, user] of users.entries()) {
-        if (user.username === 'parent') {
-          adminExists = true;
-          existingAdminUser = user;
-          existingAdminId = userId;
-          break;
-        }
-      }
-
-      // If parent user doesn't exist or has wrong ID, create/recreate it with consistent ID
-      if (!adminExists || existingAdminId !== 'parent-user-id') {
-        console.log('Creating hardcoded parent user: parent:admin2');
-
-        // If there was an existing parent with a different ID, remove it
-        if (existingAdminId && existingAdminId !== 'parent-user-id') {
-          users.delete(existingAdminId);
-        }
-
-        // Create the parent user in memory with a proper bcrypt hash for password "admin2"
-        const adminUser = {
-          id: 'parent-user-id',
-          username: 'parent',
-          passwordHash: '$2b$10$ZahMR5.ug6j/ELTQ947Izu76AE.si3OOlY/tzD9VMs0oDeYSI7g.i', // This hash matches "admin2"
-          createdAt: new Date(),
-          earned_credits: 0,
-          claimed_credits: 0,
-          isParent: true
-        };
-        users.set('parent-user-id', adminUser);
-      }
-    } else {
-      // For PostgreSQL, we'll add the parent user creation to the initVercelPostgres method
-      // This ensures the parent user exists when PostgreSQL is used
-      await this.initVercelPostgres();
     }
   }
 }
