@@ -1,6 +1,6 @@
 import { User } from '../auth/auth.types';
 import { sql } from '@vercel/postgres';
-import { DatabaseOperations } from './database.types';
+import { DatabaseOperations } from './database.interface';
 
 class MemoryDatabase {
   private static instance: MemoryDatabase;
