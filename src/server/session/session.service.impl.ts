@@ -1,8 +1,10 @@
-import { Question, FactorsQuestion, Session } from './session.types';
-import { SimpleWordsSession } from './simple.words.types';
-import { DatabaseService } from '../database/interface/database.service';
+import { Session, Question, FactorsQuestion } from './session.types';
+import { SessionType } from './session.service.interface';
 import { generateQuestions, generateDivisionQuestions, generateFractionComparisonQuestions, generateBODMASQuestions, generateFactorsQuestions } from '../utils/question.generator';
 import { generateSimpleWords } from '../utils/simple.words.generator';
+import { SimpleWordsSession } from './simple.words.types';
+import { DatabaseService } from '../database/interface/database.service';
+import { ISessionService } from './session.service.interface';
 
 // Type-safe question generator mapping
 const questionGenerators: Record<string, (count: number) => Question[]> = {
@@ -62,7 +64,7 @@ const generateUUID = (): string =>
     return v.toString(16);
   });
 
-class SessionService {
+class SessionService implements ISessionService {
   private sessions = new Map<string, Session>();
   private simpleWordsSessions = new Map<string, SimpleWordsSession>();
   private sessionTimeouts = new Map<string, NodeJS.Timeout>();
@@ -121,7 +123,7 @@ class SessionService {
   }
 
   // ------------------------------ Public Methods ------------------------------
-  public createQuizSession(userId: string, quizType: string): Session | SimpleWordsSession {
+  public createQuizSession(userId: string, quizType: string): SessionType {
     const sessionId = generateUUID();
 
     if (quizType === 'simple-words') {
