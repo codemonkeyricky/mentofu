@@ -2,7 +2,7 @@ import { User } from './auth.types';
 import bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import { generateUUID } from '../utils/uuid';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseService } from '../database/interface/database.service';
 
 class AuthService {
   private db: DatabaseService;

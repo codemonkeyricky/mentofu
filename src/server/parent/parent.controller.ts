@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { requireAdmin } from '../middleware/parent.middleware';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseService } from '../database/interface/database.service';
 import { authService } from '../auth/auth.service';
 import { User } from '../auth/auth.types';
 

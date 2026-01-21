@@ -1,9 +1,9 @@
 import { CreditService } from '../credit/credit.service';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseService } from '../database/interface/database.service';
 import { sessionService } from '../session/session.service';
 
 // Mock dependencies
-jest.mock('../database/database.service');
+jest.mock('../database/interface/database.service');
 jest.mock('../session/session.service');
 
 describe('CreditService', () => {

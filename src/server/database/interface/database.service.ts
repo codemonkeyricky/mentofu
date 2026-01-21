@@ -1,4 +1,4 @@
-import { User } from '../auth/auth.types';
+import { User } from '../../auth/auth.types';
 import { sql } from '@vercel/postgres';
 import { DatabaseOperations } from './database.interface';
 

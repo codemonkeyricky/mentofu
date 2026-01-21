@@ -3,7 +3,7 @@ delete process.env.POSTGRES_URL;
 
 import request from 'supertest';
 import { app } from '../index';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseService } from '../database/interface/database.service';
 import { authService } from '../auth/auth.service';
 
 describe('Admin API Integration Tests', () => {

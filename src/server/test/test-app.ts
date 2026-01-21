@@ -7,7 +7,7 @@ import { sessionRouter } from '../session/session.controller';
 import { creditRouter } from '../credit/credit.controller';
 import path from 'path';
 import { TestDatabaseUtil } from './database.test.util';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseService } from '../database/interface/database.service';
 import { authService } from '../auth/auth.service';
 import { sessionService } from '../session/session.service';
 import { creditService } from '../credit/credit.service';

@@ -4,7 +4,7 @@ import { authRouter } from './auth/auth.controller';
 import { creditRouter } from './credit/credit.controller';
 import { adminRouter } from './parent/parent.controller';
 import path from 'path';
-import { DatabaseService } from './database/database.service';
+import { DatabaseService } from './database/interface/database.service';
 import { sessionService } from './session/session.service';
 import listEndpoints from 'express-list-endpoints';
 import * as dotenv from 'dotenv';

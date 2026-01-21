@@ -2,7 +2,7 @@ import { Session, Question, FactorsQuestion } from './session.types';
 import { generateQuestions, generateDivisionQuestions, generateFractionComparisonQuestions, generateBODMASQuestions, generateFactorsQuestions } from '../utils/question.generator';
 import { generateSimpleWords } from '../utils/simple.words.generator';
 import { SimpleWordsSession } from './simple.words.types';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseService } from '../database/interface/database.service';
 
 // Type-safe question generator mapping
 const questionGenerators: Record<string, (count: number) => Question[]> = {

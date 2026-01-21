@@ -1,4 +1,4 @@
-import { User } from '../auth/auth.types';
+import { User } from '../../auth/auth.types';
 
 export interface DatabaseOperations {
   createUser(user: Omit<User, 'createdAt'>): Promise<User>;
