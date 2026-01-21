@@ -4,7 +4,8 @@ import { generateSimpleWords } from '../utils/simple.words.generator';
 import { SimpleWordsSession } from './simple.words.types';
 import { DatabaseService } from '../database/database.service';
 
-const questionGenerators: { [key: string]: (count: number) => Question[] } = {
+// Type-safe question generator mapping
+const questionGenerators: Record<string, (count: number) => Question[]> = {
   'simple-math': generateQuestions,
   'simple-math-2': generateDivisionQuestions,
   'simple-math-3': generateFractionComparisonQuestions,
@@ -12,502 +13,220 @@ const questionGenerators: { [key: string]: (count: number) => Question[] } = {
   'simple-math-5': generateFactorsQuestions,
 };
 
+// Math validation config: maps quiz types to question checks and answer validation
+type MathValidationConfig = {
+  isApplicable: (question: Question) => boolean;
+  validate: (question: Question, userAnswer: number | string) => boolean;
+};
 
-// Simple UUID generator function
-function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+const mathValidationConfigs: Record<string, MathValidationConfig> = {
+  'simple-math': {
+    isApplicable: (q) => typeof q === 'object' && 'question' in q && typeof q.question === 'string',
+    validate: (q, ua) => String(ua) === String(q.answer),
+  },
+  'simple-math-2': {
+    isApplicable: (q) => typeof q === 'object' && 'question' in q && typeof q.question === 'string',
+    validate: (q, ua) => String(ua) === String(q.answer),
+  },
+  'simple-math-3': {
+    isApplicable: (q) => typeof q === 'object' && 'question' in q && Array.isArray(q.question),
+    validate: (q, ua) => String(ua) === String(q.answer),
+  },
+  'simple-math-4': {
+    isApplicable: (q) => typeof q === 'object' && 'question' in q && typeof q.question === 'string',
+    validate: (q, ua) => String(ua) === String(q.answer),
+  },
+  'simple-math-5': {
+    isApplicable: (q): q is FactorsQuestion => 'factors' in q,
+    validate: (q, ua) => {
+      // More explicit type checking to avoid TS errors
+      if ((q as any).factors === undefined) {
+        return false;
+      }
+      const userFactors = String(ua)
+        .split(',')
+        .map(f => f.trim())
+        .filter(Boolean)
+        .map(Number)
+        .filter(n => !isNaN(n));
+      return userFactors.every(f => (q as any).factors.includes(f)) && userFactors.length === (q as any).factors.length;
+    },
+  },
+};
+
+// Simple UUID v4 generator
+const generateUUID = (): string =>
+  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
     const r = Math.random() * 16 | 0;
     const v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
   });
-}
 
 class SessionService {
-  private sessions: Map<string, Session> = new Map();
-  private simpleWordsSessions: Map<string, SimpleWordsSession> = new Map();
-  private readonly SESSION_TTL: number = 10 * 60 * 1000; // 10 minutes in milliseconds
+  private sessions = new Map<string, Session>();
+  private simpleWordsSessions = new Map<string, SimpleWordsSession>();
+  private sessionTimeouts = new Map<string, NodeJS.Timeout>();
+  private simpleWordsSessionTimeouts = new Map<string, NodeJS.Timeout>();
   private databaseService: DatabaseService | null = null;
-  private sessionTimeouts: Map<string, NodeJS.Timeout> = new Map();
-  private simpleWordsSessionTimeouts: Map<string, NodeJS.Timeout> = new Map();
+  private readonly SESSION_TTL = 10 * 60 * 1000; // 10 minutes
 
   constructor(databaseService?: DatabaseService) {
     this.databaseService = databaseService || null;
   }
 
-  public setDatabaseService(databaseService: DatabaseService): void {
-    this.databaseService = databaseService;
+  public setDatabaseService(service: DatabaseService): void {
+    this.databaseService = service;
   }
 
   private getMultiplierCategory(quizType: string): string {
-    if (quizType === 'simple-words') return 'simple_words';
-    if (quizType.startsWith('simple-math')) return 'math';
-    return quizType;
+    return quizType === 'simple-words' ? 'simple_words' : quizType.startsWith('simple-math') ? 'math' : quizType;
   }
 
+  // Helper: Create session with auto-expiry timeout
+  private createTimedSession<T>(sessionId: string, data: T, map: Map<string, T>, timeoutMap: Map<string, NodeJS.Timeout>): void {
+    map.set(sessionId, data);
+    const timeout = setTimeout(() => this.deleteSessionFromMap(sessionId, map, timeoutMap), this.SESSION_TTL);
+    timeoutMap.set(sessionId, timeout);
+  }
+
+  // Helper: Delete session and clear timeout
+  private deleteSessionFromMap<T>(sessionId: string, map: Map<string, T>, timeoutMap: Map<string, NodeJS.Timeout>): void {
+    map.delete(sessionId);
+    const timeout = timeoutMap.get(sessionId);
+    timeout && clearTimeout(timeout);
+    timeoutMap.delete(sessionId);
+  }
+
+  // Helper: Update session's last accessed time
+  private touchSession<T extends { updatedAt: Date }>(sessionId: string, map: Map<string, T>): T | undefined {
+    const session = map.get(sessionId);
+    session && (session.updatedAt = new Date());
+    return session;
+  }
+
+  // Helper: Save score and fetch multiplier (with error handling)
+  private async saveScore(userId: string, sessionId: string, score: number, total: number, quizType: string): Promise<void> {
+    if (!this.databaseService) return;
+
+    const multiplier = await this.getUserMultiplier(userId, this.getMultiplierCategory(quizType)).catch(() => 1.0);
+    await this.databaseService.saveSessionScore(userId, sessionId, score, total, quizType, multiplier);
+  }
+
+  // Helper: Cleanup expired sessions for any map type
+  private cleanupExpired<T extends { createdAt: Date }>(map: Map<string, T>, timeoutMap: Map<string, NodeJS.Timeout>): void {
+    const now = Date.now();
+    for (const [sessionId, session] of map.entries()) {
+      if (now - session.createdAt.getTime() > this.SESSION_TTL) this.deleteSessionFromMap(sessionId, map, timeoutMap);
+    }
+  }
+
+  // ------------------------------ Public Methods ------------------------------
   public createQuizSession(userId: string, quizType: string): Session | SimpleWordsSession {
     const sessionId = generateUUID();
 
     if (quizType === 'simple-words') {
-      const words = generateSimpleWords(10);
       const session: SimpleWordsSession = {
         id: sessionId,
-        userId: userId,
-        words: words,
+        userId,
+        words: generateSimpleWords(10),
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
-      this.simpleWordsSessions.set(sessionId, session);
-      const timeout = setTimeout(() => {
-        this.deleteSimpleWordsSession(sessionId);
-      }, this.SESSION_TTL);
-      this.simpleWordsSessionTimeouts.set(sessionId, timeout);
+      this.createTimedSession(sessionId, session, this.simpleWordsSessions, this.simpleWordsSessionTimeouts);
       return session;
     }
 
-    const questionGenerator = questionGenerators[quizType];
-    if (!questionGenerator) {
-      throw new Error(`Invalid quiz type for math session: ${quizType}`);
-    }
+    const generator = questionGenerators[quizType];
+    if (!generator) throw new Error(`Invalid math quiz type: ${quizType}`);
 
-    const questions = questionGenerator(quizType === 'simple-math-5' ? 5 : 10);
     const session: Session = {
       id: sessionId,
-      userId: userId,
-      questions: questions,
+      userId,
+      questions: generator(quizType === 'simple-math-5' ? 5 : 10),
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
-    this.sessions.set(sessionId, session);
-    const timeout = setTimeout(() => {
-      this.deleteSession(sessionId);
-    }, this.SESSION_TTL);
-    this.sessionTimeouts.set(sessionId, timeout);
+    this.createTimedSession(sessionId, session, this.sessions, this.sessionTimeouts);
     return session;
   }
 
   public async validateQuizAnswers(sessionId: string, userId: string, userAnswers: (number | string)[], quizType: string): Promise<{ score: number; total: number }> {
-    if (quizType === 'simple-words') {
-      return this.validateSimpleWordsAnswers(sessionId, userId, userAnswers as string[], quizType);
-    }
-    if (quizType === 'simple-math' || quizType === 'simple-math-2') {
-      return this.validateAnswers(sessionId, userId, userAnswers, quizType);
-    }
-    if (quizType === 'simple-math-3') {
-      return this.validateFractionComparisonAnswers(sessionId, userId, userAnswers, quizType);
-    }
-    if (quizType === 'simple-math-4') {
-        return this.validateBODMASAnswers(sessionId, userId, userAnswers, quizType);
-    }
-    if (quizType === 'simple-math-5') {
-        return this.validateFactorsAnswers(sessionId, userId, userAnswers, quizType);
-    }
-    throw new Error(`Invalid quiz type for validation: ${quizType}`);
+    if (quizType === 'simple-words') return this.validateSimpleWords(sessionId, userId, userAnswers as string[]);
+
+    const config = mathValidationConfigs[quizType];
+    if (!config) throw new Error(`Invalid math quiz type: ${quizType}`);
+
+    return this.validateMathSession(sessionId, userId, userAnswers, quizType, config);
   }
 
   public getSession(sessionId: string): Session | undefined {
-    const session = this.sessions.get(sessionId);
-
-    if (session) {
-      // Update last accessed time
-      session.updatedAt = new Date();
-    }
-
-    return session;
+    return this.touchSession(sessionId, this.sessions);
   }
 
   public getSimpleWordsSession(sessionId: string): SimpleWordsSession | undefined {
-    const session = this.simpleWordsSessions.get(sessionId);
-
-    if (session) {
-      // Update last accessed time
-      session.updatedAt = new Date();
-    }
-
-    return session;
-  }
-
-  public async validateAnswers(sessionId: string, userId: string, userAnswers: (number | string)[], quizType: string): Promise<{ score: number; total: number }> {
-    const session = this.sessions.get(sessionId);
-
-    if (!session) {
-      throw new Error('Session not found');
-    }
-
-    // Verify that the session belongs to the user
-    if (session.userId !== userId) {
-      throw new Error('Unauthorized access to session');
-    }
-
-    let correctCount = 0;
-
-    // Compare each user answer with the correct answer
-    for (let i = 0; i < session.questions.length; i++) {
-      // Check if this is a MathQuestion (regular math question)
-      if ('question' in session.questions[i] && typeof session.questions[i].question === 'string') {
-        // For regular math questions, convert both values to strings for comparison since API sends them as strings
-        if (String(userAnswers[i]) === String(session.questions[i].answer)) {
-          correctCount++;
-        }
-      } else {
-        // For fraction comparison questions, we should not be calling this function with them
-        throw new Error('Invalid question type for validateAnswers');
-      }
-    }
-
-    const result = {
-      score: correctCount,
-      total: session.questions.length
-    };
-
-    // Get the multiplier for math quizzes
-    let multiplier = 1.0;
-    if (this.databaseService) {
-      try {
-        multiplier = await this.getUserMultiplier(userId, this.getMultiplierCategory(quizType));
-      } catch (error) {
-        // If there's an error getting multiplier, default to 1.0
-        multiplier = 1.0;
-      }
-      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, quizType, multiplier);
-    }
-
-    return result;
-  }
-
-  private convertFractionAnswerToNumber(answer: string): number {
-    switch(answer) {
-      case '>': return 1;
-      case '<': return 2;
-      case '=': return 3;
-      default: return 0;
-    }
-  }
-
-  private convertNumberToFractionAnswer(answer: number): string {
-    switch(answer) {
-      case 1: return '>';
-      case 2: return '<';
-      case 3: return '=';
-      default: return '';
-    }
-  }
-
-  public async validateBODMASAnswers(sessionId: string, userId: string, userAnswers: (number | string)[], quizType: string): Promise<{ score: number; total: number }> {
-    const session = this.sessions.get(sessionId);
-
-    if (!session) {
-      throw new Error('Session not found');
-    }
-
-    // Verify that the session belongs to the user
-    if (session.userId !== userId) {
-      throw new Error('Unauthorized access to session');
-    }
-
-    let correctCount = 0;
-
-    // Compare each user answer with the correct answer
-    for (let i = 0; i < session.questions.length; i++) {
-      // Check if this is a MathQuestion (regular math question)
-      if ('question' in session.questions[i] && typeof session.questions[i].question === 'string') {
-        // For BODMAS questions, convert both values to strings for comparison since API sends them as strings
-        if (String(userAnswers[i]) === String(session.questions[i].answer)) {
-          correctCount++;
-        }
-      } else {
-        // For fraction comparison questions, we should not be calling this function with them
-        throw new Error('Invalid question type for validateBODMASAnswers');
-      }
-    }
-
-    const result = {
-      score: correctCount,
-      total: session.questions.length
-    };
-
-    // Get the multiplier for math quizzes
-    let multiplier = 1.0;
-    if (this.databaseService) {
-      try {
-        multiplier = await this.getUserMultiplier(userId, this.getMultiplierCategory(quizType));
-      } catch (error) {
-        // If there's an error getting multiplier, default to 1.0
-        multiplier = 1.0;
-      }
-      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, quizType, multiplier);
-    }
-
-    return result;
-  }
-
-  public async validateFractionComparisonAnswers(sessionId: string, userId: string, userAnswers: (number | string)[], quizType: string): Promise<{ score: number; total: number }> {
-    const session = this.sessions.get(sessionId);
-
-    if (!session) {
-      throw new Error('Session not found');
-    }
-
-    // Verify that the session belongs to the user
-    if (session.userId !== userId) {
-      throw new Error('Unauthorized access to session');
-    }
-
-    let correctCount = 0;
-
-    // Compare each user answer with the correct answer
-    for (let i = 0; i < session.questions.length; i++) {
-      // Check if this is a FractionComparisonQuestion
-      if ('question' in session.questions[i] && Array.isArray(session.questions[i].question)) {
-        // For fraction comparison questions, direct string comparison
-        if (String(userAnswers[i]) === String(session.questions[i].answer)) {
-          correctCount++;
-        }
-      } else {
-        // For regular math questions, we should not be calling this function with them
-        throw new Error('Invalid question type for validateFractionComparisonAnswers');
-      }
-    }
-
-    const result = {
-      score: correctCount,
-      total: session.questions.length
-    };
-
-    // Get the multiplier for math quizzes
-    let multiplier = 1.0;
-    if (this.databaseService) {
-      try {
-        multiplier = await this.getUserMultiplier(userId, this.getMultiplierCategory(quizType));
-      } catch (error) {
-        // If there's an error getting multiplier, default to 1.0
-        multiplier = 1.0;
-      }
-      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, quizType, multiplier);
-    }
-
-    return result;
-  }
-
-  public async validateSimpleWordsAnswers(sessionId: string, userId: string, userAnswers: string[], quizType: string): Promise<{ score: number; total: number }> {
-    const session = this.simpleWordsSessions.get(sessionId);
-
-    if (!session) {
-      throw new Error('Session not found');
-    }
-
-    // Verify that the session belongs to the user
-    if (session.userId !== userId) {
-      throw new Error('Unauthorized access to session');
-    }
-
-    let correctCount = 0;
-
-    // Compare each user answer with the correct word (case insensitive)
-    for (let i = 0; i < session.words.length && i < userAnswers.length; i++) {
-      if (userAnswers[i] && userAnswers[i].toLowerCase() === session.words[i].word.toLowerCase()) {
-        correctCount++;
-      }
-    }
-
-    const result = {
-      score: correctCount,
-      total: session.words.length
-    };
-
-    // Get the multiplier for simple words quizzes
-    let multiplier = 1.0;
-    if (this.databaseService) {
-      try {
-        multiplier = await this.getUserMultiplier(userId, this.getMultiplierCategory(quizType));
-      } catch (error) {
-        // If there's an error getting multiplier, default to 1.0
-        multiplier = 1.0;
-      }
-      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, quizType, multiplier);
-    }
-
-    return result;
-  }
-
-  public async validateFactorsAnswers(sessionId: string, userId: string, userAnswers: (number | string)[], quizType: string): Promise<{ score: number; total: number }> {
-    const session = this.sessions.get(sessionId);
-
-    if (!session) {
-      throw new Error('Session not found');
-    }
-
-    // Verify that the session belongs to the user
-    if (session.userId !== userId) {
-      throw new Error('Unauthorized access to session');
-    }
-
-    let correctCount = 0;
-
-    // Compare each user answer with the correct answer
-    for (let i = 0; i < session.questions.length; i++) {
-      const question = session.questions[i];
-
-      // Type guard to check if it's a FactorsQuestion
-      if ((question as any).factors !== undefined) {
-        const factorsQuestion = question as FactorsQuestion;
-
-        // Parse the user's input to get an array of numbers
-        const userFactors = String(userAnswers[i])
-          .split(',')
-          .map(factor => factor.trim())
-          .filter(factor => factor !== '')
-          .map(factor => parseInt(factor))
-          .filter(factor => !isNaN(factor));
-
-        // Check if all factors provided by user are actual factors of the number
-        const allUserFactorsValid = userFactors.every(factor => factorsQuestion.factors.includes(factor));
-
-        // Check if user provided all the actual factors (same length)
-        const allActualFactorsProvided = allUserFactorsValid &&
-                                        userFactors.length === factorsQuestion.factors.length;
-
-        if (allActualFactorsProvided) {
-          correctCount++;
-        }
-      } else {
-        // For other question types, we should not be calling this function with them
-        throw new Error('Invalid question type for validateFactorsAnswers');
-      }
-    }
-
-    const result = {
-      score: correctCount,
-      total: session.questions.length
-    };
-
-    // Get the multiplier for math quizzes
-    let multiplier = 1.0;
-    if (this.databaseService) {
-      try {
-        multiplier = await this.getUserMultiplier(userId, this.getMultiplierCategory(quizType));
-      } catch (error) {
-        // If there's an error getting multiplier, default to 1.0
-        multiplier = 1.0;
-      }
-      this.databaseService.saveSessionScore(userId, sessionId, result.score, result.total, quizType, multiplier);
-    }
-
-    return result;
-  }
-
-  public async getSessionScore(sessionId: string): Promise<{score: number, total: number} | null> {
-    if (!this.databaseService) {
-      return null;
-    }
-
-    return this.databaseService.getSessionScore(sessionId);
-  }
-
-  public async getUserSessionScores(userId: string): Promise<Array<{sessionId: string, score: number, total: number, sessionType: string, completedAt: Date, multiplier?: number}>> {
-    if (!this.databaseService) {
-      return [];
-    }
-
-    // Get the raw scores from database
-    const rawScores = await this.databaseService.getUserSessionScores(userId);
-
-    // Return scores with multipliers (no modification needed as they're already stored)
-    return rawScores;
-  }
-
-  public async getUserSessions(userId: string): Promise<Array<{sessionId: string, sessionType: string, score: number, total: number, completedAt: Date, createdAt: Date, multiplier?: number}>> {
-    if (!this.databaseService) {
-      return [];
-    }
-
-    // Get all session scores for the user
-    const scores = await this.databaseService.getUserSessionScores(userId);
-
-    // Transform to include creation date and other metadata
-    return scores.map(score => ({
-      sessionId: score.sessionId,
-      sessionType: score.sessionType,
-      score: score.score,
-      total: score.total,
-      completedAt: score.completedAt,
-      createdAt: score.completedAt, // For consistency, we'll use completedAt as created time for now
-      multiplier: score.multiplier
-    }));
+    return this.touchSession(sessionId, this.simpleWordsSessions);
   }
 
   public deleteSession(sessionId: string): void {
-    this.sessions.delete(sessionId);
-
-    // Clear the timeout if it exists
-    const timeout = this.sessionTimeouts.get(sessionId);
-    if (timeout) {
-      clearTimeout(timeout);
-      this.sessionTimeouts.delete(sessionId);
-    }
+    this.deleteSessionFromMap(sessionId, this.sessions, this.sessionTimeouts);
   }
 
   public deleteSimpleWordsSession(sessionId: string): void {
-    this.simpleWordsSessions.delete(sessionId);
-
-    // Clear the timeout if it exists
-    const timeout = this.simpleWordsSessionTimeouts.get(sessionId);
-    if (timeout) {
-      clearTimeout(timeout);
-      this.simpleWordsSessionTimeouts.delete(sessionId);
-    }
+    this.deleteSessionFromMap(sessionId, this.simpleWordsSessions, this.simpleWordsSessionTimeouts);
   }
 
   public cleanupExpiredSessions(): void {
-    const now = new Date().getTime();
-
-    // Cleanup regular sessions
-    for (const [sessionId, session] of this.sessions.entries()) {
-      const sessionAge = now - session.createdAt.getTime();
-
-      if (sessionAge > this.SESSION_TTL) {
-        this.deleteSession(sessionId);
-      }
-    }
-
-    // Cleanup simple words sessions
-    for (const [sessionId, session] of this.simpleWordsSessions.entries()) {
-      const sessionAge = now - session.createdAt.getTime();
-
-      if (sessionAge > this.SESSION_TTL) {
-        this.deleteSimpleWordsSession(sessionId);
-      }
-    }
+    this.cleanupExpired(this.sessions, this.sessionTimeouts);
+    this.cleanupExpired(this.simpleWordsSessions, this.simpleWordsSessionTimeouts);
   }
 
-  // For test environments to clear all timeouts
   public clearAllTimeouts(): void {
-    // Clear all regular session timeouts
-    for (const [sessionId, timeout] of this.sessionTimeouts.entries()) {
-      clearTimeout(timeout);
-    }
+    this.sessionTimeouts.forEach(clearTimeout);
+    this.simpleWordsSessionTimeouts.forEach(clearTimeout);
     this.sessionTimeouts.clear();
-
-    // Clear all simple words session timeouts
-    for (const [sessionId, timeout] of this.simpleWordsSessionTimeouts.entries()) {
-      clearTimeout(timeout);
-    }
     this.simpleWordsSessionTimeouts.clear();
   }
 
   public async setUserMultiplier(userId: string, quizType: string, multiplier: number): Promise<void> {
-    if (!this.databaseService) {
-      throw new Error('Database service not initialized');
-    }
-
-    return this.databaseService.setUserMultiplier(userId, quizType, multiplier);
+    if (!this.databaseService) throw new Error('Database not initialized');
+    await this.databaseService.setUserMultiplier(userId, quizType, multiplier);
   }
 
   public async getUserMultiplier(userId: string, quizType: string): Promise<number> {
-    if (!this.databaseService) {
-      throw new Error('Database service not initialized');
-    }
-
+    if (!this.databaseService) throw new Error('Database not initialized');
     return this.databaseService.getUserMultiplier(userId, quizType);
+  }
+
+  public async getSessionScore(sessionId: string): Promise<{ score: number; total: number } | null> {
+    return this.databaseService?.getSessionScore(sessionId) || null;
+  }
+
+  public async getUserSessionScores(userId: string): Promise<Array<{
+    sessionId: string;
+    score: number;
+    total: number;
+    sessionType: string;
+    completedAt: Date;
+    multiplier?: number;
+  }>> {
+    return this.databaseService?.getUserSessionScores(userId) || [];
+  }
+
+  public async getUserSessions(userId: string): Promise<Array<{
+    sessionId: string;
+    sessionType: string;
+    score: number;
+    total: number;
+    completedAt: Date;
+    createdAt: Date;
+    multiplier?: number;
+  }>> {
+    if (!this.databaseService) return [];
+    const scores = await this.databaseService.getUserSessionScores(userId);
+    return scores.map((score: { sessionId: string, score: number, total: number, sessionType: string, completedAt: Date, multiplier?: number }) => ({
+      ...score,
+      createdAt: score.completedAt, // Match original logic
+    }));
   }
 
   public async getUserStats(userId: string): Promise<{
@@ -519,41 +238,60 @@ class SessionService {
       multiplier: number;
       weightedScore: number;
       sessionType: string;
-    }>
+    }>;
   }> {
-    if (!this.databaseService) {
-      throw new Error('Database service not initialized');
-    }
-
-    // Get all session scores for the user
-    const userScores = await this.databaseService.getUserSessionScores(userId);
+    if (!this.databaseService) throw new Error('Database not initialized');
+    const scores = await this.databaseService.getUserSessionScores(userId);
 
     let totalScore = 0;
-    const details = [];
+    const details = await Promise.all(scores.map(async score => {
+      const multiplier = await this.getUserMultiplier(userId, this.getMultiplierCategory(score.sessionType)).catch(() => 1.0);
+      const weighted = score.score * multiplier;
+      totalScore += weighted;
+      return { sessionId: score.sessionId, score: score.score, multiplier, weightedScore: weighted, sessionType: score.sessionType };
+    }));
 
-    for (const score of userScores) {
-      // Get the multiplier for this quiz type, default to 1.0 if not found
-      const multiplier = await this.databaseService.getUserMultiplier(userId, this.getMultiplierCategory(score.sessionType));
+    return { totalScore, sessionsCount: scores.length, details };
+  }
 
-      // Calculate weighted score
-      const weightedScore = score.score * multiplier;
+  // ------------------------------ Private Validation Methods ------------------------------
+  private async validateMathSession(
+    sessionId: string,
+    userId: string,
+    userAnswers: (number | string)[],
+    quizType: string,
+    config: MathValidationConfig
+  ): Promise<{ score: number; total: number }> {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error('Session not found');
+    if (session.userId !== userId) throw new Error('Unauthorized access to session');
 
-      totalScore += weightedScore;
+    const correctCount = session.questions.reduce((count, question, i) => {
+      if (!config.isApplicable(question)) throw new Error(`Invalid question type for ${quizType}`);
+      return config.validate(question, userAnswers[i]) ? count + 1 : count;
+    }, 0);
 
-      details.push({
-        sessionId: score.sessionId,
-        score: score.score,
-        multiplier: multiplier,
-        weightedScore: weightedScore,
-        sessionType: score.sessionType
-      });
-    }
+    const result = { score: correctCount, total: session.questions.length };
+    await this.saveScore(userId, sessionId, result.score, result.total, quizType);
+    return result;
+  }
 
-    return {
-      totalScore,
-      sessionsCount: userScores.length,
-      details
-    };
+  private async validateSimpleWords(
+    sessionId: string,
+    userId: string,
+    userAnswers: string[]
+  ): Promise<{ score: number; total: number }> {
+    const session = this.simpleWordsSessions.get(sessionId);
+    if (!session) throw new Error('Session not found');
+    if (session.userId !== userId) throw new Error('Unauthorized access to session');
+
+    const correctCount = session.words.reduce((count, word, i) => {
+      return userAnswers[i]?.toLowerCase() === word.word.toLowerCase() ? count + 1 : count;
+    }, 0);
+
+    const result = { score: correctCount, total: session.words.length };
+    await this.saveScore(userId, sessionId, result.score, result.total, 'simple-words');
+    return result;
   }
 }
 
