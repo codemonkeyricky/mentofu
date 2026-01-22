@@ -1,6 +1,6 @@
-import { Session } from './session.types';
-import { SimpleWordsSession } from './simple.words.types';
-import { DatabaseService } from '../database/interface/database.service';
+import { Session } from '../session.types';
+import { SimpleWordsSession } from '../simple.words.types';
+import { DatabaseService } from '../../database/interface/database.service';
 
 export type SessionType = Session | SimpleWordsSession;
 
