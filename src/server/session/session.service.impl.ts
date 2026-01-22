@@ -113,7 +113,7 @@ class SessionService implements ISessionService {
 
     const multiplier = await this.getUserMultiplier(userId, this.getMultiplierCategory(quizType)).catch(() => 1.0);
     await this.databaseService.saveSessionScore(userId, sessionId, score, total, quizType, multiplier);
-    await creditService.addEarnedCredits(userId, score);
+    await creditService.addEarnedCredits(userId, multiplier * score);
   }
 
   // Helper: Cleanup expired sessions for any map type
