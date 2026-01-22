@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { sessionService } from './session.service';
+import { sessionService } from './session.service.impl';
 import { Session } from './session.types';
 import { SimpleWordsSession } from './simple.words.types';
 import { authenticate } from '../middleware/auth.middleware';

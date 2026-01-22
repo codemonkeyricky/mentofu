@@ -2,7 +2,7 @@ import request from 'supertest';
 import { app, testDbPath } from './test-app';
 import { authService } from '../auth/auth.service';
 import { TestDatabaseUtil } from './database.test.util';
-import { sessionService } from '../session/session.service';
+import { sessionService } from '../session/session.service.impl';
 
 describe('Session Management Endpoints', () => {
   let authToken: string;

@@ -5,7 +5,7 @@ import { creditRouter } from './credit/credit.controller';
 import { adminRouter } from './parent/parent.controller';
 import path from 'path';
 import { DatabaseService } from './database/interface/database.service';
-import { sessionService } from './session/session.service';
+import { sessionService } from './session/session.service.impl';
 import listEndpoints from 'express-list-endpoints';
 import * as dotenv from 'dotenv';
 dotenv.config();

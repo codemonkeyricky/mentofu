@@ -1,10 +1,10 @@
 import { CreditService } from '../credit/credit.service';
 import { DatabaseService } from '../database/interface/database.service';
-import { sessionService } from '../session/session.service';
+import { sessionService } from '../session/session.service.impl';
 
 // Mock dependencies
 jest.mock('../database/interface/database.service');
-jest.mock('../session/session.service');
+jest.mock('../session/session.service.impl');
 
 describe('CreditService', () => {
   let creditService: CreditService;

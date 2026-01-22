@@ -1,5 +1,5 @@
 import { DatabaseService } from '../database/interface/database.service';
-import { sessionService } from '../session/session.service';
+import { sessionService } from '../session/session.service.impl';
 
 export interface UserCredits {
   earned: number;

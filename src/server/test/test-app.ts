@@ -9,7 +9,7 @@ import path from 'path';
 import { TestDatabaseUtil } from './database.test.util';
 import { DatabaseService } from '../database/interface/database.service';
 import { authService } from '../auth/auth.service';
-import { sessionService } from '../session/session.service';
+import { sessionService } from '../session/session.service.impl';
 import { creditService } from '../credit/credit.service';
 
 // Create a new test database path for each test run

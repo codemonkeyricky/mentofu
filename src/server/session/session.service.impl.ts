@@ -1,10 +1,10 @@
 import { Session, Question, FactorsQuestion } from './session.types';
-import { SessionType } from './session.service.interface';
+import { SessionType } from './interface/session.service.interface';
 import { generateQuestions, generateDivisionQuestions, generateFractionComparisonQuestions, generateBODMASQuestions, generateFactorsQuestions } from '../utils/question.generator';
 import { generateSimpleWords } from '../utils/simple.words.generator';
 import { SimpleWordsSession } from './simple.words.types';
 import { DatabaseService } from '../database/interface/database.service';
-import { ISessionService } from './session.service.interface';
+import { ISessionService } from './interface/session.service.interface';
 
 // Type-safe question generator mapping
 const questionGenerators: Record<string, (count: number) => Question[]> = {
