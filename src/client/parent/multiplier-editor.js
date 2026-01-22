@@ -51,7 +51,7 @@ export default class MultiplierEditor {
         `;
 
         quizTypes.forEach(quizType => {
-            const currentMultiplier = this.multipliers[quizType.id] || 1.0;
+            const currentMultiplier = typeof this.multipliers[quizType.id] === 'number' ? this.multipliers[quizType.id] : 1.0;
             const badgeClass = currentMultiplier > 1.0 ? 'parent-badge-success' : 'parent-badge-info';
 
             html += `

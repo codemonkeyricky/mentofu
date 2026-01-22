@@ -799,7 +799,7 @@ export class MathMasterPro {
             }
 
             const data = await response.json();
-            return data.multiplier || 1.0;
+            return typeof data.multiplier === 'number' ? data.multiplier : 1.0;
         } catch (error) {
             console.error(`Error fetching multiplier for ${quizCategory}:`, error);
             return 1.0; // Default to 1.0 on error
@@ -837,13 +837,13 @@ export class MathMasterPro {
         // [simple-math, simple-math-2, simple-math-3, simple-math-4, simple-math-5, simple-words]
         const [simpleMath1, simpleMath2, simpleMath3, simpleMath4, simpleMath5, simpleWords] = multipliers;
 
-        // Round multipliers to nearest integer, minimum of 1
-        const roundedSimpleMath1 = Math.max(1, Math.round(simpleMath1));
-        const roundedSimpleMath2 = Math.max(1, Math.round(simpleMath2));
-        const roundedSimpleMath3 = Math.max(1, Math.round(simpleMath3));
-        const roundedSimpleMath4 = Math.max(1, Math.round(simpleMath4));
-        const roundedSimpleMath5 = Math.max(1, Math.round(simpleMath5));
-        const roundedSimpleWords = Math.max(1, Math.round(simpleWords));
+        // Round multipliers to nearest integer (0 is a valid value)
+        const roundedSimpleMath1 = Math.round(simpleMath1);
+        const roundedSimpleMath2 = Math.round(simpleMath2);
+        const roundedSimpleMath3 = Math.round(simpleMath3);
+        const roundedSimpleMath4 = Math.round(simpleMath4);
+        const roundedSimpleMath5 = Math.round(simpleMath5);
+        const roundedSimpleWords = Math.round(simpleWords);
 
         // Get all quiz cards
         const quizCards = document.querySelectorAll('.quiz-card[data-quiz-type]');

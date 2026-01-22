@@ -203,7 +203,8 @@ export class DatabaseService implements DatabaseOperations {
 
   public async getUserMultiplier(userId: string, quizType: string): Promise<number> {
     if (this.databaseType === 'memory') {
-      return Math.floor(this.getMultipliersTable().get(`${userId}-${quizType}`) || 1);
+      const value = this.getMultipliersTable().get(`${userId}-${quizType}`);
+      return Math.floor(value !== undefined ? value : 1);
     } else {
       const postgresDB = new PostgresDatabase();
       return postgresDB.getUserMultiplier(userId, quizType);
