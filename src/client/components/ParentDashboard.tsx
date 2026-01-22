@@ -16,6 +16,9 @@ const ParentDashboard: React.FC = () => {
   const [error, setError] = ReactInstance.useState<string | null>(null);
   const [editingMultiplier, setEditingMultiplier] = ReactInstance.useState<{userId: string, quizType: string, value: number} | null>(null);
   const [updateLoading, setUpdateLoading] = ReactInstance.useState(false);
+  const [editingCredits, setEditingCredits] = ReactInstance.useState<{userId: string, field: 'earned' | 'claimed', amount: number} | null>(null);
+  const [creditAmount, setCreditAmount] = ReactInstance.useState<string>('0');
+  const [creditType, setCreditType] = ReactInstance.useState<'add' | 'subtract' | 'set'>('add');
 
   ReactInstance.useEffect(() => {
     const fetchUsers = async () => {
@@ -147,10 +150,112 @@ const ParentDashboard: React.FC = () => {
     setEditingMultiplier(null);
   };
 
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('No authentication token found');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch('/parent/users', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      const transformedUsers: ParentDashboardUser[] = data.users.map((user: any) => ({
+        id: user.id,
+        username: user.username,
+        earned_credits: user.earnedCredits || 0,
+        claimed_credits: user.claimedCredits || 0,
+        multipliers: user.multipliers || {}
+      }));
+
+      setUsers(transformedUsers);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      setError('Failed to load user data');
+      setLoading(false);
+    }
+  };
+
   const handleSave = () => {
     if (editingMultiplier) {
       updateMultiplier(editingMultiplier.userId, editingMultiplier.quizType, editingMultiplier.value);
     }
+  };
+
+  const updateCredits = async (userId: string, field: 'earned' | 'claimed', amount: number) => {
+    try {
+      setUpdateLoading(true);
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('No authentication token found. Please log in again.');
+        return;
+      }
+
+      const amountValue = parseInt(creditAmount) || 0;
+      if (amountValue <= 0) {
+        alert('Please enter a valid amount');
+        return;
+      }
+
+      const response = await fetch(`/parent/users/${userId}/credits`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          field,
+          amount: amountValue,
+          type: creditType
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+      }
+
+      await fetchUsers();
+
+      setEditingCredits(null);
+      setCreditAmount('0');
+      setCreditType('add');
+
+    } catch (err: any) {
+      console.error('Error updating credits:', err);
+      alert(`Failed to update credits: ${err.message}`);
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
+  const startEditingCredits = (userId: string, field: 'earned' | 'claimed') => {
+    setEditingCredits({ userId, field, amount: 0 });
+    setCreditAmount('0');
+    setCreditType('add');
+  };
+
+  const cancelEditingCredits = () => {
+    setEditingCredits(null);
+    setCreditAmount('0');
   };
 
   if (loading) {
@@ -256,10 +361,65 @@ const ParentDashboard: React.FC = () => {
                       })}
                     </div>
                   </td>
-                  <td>
-                    {/* Actions column - can be used for other user actions */}
-                    <button className="btn btn-sm btn-outline">View Details</button>
-                  </td>
+                   <td>
+                     {editingCredits?.userId === user.id && editingCredits?.field === 'earned' ? (
+                       <div className="credit-edit">
+                         <div className="credit-edit-row">
+                           <span className="credit-label">Add Earned:</span>
+                           <select
+                             value={creditType}
+                             onChange={(e) => setCreditType(e.target.value as 'add' | 'subtract' | 'set')}
+                             className="credit-type-select"
+                             disabled={updateLoading}
+                           >
+                             <option value="add">Add</option>
+                             <option value="subtract">Subtract</option>
+                             <option value="set">Set</option>
+                           </select>
+                           <input
+                             type="number"
+                             min="1"
+                             step="1"
+                             value={creditAmount}
+                             onChange={(e) => setCreditAmount(e.target.value)}
+                             disabled={updateLoading}
+                             className="credit-amount-input"
+                           />
+                           <button
+                             onClick={() => updateCredits(user.id, 'earned', parseInt(creditAmount) || 0)}
+                             disabled={updateLoading || parseInt(creditAmount) <= 0}
+                             className="btn btn-sm btn-success"
+                           >
+                             {updateLoading ? 'Saving...' : 'Save'}
+                           </button>
+                           <button
+                             onClick={cancelEditingCredits}
+                             disabled={updateLoading}
+                             className="btn btn-sm btn-outline"
+                           >
+                             Cancel
+                           </button>
+                         </div>
+                       </div>
+                     ) : (
+                       <div className="user-actions">
+                         <button
+                           onClick={() => startEditingCredits(user.id, 'earned')}
+                           className="btn btn-sm btn-outline"
+                           title="Add/Remove Earned Credits"
+                         >
+                           Earned Credits
+                         </button>
+                         <button
+                           onClick={() => startEditingCredits(user.id, 'claimed')}
+                           className="btn btn-sm btn-outline"
+                           title="Add/Remove Claimed Credits"
+                         >
+                           Claimed Credits
+                         </button>
+                       </div>
+                     )}
+                   </td>
                 </tr>
               ))}
             </tbody>

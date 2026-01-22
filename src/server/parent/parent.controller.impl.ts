@@ -203,12 +203,103 @@ export class ParentController implements IParentController {
   public async updateCredits(req: Request, res: Response): Promise<any> {
     try {
       const { userId } = req.params;
-      const { earnedCredits, claimedCredits, earnedDelta, claimedDelta } = req.body;
+      const { field, amount, type, earnedCredits, claimedCredits, earnedDelta, claimedDelta } = req.body;
 
       const hasAnyCreditField = earnedCredits !== undefined || claimedCredits !== undefined ||
-                                earnedDelta !== undefined || claimedDelta !== undefined;
+                                earnedDelta !== undefined || claimedDelta !== undefined || field !== undefined;
 
       if (!hasAnyCreditField) {
+        return res.status(400).json({
+          error: {
+            message: 'At least one credit field is required (earnedCredits, claimedCredits, earnedDelta, claimedDelta, field)',
+            code: 'MISSING_CREDIT_FIELDS'
+          }
+        });
+      }
+
+      if (field !== undefined) {
+        if (field !== 'earned' && field !== 'claimed') {
+          return res.status(400).json({
+            error: {
+              message: 'Field must be either "earned" or "claimed"',
+              code: 'INVALID_FIELD'
+            }
+          });
+        }
+
+        if (type !== undefined && type !== 'add' && type !== 'subtract' && type !== 'set') {
+          return res.status(400).json({
+            error: {
+              message: 'Type must be either "add", "subtract", or "set"',
+              code: 'INVALID_TYPE'
+            }
+          });
+        }
+
+        const user = await this.getUserByIdOrUsername(userId);
+        if (!user) {
+          return res.status(404).json({
+            error: {
+              message: 'User not found',
+              code: 'USER_NOT_FOUND'
+            }
+          });
+        }
+
+        const currentEarned = user.earned_credits || 0;
+        const currentClaimed = user.claimed_credits || 0;
+        let targetAmount = amount;
+
+        if (type === 'set') {
+          targetAmount = amount;
+        } else if (type === 'add') {
+          targetAmount = currentEarned + amount;
+        } else if (type === 'subtract') {
+          targetAmount = currentEarned - amount;
+        }
+
+        targetAmount = Math.max(0, targetAmount);
+
+        if (field === 'earned') {
+          if (targetAmount < currentEarned) {
+            return res.status(409).json({
+              error: {
+                message: 'Cannot set earned credits below current earned credits',
+                code: 'INVALID_AMOUNT'
+              }
+            });
+          }
+
+          await this.databaseService.addEarnedCredits(user.id, targetAmount - currentEarned);
+        } else if (field === 'claimed') {
+          if (targetAmount > currentEarned) {
+            return res.status(409).json({
+              error: {
+                message: 'Cannot set claimed credits above earned credits',
+                code: 'CLAIMED_EXCEEDS_EARNED'
+              }
+            });
+          }
+
+          await this.databaseService.addClaimedCredits(user.id, targetAmount - currentClaimed);
+        }
+
+        res.json({
+          message: 'Credits updated successfully',
+          userId: user.id,
+          earnedCredits: field === 'earned' ? targetAmount : currentEarned,
+          claimedCredits: field === 'claimed' ? targetAmount : currentClaimed,
+          field,
+          amount: targetAmount,
+          type
+        });
+        return;
+      }
+
+      const hasLegacyFields = earnedCredits !== undefined || claimedCredits !== undefined ||
+                             earnedDelta !== undefined || claimedDelta !== undefined;
+
+      if (!hasLegacyFields) {
         return res.status(400).json({
           error: {
             message: 'At least one credit field is required (earnedCredits, claimedCredits, earnedDelta, claimedDelta)',
