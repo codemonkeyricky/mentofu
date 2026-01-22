@@ -33,7 +33,7 @@ test.describe('User Registration', () => {
     console.log(`User ID: ${userId}`);
 
     // Step 2: Logout by navigating to home page
-    await page.goto('/');
+    await page.goto('http://localhost:4000/');
 
     // Clear localStorage after we're on the page
     await page.evaluate(() => {
@@ -140,7 +140,7 @@ test.describe('User Registration', () => {
     console.log(`User ID: ${userId}`);
 
     // Step 2: Logout by navigating to home page
-    await page.goto('/');
+    await page.goto('http://localhost:4000/');
 
     // Clear localStorage after we're on the page
     await page.evaluate(() => {

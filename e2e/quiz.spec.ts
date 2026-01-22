@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Quiz Functionality', () => {
   test('should start a multiplication quiz and submit answers', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('http://localhost:4000/');
 
     // Wait for auth screen to be visible
     await expect(page.getByRole('button', { name: 'Register' })).toBeVisible();
@@ -72,7 +72,7 @@ test.describe('Quiz Functionality', () => {
   });
 
   test('should take multiplication quiz twice', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('http://localhost:4000/');
 
     // Wait for auth screen to be visible
     await expect(page.getByRole('button', { name: 'Register' })).toBeVisible();

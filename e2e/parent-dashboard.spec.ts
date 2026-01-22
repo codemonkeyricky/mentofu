@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Parent Dashboard', () => {
   test('should login as parent user and load parent dashboard', async ({ page }) => {
     // Navigate to the application
-    await page.goto('/');
+    await page.goto('http://localhost:4000/');
 
     // Simulate parent login via localStorage (same approach as other tests)
     await page.evaluate(() => {
@@ -35,7 +35,7 @@ test.describe('Parent Dashboard', () => {
 
   test('should verify parent dashboard React component loads', async ({ page }) => {
     // Simulate parent login via localStorage
-    await page.goto('/');
+    await page.goto('http://localhost:4000/');
     await page.evaluate(() => {
       localStorage.setItem('token', 'test-parent-token-456');
       localStorage.setItem('user', JSON.stringify({
@@ -70,7 +70,7 @@ test.describe('Parent Dashboard', () => {
     // Instead of navigating to /parent-dashboard directly, we'll check the auth mechanism
 
     // First, clear any existing auth
-    await page.goto('/');
+    await page.goto('http://localhost:4000/');
     await page.evaluate(() => {
       localStorage.clear();
     });
