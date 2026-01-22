@@ -1,12 +1,8 @@
 import { DatabaseService } from '../database/interface/database.service';
 import { sessionService } from '../session/session.service.impl';
+import { ICreditService } from './interface/credit.service.interface';
 
-export interface UserCredits {
-  earned: number;
-  claimed: number;
-}
-
-export class CreditService {
+export class CreditService implements ICreditService {
   private databaseService: DatabaseService | null = null;
 
   setDatabaseService(databaseService: DatabaseService) {
