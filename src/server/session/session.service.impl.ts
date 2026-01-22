@@ -5,6 +5,7 @@ import { generateSimpleWords } from '../utils/simple.words.generator';
 import { SimpleWordsSession } from './simple.words.types';
 import { DatabaseService } from '../database/interface/database.service';
 import { ISessionService } from './interface/session.service.interface';
+import { creditService } from '../credit/credit.service';
 
 // Type-safe question generator mapping
 const questionGenerators: Record<string, (count: number) => Question[]> = {
@@ -112,6 +113,7 @@ class SessionService implements ISessionService {
 
     const multiplier = await this.getUserMultiplier(userId, this.getMultiplierCategory(quizType)).catch(() => 1.0);
     await this.databaseService.saveSessionScore(userId, sessionId, score, total, quizType, multiplier);
+    await creditService.addEarnedCredits(userId, score);
   }
 
   // Helper: Cleanup expired sessions for any map type

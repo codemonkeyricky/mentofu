@@ -14,13 +14,10 @@ export class CreditService implements ICreditService {
       throw new Error('Database service not initialized');
     }
 
-    // Get stats from session service (derived from quiz scores)
-    const stats = await sessionService.getUserStats(userId);
-    
     // Get manual earned credits from database
     const manualEarned = await this.databaseService.getEarnedCredits(userId);
 
-    return stats.totalScore + manualEarned;
+    return manualEarned;
   }
 
   async addEarnedCredits(userId: string, amount: number): Promise<void> {
