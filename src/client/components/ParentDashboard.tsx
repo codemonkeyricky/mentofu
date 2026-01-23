@@ -18,7 +18,6 @@ const ParentDashboard: React.FC = () => {
   const [updateLoading, setUpdateLoading] = ReactInstance.useState(false);
   const [editingCredits, setEditingCredits] = ReactInstance.useState<{userId: string, field: 'earned' | 'claimed', amount: number} | null>(null);
   const [creditAmount, setCreditAmount] = ReactInstance.useState<string>('0');
-  const [creditType, setCreditType] = ReactInstance.useState<'add' | 'subtract' | 'set'>('add');
 
   ReactInstance.useEffect(() => {
     const fetchUsers = async () => {
@@ -223,8 +222,7 @@ const ParentDashboard: React.FC = () => {
         },
         body: JSON.stringify({
           field,
-          amount: amountValue,
-          type: creditType
+          amount: amountValue
         })
       });
 
@@ -237,7 +235,6 @@ const ParentDashboard: React.FC = () => {
 
       setEditingCredits(null);
       setCreditAmount('0');
-      setCreditType('add');
 
     } catch (err: any) {
       console.error('Error updating credits:', err);
@@ -250,7 +247,6 @@ const ParentDashboard: React.FC = () => {
   const startEditingCredits = (userId: string, field: 'earned' | 'claimed') => {
     setEditingCredits({ userId, field, amount: 0 });
     setCreditAmount('0');
-    setCreditType('add');
   };
 
   const cancelEditingCredits = () => {
@@ -370,17 +366,7 @@ const ParentDashboard: React.FC = () => {
                       {editingCredits?.userId === user.id && editingCredits?.field === 'earned' ? (
                        <div className="credit-edit">
                          <div className="credit-edit-row">
-                           <span className="credit-label">Add Earned:</span>
-                           <select
-                             value={creditType}
-                             onChange={(e) => setCreditType(e.target.value as 'add' | 'subtract' | 'set')}
-                             className="credit-type-select"
-                             disabled={updateLoading}
-                           >
-                             <option value="add">Add</option>
-                             <option value="subtract">Subtract</option>
-                             <option value="set">Set</option>
-                           </select>
+                           <span className="credit-label">Set Earned:</span>
                            <input
                              type="number"
                              min="1"
