@@ -3,7 +3,6 @@ import { ParentDashboardUser } from '../types/index';
 
 // Use global React if available (for module consistency in browser)
 const ReactInstance = window.React && window.React.useState ? window.React : React;
-console.log('ParentDashboard: ReactInstance version:', ReactInstance.version);
 
 const ParentDashboard: React.FC = () => {
   // Safety check for React hooks
@@ -208,7 +207,7 @@ const ParentDashboard: React.FC = () => {
         return;
       }
 
-      const amountValue = parseInt(creditAmount) || 0;
+      const amountValue = amount;
       if (amountValue <= 0) {
         alert('Please enter a valid amount');
         return;
@@ -363,10 +362,10 @@ const ParentDashboard: React.FC = () => {
                     </div>
                   </td>
                     <td>
-                      {editingCredits?.userId === user.id && editingCredits?.field === 'earned' ? (
+                      {editingCredits?.userId === user.id && (editingCredits?.field === 'earned' || editingCredits?.field === 'claimed') ? (
                        <div className="credit-edit">
                          <div className="credit-edit-row">
-                           <span className="credit-label">Set Earned:</span>
+                           <span className="credit-label">Set {editingCredits?.field === 'earned' ? 'Earned' : 'Claimed'}:</span>
                            <input
                              type="number"
                              min="1"
@@ -377,7 +376,7 @@ const ParentDashboard: React.FC = () => {
                              className="credit-amount-input"
                            />
                            <button
-                             onClick={() => updateCredits(user.id, 'earned', parseInt(creditAmount) || 0)}
+                             onClick={() => updateCredits(user.id, editingCredits!.field, parseInt(creditAmount) || 0)}
                              disabled={updateLoading || parseInt(creditAmount) <= 0}
                              className="btn btn-sm btn-success"
                            >
@@ -397,14 +396,14 @@ const ParentDashboard: React.FC = () => {
                          <button
                            onClick={() => startEditingCredits(user.id, 'earned')}
                            className="btn btn-sm btn-outline"
-                           title="Add/Remove Earned Credits"
+                           title="Set Earned Credits"
                          >
                            Earned Credits
                          </button>
                          <button
                            onClick={() => startEditingCredits(user.id, 'claimed')}
                            className="btn btn-sm btn-outline"
-                           title="Add/Remove Claimed Credits"
+                           title="Set Claimed Credits"
                          >
                            Claimed Credits
                          </button>
