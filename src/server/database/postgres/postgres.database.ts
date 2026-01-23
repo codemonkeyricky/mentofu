@@ -142,6 +142,7 @@ export class PostgresDatabase implements DatabaseOperations {
   }
 
   public async findUserByUsername(username: string): Promise<User | null> {
+    await this.initVercelPostgres();
     const result = await sql`
       SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isParent"
       FROM users WHERE username = ${username}
@@ -150,6 +151,7 @@ export class PostgresDatabase implements DatabaseOperations {
   }
 
   public async findUserById(userId: string): Promise<User | null> {
+    await this.initVercelPostgres();
     const result = await sql`
       SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isParent"
       FROM users WHERE id = ${userId}
@@ -158,6 +160,7 @@ export class PostgresDatabase implements DatabaseOperations {
   }
 
   public async saveSession(session: any, quizType: string): Promise<void> {
+    await this.initVercelPostgres();
     const isSimpleWords = 'words' in session;
     const questions = isSimpleWords ? { words: session.words } : { questions: session.questions };
 
@@ -169,6 +172,7 @@ export class PostgresDatabase implements DatabaseOperations {
 
   public async getSession(sessionId: string): Promise<any | null> {
     try {
+      await this.initVercelPostgres();
       const result = await sql`
         SELECT id, user_id as "userId", quiz_type as "quizType", questions, created_at as "createdAt", completed
         FROM sessions WHERE id = ${sessionId} AND completed = FALSE
@@ -203,10 +207,12 @@ export class PostgresDatabase implements DatabaseOperations {
   }
 
   public async deleteSession(sessionId: string): Promise<void> {
+    await this.initVercelPostgres();
     await sql`DELETE FROM sessions WHERE id = ${sessionId}`;
   }
 
   public async markSessionAsCompleted(sessionId: string, score: number, total: number, multiplier: number): Promise<void> {
+    await this.initVercelPostgres();
     // Atomically mark session as completed and get its data
     const sessionResult = await sql`
       UPDATE sessions
@@ -231,6 +237,7 @@ export class PostgresDatabase implements DatabaseOperations {
   }
 
   public async saveSessionScore(userId: string, sessionId: string, score: number, total: number, sessionType: string, multiplier: number = 1.0): Promise<void> {
+    await this.initVercelPostgres();
     const scoreId = this.generateUUID();
     await sql`
       INSERT INTO session_scores (id, user_id, session_id, score, total, session_type, multiplier)
@@ -239,6 +246,7 @@ export class PostgresDatabase implements DatabaseOperations {
   }
 
   public async getSessionScore(sessionId: string): Promise<{ score: number, total: number, multiplier?: number } | null> {
+    await this.initVercelPostgres();
     const result = await sql`
       SELECT score, total, multiplier FROM session_scores WHERE session_id = ${sessionId}
     `;
@@ -246,6 +254,7 @@ export class PostgresDatabase implements DatabaseOperations {
   }
 
   public async getUserSessionScores(userId: string): Promise<Array<{ sessionId: string, score: number, total: number, sessionType: string, completedAt: Date, multiplier?: number }>> {
+    await this.initVercelPostgres();
     const result = await sql`
       SELECT
         session_id as "sessionId",
@@ -269,6 +278,7 @@ export class PostgresDatabase implements DatabaseOperations {
   }
 
   public async getUserSessionHistory(userId: string): Promise<any[]> {
+    await this.initVercelPostgres();
     const result = await sql`
       SELECT
         id,
@@ -286,6 +296,7 @@ export class PostgresDatabase implements DatabaseOperations {
   }
 
   public async setUserMultiplier(userId: string, quizType: string, multiplier: number): Promise<void> {
+    await this.initVercelPostgres();
     await sql`
       INSERT INTO user_multipliers (user_id, quiz_type, multiplier)
       VALUES (${userId}, ${quizType}, ${multiplier})
@@ -295,20 +306,21 @@ export class PostgresDatabase implements DatabaseOperations {
   }
 
   public async getUserMultiplier(userId: string, quizType: string): Promise<number> {
+    await this.initVercelPostgres();
     try {
       const result = await sql`
         SELECT multiplier FROM user_multipliers WHERE user_id = ${userId} AND quiz_type = ${quizType}
       `;
       const postgresResult = this.handlePostgresResult<{ multiplier: number }>(result);
       if (postgresResult) return postgresResult.multiplier;
-      
+
       const category = quizType === 'simple-words' ? 'simple_words' : quizType.startsWith('simple-math') ? 'math' : quizType;
       const categoryResult = await sql`
         SELECT multiplier FROM user_multipliers WHERE user_id = ${userId} AND quiz_type = ${category}
       `;
       const categoryPostgresResult = this.handlePostgresResult<{ multiplier: number }>(categoryResult);
       if (categoryPostgresResult) return categoryPostgresResult.multiplier;
-      
+
       return 1;
     } catch (error: any) {
       throw error;
@@ -316,28 +328,33 @@ export class PostgresDatabase implements DatabaseOperations {
   }
 
   public async addEarnedCredits(userId: string, amount: number): Promise<void> {
+    await this.initVercelPostgres();
     const result = await sql`UPDATE users SET earned_credits = earned_credits + ${amount} WHERE id = ${userId}`;
     if (result.rowCount === 0) throw new Error('User not found');
   }
 
   public async getEarnedCredits(userId: string): Promise<number> {
+    await this.initVercelPostgres();
     const result = await sql`SELECT earned_credits FROM users WHERE id = ${userId}`;
     const postgresResult = this.handlePostgresResult<{ earned_credits: number }>(result);
     return postgresResult?.earned_credits || 0;
   }
 
   public async addClaimedCredits(userId: string, amount: number): Promise<void> {
+    await this.initVercelPostgres();
     const result = await sql`UPDATE users SET claimed_credits = claimed_credits + ${amount} WHERE id = ${userId}`;
     if (result.rowCount === 0) throw new Error('User not found');
   }
 
   public async getClaimedCredits(userId: string): Promise<number> {
+    await this.initVercelPostgres();
     const result = await sql`SELECT claimed_credits FROM users WHERE id = ${userId}`;
     const postgresResult = this.handlePostgresResult<{ claimed_credits: number }>(result);
     return postgresResult?.claimed_credits || 0;
   }
 
   public async getAllUsers(): Promise<User[]> {
+    await this.initVercelPostgres();
     const result = await sql`
       SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isParent"
       FROM users
