@@ -203,7 +203,7 @@ export class ParentController implements IParentController {
   public async updateCredits(req: Request, res: Response): Promise<any> {
     try {
       const { userId } = req.params;
-      const { field, amount, type, earnedCredits, claimedCredits, earnedDelta, claimedDelta } = req.body;
+      const { field, amount, earnedCredits, claimedCredits, earnedDelta, claimedDelta } = req.body;
 
       const hasAnyCreditField = earnedCredits !== undefined || claimedCredits !== undefined ||
                                 earnedDelta !== undefined || claimedDelta !== undefined || field !== undefined;
@@ -227,14 +227,6 @@ export class ParentController implements IParentController {
           });
         }
 
-        if (type !== undefined && type !== 'add' && type !== 'subtract' && type !== 'set') {
-          return res.status(400).json({
-            error: {
-              message: 'Type must be either "add", "subtract", or "set"',
-              code: 'INVALID_TYPE'
-            }
-          });
-        }
 
         const user = await this.getUserByIdOrUsername(userId);
         if (!user) {
@@ -249,14 +241,6 @@ export class ParentController implements IParentController {
         const currentEarned = user.earned_credits || 0;
         const currentClaimed = user.claimed_credits || 0;
         let targetAmount = amount;
-
-        if (type === 'set') {
-          targetAmount = amount;
-        } else if (type === 'add') {
-          targetAmount = currentEarned + amount;
-        } else if (type === 'subtract') {
-          targetAmount = currentEarned - amount;
-        }
 
         targetAmount = Math.max(0, targetAmount);
 
@@ -290,8 +274,7 @@ export class ParentController implements IParentController {
           earnedCredits: field === 'earned' ? targetAmount : currentEarned,
           claimedCredits: field === 'claimed' ? targetAmount : currentClaimed,
           field,
-          amount: targetAmount,
-          type
+          amount: targetAmount
         });
         return;
       }
