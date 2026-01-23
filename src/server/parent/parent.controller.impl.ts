@@ -251,15 +251,6 @@ export class ParentController implements IParentController {
         const targetAmount = Math.max(0, amount);
 
         if (field === 'earned') {
-          if (targetAmount < currentEarned) {
-            return res.status(409).json({
-              error: {
-                message: 'Cannot set earned credits below current earned credits',
-                code: 'INVALID_AMOUNT'
-              }
-            });
-          }
-
           await this.databaseService.addEarnedCredits(user.id, targetAmount - currentEarned);
         } else if (field === 'claimed') {
           if (targetAmount > currentEarned) {
