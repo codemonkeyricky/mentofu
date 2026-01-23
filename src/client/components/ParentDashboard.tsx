@@ -308,13 +308,18 @@ const ParentDashboard: React.FC = () => {
                   <td>
                     <div className="multiplier-list">
                       {user.multipliers && Object.entries(user.multipliers).map(([quizType, multiplier]) => {
+                        const quizName = quizType === 'simple-math' ? 'Multiplication' :
+                                         quizType === 'simple-math-2' ? 'Division' :
+                                         quizType === 'simple-math-3' ? 'Fraction Comparison' :
+                                         quizType === 'simple-math-4' ? 'BODMAS' :
+                                         quizType === 'simple-math-5' ? 'Factors' : quizType;
                         const isEditing = editingMultiplier?.userId === user.id && editingMultiplier?.quizType === quizType;
 
                         return (
                           <div key={quizType} className="multiplier-item">
                             {isEditing ? (
                               <div className="multiplier-edit">
-                                <span className="quiz-type-label">{quizType}: </span>
+                                <span className="quiz-type-label">{quizName}: </span>
                                 <input
                                   type="number"
                                   min="0"
@@ -346,7 +351,7 @@ const ParentDashboard: React.FC = () => {
                               </div>
                             ) : (
                               <div className="multiplier-display">
-                                <span className="quiz-type-label">{quizType}: </span>
+                                <span className="quiz-type-label">{quizName}: </span>
                                 <span className="multiplier-value">{multiplier}</span>
                                 <button
                                   onClick={() => startEditing(user.id, quizType, multiplier)}
@@ -361,8 +366,8 @@ const ParentDashboard: React.FC = () => {
                       })}
                     </div>
                   </td>
-                   <td>
-                     {editingCredits?.userId === user.id && editingCredits?.field === 'earned' ? (
+                    <td>
+                      {editingCredits?.userId === user.id && editingCredits?.field === 'earned' ? (
                        <div className="credit-edit">
                          <div className="credit-edit-row">
                            <span className="credit-label">Add Earned:</span>
