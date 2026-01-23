@@ -87,3 +87,30 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     });
   }
 });
+
+// POST /auth/renew - Renew JWT token before expiry
+authRouter.post('/renew', async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        error: {
+          message: 'User ID is required',
+          code: 'MISSING_USER_ID'
+        }
+      });
+    }
+
+    const newToken = await authService.renewToken(userId);
+    res.status(200).json({ token: newToken });
+  } catch (error: any) {
+    console.error('Error renewing token:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to renew token',
+        code: 'TOKEN_RENEWAL_FAILED'
+      }
+    });
+  }
+});

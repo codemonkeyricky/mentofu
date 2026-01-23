@@ -16,3 +16,9 @@ export interface AuthResponse {
     isParent?: boolean;
   };
 }
+
+export interface DecodedToken {
+  userId: string;
+  username: string;
+  exp: number;
+}

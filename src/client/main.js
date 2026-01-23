@@ -123,6 +123,11 @@ export class MathMasterPro {
             await this.registerUser(username, password);
         });
 
+        // Start token renewal check
+        setInterval(() => {
+            this.checkAndRenewToken();
+        }, 300000);
+
         // Quiz Event Listeners - Updated to use data attributes
         // Handle start quiz buttons in the quiz cards
         const startQuizButtons = document.querySelectorAll('.start-quiz-btn');
@@ -324,9 +329,42 @@ export class MathMasterPro {
         if (token) {
             this.currentToken = token;
             this.currentUser = JSON.parse(localStorage.getItem('user')) || {};
+            this.checkAndRenewToken();
             this.showAuthenticatedScreens();
         } else {
             this.showAuthScreens();
+        }
+    }
+
+    async checkAndRenewToken() {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        try {
+            const decoded = authService.verifyToken(token);
+            if (!decoded) {
+                this.logoutUser();
+                return;
+            }
+
+            if (authService.isTokenExpiringSoon()) {
+                const newToken = await fetch('/auth/renew', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ userId: decoded.userId })
+                }).then(res => res.json());
+
+                if (newToken.token) {
+                    localStorage.setItem('token', newToken.token);
+                    this.currentToken = newToken.token;
+                    console.log('Token renewed successfully');
+                }
+            }
+        } catch (error) {
+            console.error('Token renewal failed:', error);
         }
     }
 
