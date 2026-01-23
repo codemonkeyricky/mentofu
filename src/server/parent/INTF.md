@@ -41,9 +41,17 @@ All endpoints require:
 ### 2. Update User Credits
 **Endpoint**: `PATCH /parent/users/:userId/credits`
 
-**Description**: Updates a user's credit balances.
+**Description**: Updates a user's credit balances. Supports both new simplified format and legacy format.
 
-**Request Body**:
+**New Format (Recommended)**:
+```json
+{
+  "field": "earned" | "claimed",
+  "amount": "number"
+}
+```
+
+**Legacy Format (Deprecated)**:
 ```json
 {
   "earnedCredits": "number",
@@ -55,7 +63,8 @@ All endpoints require:
 
 **Request Validation**:
 - At least one credit field must be provided
-- Credit values must be non-negative integers
+- For new format: `field` must be "earned" or "claimed", `amount` must be non-negative integer
+- For legacy format: credit values must be non-negative integers
 - `claimedCredits` cannot exceed `earnedCredits`
 
 **Response**:
@@ -64,7 +73,9 @@ All endpoints require:
   "message": "Credits updated successfully",
   "userId": "string",
   "earnedCredits": "number",
-  "claimedCredits": "number"
+  "claimedCredits": "number",
+  "field": "string",  // Only present for new format
+  "amount": "number"  // Only present for new format
 }
 ```
 

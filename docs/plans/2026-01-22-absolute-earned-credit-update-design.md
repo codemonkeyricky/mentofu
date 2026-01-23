@@ -129,3 +129,13 @@ if (field === 'earned') {
 4. Documentation - Update API documentation if needed
 
 This design follows existing patterns in the codebase and implements the absolute earned credit update functionality as requested.
+
+## Implementation Notes
+
+Completed on 2026-01-22 with the following changes:
+
+1. **Frontend**: Removed credit type dropdown, simplified to absolute value input
+2. **Backend**: Removed type parameter and validation, simplified to absolute values only
+3. **API**: Updated to accept only `{ field, amount }` without `type` parameter
+4. **Tests**: Updated existing tests and added new test for absolute value setting
+5. **Code Quality**: Fixed frontend validation to allow zero values and added integer validation to match backend

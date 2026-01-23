@@ -208,8 +208,12 @@ const ParentDashboard: React.FC = () => {
       }
 
       const amountValue = amount;
-      if (amountValue <= 0) {
-        alert('Please enter a valid amount');
+      if (amountValue < 0) {
+        alert('Please enter a non-negative amount');
+        return;
+      }
+      if (!Number.isInteger(amountValue)) {
+        alert('Please enter an integer value');
         return;
       }
 
@@ -368,7 +372,7 @@ const ParentDashboard: React.FC = () => {
                            <span className="credit-label">Set {editingCredits?.field === 'earned' ? 'Earned' : 'Claimed'} Credits:</span>
                            <input
                              type="number"
-                             min="1"
+                             min="0"
                              step="1"
                              value={creditAmount}
                              onChange={(e) => setCreditAmount(e.target.value)}
@@ -376,8 +380,8 @@ const ParentDashboard: React.FC = () => {
                              className="credit-amount-input"
                            />
                            <button
-                             onClick={() => updateCredits(user.id, editingCredits!.field, parseInt(creditAmount) || 0)}
-                             disabled={updateLoading || parseInt(creditAmount) <= 0}
+                             onClick={() => updateCredits(user.id, editingCredits!.field, Number(creditAmount) || 0)}
+                             disabled={updateLoading || Number(creditAmount) < 0}
                              className="btn btn-sm btn-success"
                            >
                              {updateLoading ? 'Saving...' : 'Save'}
