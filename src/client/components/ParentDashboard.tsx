@@ -365,7 +365,7 @@ const ParentDashboard: React.FC = () => {
                       {editingCredits?.userId === user.id && (editingCredits?.field === 'earned' || editingCredits?.field === 'claimed') ? (
                        <div className="credit-edit">
                          <div className="credit-edit-row">
-                           <span className="credit-label">Set {editingCredits?.field === 'earned' ? 'Earned' : 'Claimed'}:</span>
+                           <span className="credit-label">Set {editingCredits?.field === 'earned' ? 'Earned' : 'Claimed'} Credits:</span>
                            <input
                              type="number"
                              min="1"
