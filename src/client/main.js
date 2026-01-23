@@ -1,5 +1,6 @@
 import QuizManager from './modules/quiz-manager.js';
 import AdminModule from './parent/parent-main.js';
+import AuthUtils from './auth-utils.js';
 
 // Main Application Entry Point - Professional Version
 export class MathMasterPro {
@@ -341,13 +342,13 @@ export class MathMasterPro {
         if (!token) return;
 
         try {
-            const decoded = authService.verifyToken(token);
+            const decoded = AuthUtils.verifyToken(token);
             if (!decoded) {
                 this.logoutUser();
                 return;
             }
 
-            if (authService.isTokenExpiringSoon()) {
+            if (AuthUtils.isTokenExpiringSoon(token)) {
                 const newToken = await fetch('/auth/renew', {
                     method: 'POST',
                     headers: {

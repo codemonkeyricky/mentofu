@@ -5,10 +5,10 @@ import { DatabaseService } from '../../database/interface/database.service';
 export type SessionType = Session | SimpleWordsSession;
 
 export interface ISessionService {
-  createQuizSession(userId: string, quizType: string): SessionType;
+  createQuizSession(userId: string, quizType: string): Promise<SessionType>;
   validateQuizAnswers(sessionId: string, userId: string, userAnswers: (number | string)[], quizType: string): Promise<{ score: number; total: number }>;
-  getSession(sessionId: string): Session | undefined;
-  getSimpleWordsSession(sessionId: string): SimpleWordsSession | undefined;
+  getSession(sessionId: string): Promise<Session | undefined>;
+  getSimpleWordsSession(sessionId: string): Promise<SimpleWordsSession | undefined>;
   deleteSession(sessionId: string): void;
   deleteSimpleWordsSession(sessionId: string): void;
   cleanupExpiredSessions(): void;

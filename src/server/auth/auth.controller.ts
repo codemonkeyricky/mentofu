@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authService } from './auth.service';
 import { AuthResponse } from './auth.types';
+import { authenticate } from '../middleware/auth.middleware';
 
 export const authRouter = Router();
 
@@ -89,8 +90,9 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 });
 
 // POST /auth/renew - Renew JWT token before expiry
-authRouter.post('/renew', async (req: Request, res: Response) => {
+authRouter.post('/renew', authenticate, async (req: Request, res: Response) => {
   try {
+    const user = (req as any).user;
     const { userId } = req.body;
 
     if (!userId) {
@@ -98,6 +100,16 @@ authRouter.post('/renew', async (req: Request, res: Response) => {
         error: {
           message: 'User ID is required',
           code: 'MISSING_USER_ID'
+        }
+      });
+    }
+
+    // Verify the userId in the request matches the userId in the token
+    if (user.userId !== userId) {
+      return res.status(403).json({
+        error: {
+          message: 'Cannot renew token for another user',
+          code: 'UNAUTHORIZED_RENEWAL'
         }
       });
     }

@@ -109,7 +109,7 @@ class SessionService implements ISessionService {
     if (!this.databaseService) return;
 
     const multiplier = await this.getUserMultiplier(userId, quizType).catch(() => 1.0);
-    await this.databaseService.saveSessionScore(userId, sessionId, score, total, quizType, multiplier);
+    // Note: score is already saved by markSessionAsCompleted, just add credits
     await creditService.addEarnedCredits(userId, multiplier * score);
   }
 
@@ -122,7 +122,7 @@ class SessionService implements ISessionService {
   }
 
   // ------------------------------ Public Methods ------------------------------
-  public createQuizSession(userId: string, quizType: string): SessionType {
+  public async createQuizSession(userId: string, quizType: string): Promise<SessionType> {
     const sessionId = generateUUID();
 
     if (quizType === 'simple-words') {
@@ -134,6 +134,20 @@ class SessionService implements ISessionService {
         updatedAt: new Date(),
       };
       this.createTimedSession(sessionId, session, this.simpleWordsSessions, this.simpleWordsSessionTimeouts);
+      // Save to database for persistence across serverless functions
+      if (this.databaseService) {
+        try {
+          await this.databaseService.saveSession(session, quizType);
+        } catch (error) {
+          console.error('Failed to save session to database:', error);
+          // On Vercel (production), we need the database to work
+          if (process.env.POSTGRES_URL) {
+            throw new Error('Failed to persist quiz session. Please try again.');
+          }
+          // In local development, continue with memory cache only
+          console.warn('Database save failed, continuing with memory cache only');
+        }
+      }
       return session;
     }
 
@@ -148,6 +162,20 @@ class SessionService implements ISessionService {
       updatedAt: new Date(),
     };
     this.createTimedSession(sessionId, session, this.sessions, this.sessionTimeouts);
+    // Save to database for persistence across serverless functions
+    if (this.databaseService) {
+      try {
+        await this.databaseService.saveSession(session, quizType);
+      } catch (error) {
+        console.error('Failed to save session to database:', error);
+        // On Vercel (production), we need the database to work
+        if (process.env.POSTGRES_URL) {
+          throw new Error('Failed to persist quiz session. Please try again.');
+        }
+        // In local development, continue with memory cache only
+        console.warn('Database save failed, continuing with memory cache only');
+      }
+    }
     return session;
   }
 
@@ -160,12 +188,36 @@ class SessionService implements ISessionService {
     return this.validateMathSession(sessionId, userId, userAnswers, quizType, config);
   }
 
-  public getSession(sessionId: string): Session | undefined {
-    return this.touchSession(sessionId, this.sessions);
+  public async getSession(sessionId: string): Promise<Session | undefined> {
+    let session = this.touchSession(sessionId, this.sessions);
+
+    // If not in memory, try database
+    if (!session && this.databaseService) {
+      const dbSession = await this.databaseService.getSession(sessionId);
+      if (dbSession && 'questions' in dbSession) {
+        session = dbSession as Session;
+        // Cache in memory for subsequent access
+        this.createTimedSession(sessionId, session, this.sessions, this.sessionTimeouts);
+      }
+    }
+
+    return session;
   }
 
-  public getSimpleWordsSession(sessionId: string): SimpleWordsSession | undefined {
-    return this.touchSession(sessionId, this.simpleWordsSessions);
+  public async getSimpleWordsSession(sessionId: string): Promise<SimpleWordsSession | undefined> {
+    let session = this.touchSession(sessionId, this.simpleWordsSessions);
+
+    // If not in memory, try database
+    if (!session && this.databaseService) {
+      const dbSession = await this.databaseService.getSession(sessionId);
+      if (dbSession && 'words' in dbSession) {
+        session = dbSession as SimpleWordsSession;
+        // Cache in memory for subsequent access
+        this.createTimedSession(sessionId, session, this.simpleWordsSessions, this.simpleWordsSessionTimeouts);
+      }
+    }
+
+    return session;
   }
 
   public deleteSession(sessionId: string): void {
@@ -263,7 +315,19 @@ class SessionService implements ISessionService {
     quizType: string,
     config: MathValidationConfig
   ): Promise<{ score: number; total: number }> {
-    const session = this.sessions.get(sessionId);
+    // First try memory cache
+    let session = this.sessions.get(sessionId);
+
+    // If not in memory, try database (for serverless environments)
+    if (!session && this.databaseService) {
+      const dbSession = await this.databaseService.getSession(sessionId);
+      if (dbSession && 'questions' in dbSession) {
+        session = dbSession as Session;
+        // Cache in memory for subsequent access
+        this.createTimedSession(sessionId, session, this.sessions, this.sessionTimeouts);
+      }
+    }
+
     if (!session) throw new Error('Session not found');
     if (session.userId !== userId) throw new Error('Unauthorized access to session');
 
@@ -273,6 +337,17 @@ class SessionService implements ISessionService {
     }, 0);
 
     const result = { score: correctCount, total: session.questions.length };
+
+    // Mark session as completed in database
+    if (this.databaseService) {
+      const multiplier = await this.getUserMultiplier(userId, quizType).catch(() => 1.0);
+      await this.databaseService.markSessionAsCompleted(sessionId, result.score, result.total, multiplier);
+    }
+
+    // Remove from memory cache after validation
+    this.deleteSessionFromMap(sessionId, this.sessions, this.sessionTimeouts);
+
+    // Also save score via legacy method for backward compatibility
     await this.saveScore(userId, sessionId, result.score, result.total, quizType);
     return result;
   }
@@ -282,7 +357,19 @@ class SessionService implements ISessionService {
     userId: string,
     userAnswers: string[]
   ): Promise<{ score: number; total: number }> {
-    const session = this.simpleWordsSessions.get(sessionId);
+    // First try memory cache
+    let session = this.simpleWordsSessions.get(sessionId);
+
+    // If not in memory, try database (for serverless environments)
+    if (!session && this.databaseService) {
+      const dbSession = await this.databaseService.getSession(sessionId);
+      if (dbSession && 'words' in dbSession) {
+        session = dbSession as SimpleWordsSession;
+        // Cache in memory for subsequent access
+        this.createTimedSession(sessionId, session, this.simpleWordsSessions, this.simpleWordsSessionTimeouts);
+      }
+    }
+
     if (!session) throw new Error('Session not found');
     if (session.userId !== userId) throw new Error('Unauthorized access to session');
 
@@ -291,6 +378,17 @@ class SessionService implements ISessionService {
     }, 0);
 
     const result = { score: correctCount, total: session.words.length };
+
+    // Mark session as completed in database
+    if (this.databaseService) {
+      const multiplier = await this.getUserMultiplier(userId, 'simple-words').catch(() => 1.0);
+      await this.databaseService.markSessionAsCompleted(sessionId, result.score, result.total, multiplier);
+    }
+
+    // Remove from memory cache after validation
+    this.deleteSessionFromMap(sessionId, this.simpleWordsSessions, this.simpleWordsSessionTimeouts);
+
+    // Also save score via legacy method for backward compatibility
     await this.saveScore(userId, sessionId, result.score, result.total, 'simple-words');
     return result;
   }

@@ -47,6 +47,20 @@ export class PostgresDatabase implements DatabaseOperations {
       `;
 
       await sql`
+        CREATE TABLE IF NOT EXISTS sessions (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          quiz_type TEXT NOT NULL,
+          questions JSONB NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          completed BOOLEAN DEFAULT FALSE,
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+      `;
+
+      await sql`CREATE INDEX IF NOT EXISTS idx_sessions_id_completed ON sessions(id, completed)`;
+
+      await sql`
         CREATE TABLE IF NOT EXISTS session_scores (
           id TEXT PRIMARY KEY,
           user_id TEXT NOT NULL,
@@ -141,6 +155,79 @@ export class PostgresDatabase implements DatabaseOperations {
       FROM users WHERE id = ${userId}
     `;
     return this.handlePostgresResult<User>(result);
+  }
+
+  public async saveSession(session: any, quizType: string): Promise<void> {
+    const isSimpleWords = 'words' in session;
+    const questions = isSimpleWords ? { words: session.words } : { questions: session.questions };
+
+    await sql`
+      INSERT INTO sessions (id, user_id, quiz_type, questions, created_at, completed)
+      VALUES (${session.id}, ${session.userId}, ${quizType}, ${JSON.stringify(questions)}::jsonb, ${session.createdAt}, FALSE)
+    `;
+  }
+
+  public async getSession(sessionId: string): Promise<any | null> {
+    try {
+      const result = await sql`
+        SELECT id, user_id as "userId", quiz_type as "quizType", questions, created_at as "createdAt", completed
+        FROM sessions WHERE id = ${sessionId} AND completed = FALSE
+      `;
+
+      if (!result.rows.length) return null;
+
+      const row = result.rows[0];
+      const questionsData = row.questions;
+
+      if (row.quizType === 'simple-words') {
+        return {
+          id: row.id,
+          userId: row.userId,
+          words: questionsData.words,
+          createdAt: new Date(row.createdAt),
+          updatedAt: new Date(row.createdAt)
+        };
+      } else {
+        return {
+          id: row.id,
+          userId: row.userId,
+          questions: questionsData.questions,
+          createdAt: new Date(row.createdAt),
+          updatedAt: new Date(row.createdAt)
+        };
+      }
+    } catch (error) {
+      console.error('Error getting session:', error);
+      return null;
+    }
+  }
+
+  public async deleteSession(sessionId: string): Promise<void> {
+    await sql`DELETE FROM sessions WHERE id = ${sessionId}`;
+  }
+
+  public async markSessionAsCompleted(sessionId: string, score: number, total: number, multiplier: number): Promise<void> {
+    // Atomically mark session as completed and get its data
+    const sessionResult = await sql`
+      UPDATE sessions
+      SET completed = TRUE
+      WHERE id = ${sessionId} AND completed = FALSE
+      RETURNING user_id, quiz_type
+    `;
+
+    if (!sessionResult.rows.length) {
+      // Session not found or already completed
+      throw new Error('Session not found or already completed');
+    }
+
+    const session = sessionResult.rows[0];
+
+    // Create score record
+    const scoreId = this.generateUUID();
+    await sql`
+      INSERT INTO session_scores (id, user_id, session_id, score, total, session_type, multiplier)
+      VALUES (${scoreId}, ${session.user_id}, ${sessionId}, ${score}, ${total}, ${session.quiz_type}, ${multiplier})
+    `;
   }
 
   public async saveSessionScore(userId: string, sessionId: string, score: number, total: number, sessionType: string, multiplier: number = 1.0): Promise<void> {

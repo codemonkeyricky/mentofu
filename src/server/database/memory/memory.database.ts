@@ -20,6 +20,7 @@ class MemoryDatabase {
 
   private init(): void {
     if (!this.db.has('users')) this.db.set('users', new Map());
+    if (!this.db.has('sessions')) this.db.set('sessions', new Map());
     if (!this.db.has('session_scores')) this.db.set('session_scores', new Map());
     if (!this.db.has('user_multipliers')) this.db.set('user_multipliers', new Map());
   }

@@ -1,4 +1,6 @@
 import { User } from '../../auth/auth.types';
+import { Session } from '../../session/session.types';
+import { SimpleWordsSession } from '../../session/simple.words.types';
 import { DatabaseOperations } from '../interface/database.interface';
 import { PostgresDatabase } from '../postgres/postgres.database';
 import { MemoryDatabase } from '../memory/memory.database';
@@ -34,6 +36,10 @@ export class DatabaseService implements DatabaseOperations {
     return this.memoryDB!.getTable('user_multipliers');
   }
 
+  private getSessionsTable() {
+    return this.memoryDB!.getTable('sessions');
+  }
+
   private async ensureAdminUserExists(): Promise<void> {
     if (this.databaseType === 'memory') {
       const users = this.getUsersTable();
@@ -57,6 +63,61 @@ export class DatabaseService implements DatabaseOperations {
         };
         users.set('parent-user-id', adminUser);
       }
+    }
+  }
+
+  public async saveSession(session: Session | SimpleWordsSession, quizType: string): Promise<void> {
+    if (this.databaseType === 'memory') {
+      const sessions = this.getSessionsTable();
+      sessions.set(session.id, {
+        ...session,
+        quizType,
+        completed: false
+      });
+    } else {
+      const postgresDB = new PostgresDatabase();
+      await postgresDB.saveSession(session, quizType);
+    }
+  }
+
+  public async getSession(sessionId: string): Promise<Session | SimpleWordsSession | null> {
+    if (this.databaseType === 'memory') {
+      const session = this.getSessionsTable().get(sessionId);
+      if (!session || session.completed) return null;
+
+      // Remove the quizType and completed fields before returning
+      const { quizType, completed, ...sessionData } = session;
+      return sessionData;
+    } else {
+      const postgresDB = new PostgresDatabase();
+      return postgresDB.getSession(sessionId);
+    }
+  }
+
+  public async deleteSession(sessionId: string): Promise<void> {
+    if (this.databaseType === 'memory') {
+      this.getSessionsTable().delete(sessionId);
+    } else {
+      const postgresDB = new PostgresDatabase();
+      await postgresDB.deleteSession(sessionId);
+    }
+  }
+
+  public async markSessionAsCompleted(sessionId: string, score: number, total: number, multiplier: number): Promise<void> {
+    if (this.databaseType === 'memory') {
+      const session = this.getSessionsTable().get(sessionId);
+      if (!session || session.completed) {
+        throw new Error('Session not found or already completed');
+      }
+
+      // Mark as completed in sessions table
+      session.completed = true;
+
+      // Also save to session_scores table for backward compatibility
+      await this.saveSessionScore(session.userId, sessionId, score, total, session.quizType, multiplier);
+    } else {
+      const postgresDB = new PostgresDatabase();
+      await postgresDB.markSessionAsCompleted(sessionId, score, total, multiplier);
     }
   }
 

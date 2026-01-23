@@ -100,8 +100,14 @@ class AuthService {
   }
 
   public async renewToken(userId: string): Promise<string> {
+    // Look up user to get their actual username and parent status
+    const user = await this.db.findUserById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
     const newToken = jwt.sign(
-      { userId: userId, username: 'user' },
+      { userId: userId, username: user.username, isParent: user.isParent || false },
       this.JWT_SECRET,
       { expiresIn: this.JWT_EXPIRES_IN } as jwt.SignOptions
     );

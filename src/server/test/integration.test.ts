@@ -222,4 +222,116 @@ describe('Integration Tests', () => {
       expect(userInfoResponse.body.multipliers).toHaveProperty('simple-math', 3);
     });
   });
+
+  describe('Token Renewal', () => {
+    it('should renew a valid token', async () => {
+      // Create a test user
+      const username = 'renewuser' + Date.now();
+
+      // Register
+      const registerResponse = await request(app)
+        .post('/auth/register')
+        .send({
+          username: username,
+          password: 'securepassword123'
+        })
+        .expect(201);
+
+      const userId = registerResponse.body.user.id;
+
+      // Login to get token
+      const loginResponse = await request(app)
+        .post('/auth/login')
+        .send({
+          username: username,
+          password: 'securepassword123'
+        })
+        .expect(200);
+
+      const originalToken = loginResponse.body.token;
+
+      // Renew token
+      const renewResponse = await request(app)
+        .post('/auth/renew')
+        .set('Authorization', `Bearer ${originalToken}`)
+        .send({ userId })
+        .expect(200);
+
+      expect(renewResponse.body).toHaveProperty('token');
+      expect(typeof renewResponse.body.token).toBe('string');
+      expect(renewResponse.body.token).not.toBe(originalToken);
+
+      // Verify new token works
+      const verifyResponse = await request(app)
+        .get('/session/simple-math')
+        .set('Authorization', `Bearer ${renewResponse.body.token}`)
+        .expect(200);
+
+      expect(verifyResponse.body).toHaveProperty('sessionId');
+    });
+
+    it('should return 400 for missing userId', async () => {
+      const username = 'renewuser2' + Date.now();
+
+      // Register and login
+      await request(app)
+        .post('/auth/register')
+        .send({
+          username: username,
+          password: 'securepassword123'
+        })
+        .expect(201);
+
+      const loginResponse = await request(app)
+        .post('/auth/login')
+        .send({
+          username: username,
+          password: 'securepassword123'
+        })
+        .expect(200);
+
+      const token = loginResponse.body.token;
+
+      // Try to renew without userId
+      const renewResponse = await request(app)
+        .post('/auth/renew')
+        .set('Authorization', `Bearer ${token}`)
+        .send({})
+        .expect(400);
+
+      expect(renewResponse.body.error.code).toBe('MISSING_USER_ID');
+    });
+
+    it('should return 500 for non-existent user', async () => {
+      const username = 'renewuser3' + Date.now();
+
+      // Register and login
+      await request(app)
+        .post('/auth/register')
+        .send({
+          username: username,
+          password: 'securepassword123'
+        })
+        .expect(201);
+
+      const loginResponse = await request(app)
+        .post('/auth/login')
+        .send({
+          username: username,
+          password: 'securepassword123'
+        })
+        .expect(200);
+
+      const token = loginResponse.body.token;
+
+      // Try to renew with non-existent userId (should fail because userId doesn't match token)
+      const renewResponse = await request(app)
+        .post('/auth/renew')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ userId: 'non-existent-user-id' })
+        .expect(403);
+
+      expect(renewResponse.body.error.code).toBe('UNAUTHORIZED_RENEWAL');
+    });
+  });
 });

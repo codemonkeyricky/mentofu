@@ -17,12 +17,12 @@ const quizTypes = [
 const quizTypePattern = `:quizType(${quizTypes.join('|')})`;
 
 // Create new quiz session
-sessionRouter.get(`/${quizTypePattern}`, authenticate, (req: Request, res: Response) => {
+sessionRouter.get(`/${quizTypePattern}`, authenticate, async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
     const { quizType } = req.params;
 
-    const session = sessionService.createQuizSession(user.userId, quizType);
+    const session = await sessionService.createQuizSession(user.userId, quizType);
 
     if ('words' in session) {
       res.status(200).json({
