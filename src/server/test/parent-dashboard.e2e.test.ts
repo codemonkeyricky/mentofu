@@ -95,8 +95,17 @@ describe('Parent Dashboard E2E Test', () => {
         .patch(`/parent/users/${user1.id}/credits`)
         .set('Authorization', `Bearer ${parentToken}`)
         .send({
-          earnedCredits: 100,
-          claimedCredits: 50
+          field: 'earned',
+          amount: 100
+        })
+        .expect(200);
+
+      await request(app)
+        .patch(`/parent/users/${user1.id}/credits`)
+        .set('Authorization', `Bearer ${parentToken}`)
+        .send({
+          field: 'claimed',
+          amount: 50
         })
         .expect(200);
 
@@ -104,8 +113,17 @@ describe('Parent Dashboard E2E Test', () => {
         .patch(`/parent/users/${user2.id}/credits`)
         .set('Authorization', `Bearer ${parentToken}`)
         .send({
-          earnedCredits: 200,
-          claimedCredits: 100
+          field: 'earned',
+          amount: 200
+        })
+        .expect(200);
+
+      await request(app)
+        .patch(`/parent/users/${user2.id}/credits`)
+        .set('Authorization', `Bearer ${parentToken}`)
+        .send({
+          field: 'claimed',
+          amount: 100
         })
         .expect(200);
 
@@ -358,20 +376,37 @@ describe('Parent Dashboard E2E Test', () => {
 
       parentToken = loginResponse.body.token;
 
-      // Update credits with absolute values
-      const updateResponse = await request(app)
+      // Update earned credits with absolute value
+      const earnedUpdateResponse = await request(app)
         .patch(`/parent/users/${regularUserId}/credits`)
         .set('Authorization', `Bearer ${parentToken}`)
         .send({
-          earnedCredits: 150,
-          claimedCredits: 75
+          field: 'earned',
+          amount: 150
         })
         .expect(200);
 
-      expect(updateResponse.body).toHaveProperty('message', 'Credits updated successfully');
-      expect(updateResponse.body).toHaveProperty('userId', regularUserId);
-      expect(updateResponse.body).toHaveProperty('earnedCredits', 150);
-      expect(updateResponse.body).toHaveProperty('claimedCredits', 75);
+      expect(earnedUpdateResponse.body).toHaveProperty('message', 'Credits updated successfully');
+      expect(earnedUpdateResponse.body).toHaveProperty('userId', regularUserId);
+      expect(earnedUpdateResponse.body).toHaveProperty('earnedCredits', 150);
+      expect(earnedUpdateResponse.body).toHaveProperty('field', 'earned');
+      expect(earnedUpdateResponse.body).toHaveProperty('amount', 150);
+
+      // Update claimed credits with absolute value
+      const claimedUpdateResponse = await request(app)
+        .patch(`/parent/users/${regularUserId}/credits`)
+        .set('Authorization', `Bearer ${parentToken}`)
+        .send({
+          field: 'claimed',
+          amount: 75
+        })
+        .expect(200);
+
+      expect(claimedUpdateResponse.body).toHaveProperty('message', 'Credits updated successfully');
+      expect(claimedUpdateResponse.body).toHaveProperty('userId', regularUserId);
+      expect(claimedUpdateResponse.body).toHaveProperty('claimedCredits', 75);
+      expect(claimedUpdateResponse.body).toHaveProperty('field', 'claimed');
+      expect(claimedUpdateResponse.body).toHaveProperty('amount', 75);
 
       // Verify credits were updated in database
       const dbService = new DatabaseService();
@@ -410,17 +445,27 @@ describe('Parent Dashboard E2E Test', () => {
 
       parentToken = loginResponse.body.token;
 
+      // First set earned credits to 100
+      await request(app)
+        .patch(`/parent/users/${regularUserId}/credits`)
+        .set('Authorization', `Bearer ${parentToken}`)
+        .send({
+          field: 'earned',
+          amount: 100
+        })
+        .expect(200);
+
       // Try to set claimed credits higher than earned credits
       const updateResponse = await request(app)
         .patch(`/parent/users/${regularUserId}/credits`)
         .set('Authorization', `Bearer ${parentToken}`)
         .send({
-          earnedCredits: 100,
-          claimedCredits: 150
+          field: 'claimed',
+          amount: 150  // This should fail - exceeds earned credits of 100
         })
         .expect(409);
 
-      expect(updateResponse.body.error).toHaveProperty('message', 'Claimed credits cannot exceed earned credits');
+      expect(updateResponse.body.error).toHaveProperty('message', 'Cannot set claimed credits above earned credits');
     });
   });
 
@@ -458,8 +503,8 @@ describe('Parent Dashboard E2E Test', () => {
         .patch('/parent/users/nonexistentuser/credits')
         .set('Authorization', `Bearer ${parentToken}`)
         .send({
-          earnedCredits: 100,
-          claimedCredits: 50
+          field: 'earned',
+          amount: 100
         })
         .expect(404);
 
@@ -520,8 +565,8 @@ describe('Parent Dashboard E2E Test', () => {
         .patch(`/parent/users/${regularUserId}/credits`)
         .set('Authorization', `Bearer ${regularUserToken}`)
         .send({
-          earnedCredits: 100,
-          claimedCredits: 50
+          field: 'earned',
+          amount: 100
         })
         .expect(403);
 

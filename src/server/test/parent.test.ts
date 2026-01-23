@@ -356,20 +356,37 @@ describe('Admin API Integration Tests', () => {
 
       const userId = userRegister.body.user.id;
 
-      // Update credits with absolute values
-      const updateResponse = await request(app)
+      // Update earned credits with absolute value
+      const earnedUpdateResponse = await request(app)
         .patch(`/parent/users/${userId}/credits`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          earnedCredits: 150,
-          claimedCredits: 75
+          field: 'earned',
+          amount: 150
         })
         .expect(200);
 
-      expect(updateResponse.body).toHaveProperty('message', 'Credits updated successfully');
-      expect(updateResponse.body).toHaveProperty('userId', userId);
-      expect(updateResponse.body).toHaveProperty('earnedCredits', 150);
-      expect(updateResponse.body).toHaveProperty('claimedCredits', 75);
+      expect(earnedUpdateResponse.body).toHaveProperty('message', 'Credits updated successfully');
+      expect(earnedUpdateResponse.body).toHaveProperty('userId', userId);
+      expect(earnedUpdateResponse.body).toHaveProperty('earnedCredits', 150);
+      expect(earnedUpdateResponse.body).toHaveProperty('field', 'earned');
+      expect(earnedUpdateResponse.body).toHaveProperty('amount', 150);
+
+      // Update claimed credits with absolute value
+      const claimedUpdateResponse = await request(app)
+        .patch(`/parent/users/${userId}/credits`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          field: 'claimed',
+          amount: 75
+        })
+        .expect(200);
+
+      expect(claimedUpdateResponse.body).toHaveProperty('message', 'Credits updated successfully');
+      expect(claimedUpdateResponse.body).toHaveProperty('userId', userId);
+      expect(claimedUpdateResponse.body).toHaveProperty('claimedCredits', 75);
+      expect(claimedUpdateResponse.body).toHaveProperty('field', 'claimed');
+      expect(claimedUpdateResponse.body).toHaveProperty('amount', 75);
 
       // Verify the credits were actually set in the database
       const dbService = new DatabaseService();
@@ -379,69 +396,6 @@ describe('Admin API Integration Tests', () => {
       expect(claimed).toBe(75);
     });
 
-    it('should update user credits with delta values', async () => {
-      // Register and login an parent user
-      const adminRegister = await request(app)
-        .post('/auth/register')
-        .send({
-          username: 'adminuser',
-          password: 'adminpassword123',
-          isParent: true
-        })
-        .expect(201);
-
-      const adminLogin = await request(app)
-        .post('/auth/login')
-        .send({
-          username: 'adminuser',
-          password: 'adminpassword123'
-        })
-        .expect(200);
-
-      const adminToken = adminLogin.body.token;
-
-      // Register a regular user to update
-      const userRegister = await request(app)
-        .post('/auth/register')
-        .send({
-          username: 'testuser',
-          password: 'password123'
-        })
-        .expect(201);
-
-      const userId = userRegister.body.user.id;
-
-      // First, set some initial credits
-      await request(app)
-        .patch(`/parent/users/${userId}/credits`)
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({
-          earnedCredits: 100,
-          claimedCredits: 50
-        });
-
-      // Update credits with delta values
-      const updateResponse = await request(app)
-        .patch(`/parent/users/${userId}/credits`)
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({
-          earnedDelta: 50,
-          claimedDelta: -10
-        })
-        .expect(200);
-
-      expect(updateResponse.body).toHaveProperty('message', 'Credits updated successfully');
-      expect(updateResponse.body).toHaveProperty('userId', userId);
-      expect(updateResponse.body).toHaveProperty('earnedCredits', 150);  // 100 + 50
-      expect(updateResponse.body).toHaveProperty('claimedCredits', 40);  // 50 - 10
-
-      // Verify the credits were actually updated in the database
-      const dbService = new DatabaseService();
-      const earned = await dbService.getEarnedCredits(userId);
-      const claimed = await dbService.getClaimedCredits(userId);
-      expect(earned).toBe(150);
-      expect(claimed).toBe(40);
-    });
 
     it('should reject claimed credits exceeding earned credits', async () => {
       // Register and login an parent user
@@ -475,17 +429,27 @@ describe('Admin API Integration Tests', () => {
 
       const userId = userRegister.body.user.id;
 
+      // First set earned credits to 100
+      await request(app)
+        .patch(`/parent/users/${userId}/credits`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          field: 'earned',
+          amount: 100
+        })
+        .expect(200);
+
       // Try to set claimed credits higher than earned credits
       const updateResponse = await request(app)
         .patch(`/parent/users/${userId}/credits`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          earnedCredits: 100,
-          claimedCredits: 150  // This should fail
+          field: 'claimed',
+          amount: 150  // This should fail - exceeds earned credits of 100
         })
         .expect(409);
 
-      expect(updateResponse.body.error).toHaveProperty('message', 'Claimed credits cannot exceed earned credits');
+      expect(updateResponse.body.error).toHaveProperty('message', 'Cannot set claimed credits above earned credits');
     });
 
     it('should reject non-parent users from updating credits', async () => {
@@ -534,8 +498,8 @@ describe('Admin API Integration Tests', () => {
         .patch(`/parent/users/${adminUserId}/credits`)
         .set('Authorization', `Bearer ${regularUserToken}`)
         .send({
-          earnedCredits: 100,
-          claimedCredits: 50
+          field: 'earned',
+          amount: 100
         })
         .expect(403);
 
@@ -581,8 +545,16 @@ describe('Admin API Integration Tests', () => {
         .patch(`/parent/users/${userId}/credits`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          earnedCredits: 200,
-          claimedCredits: 100
+          field: 'earned',
+          amount: 200
+        });
+
+      await request(app)
+        .patch(`/parent/users/${userId}/credits`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          field: 'claimed',
+          amount: 100
         });
 
       // Set multipliers for the user
@@ -658,8 +630,16 @@ describe('Admin API Integration Tests', () => {
         .patch(`/parent/users/${userId}/credits`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          earnedCredits: 150,
-          claimedCredits: 75
+          field: 'earned',
+          amount: 150
+        });
+
+      await request(app)
+        .patch(`/parent/users/${userId}/credits`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          field: 'claimed',
+          amount: 75
         });
 
       await request(app)
