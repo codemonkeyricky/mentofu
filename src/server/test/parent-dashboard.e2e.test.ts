@@ -321,7 +321,7 @@ describe('Parent Dashboard E2E Test', () => {
         })
         .expect(400);
 
-      expect(negativeResponse.body.error).toHaveProperty('message', 'Multiplier must be an integer greater than or equal to 0');
+      expect(negativeResponse.body.error).toHaveProperty('message', 'Multiplier must be an integer between 0 and 5');
 
       // Test invalid quiz type
       const invalidQuizResponse = await request(app)

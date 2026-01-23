@@ -259,7 +259,7 @@ describe('Admin API Integration Tests', () => {
         })
         .expect(400);
 
-      expect(updateResponse.body.error).toHaveProperty('message', 'Multiplier must be an integer greater than or equal to 0');
+      expect(updateResponse.body.error).toHaveProperty('message', 'Multiplier must be an integer between 0 and 5');
     });
 
     it('should reject non-parent users from updating multipliers', async () => {

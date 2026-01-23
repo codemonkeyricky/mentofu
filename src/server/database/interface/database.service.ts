@@ -194,7 +194,7 @@ export class DatabaseService implements DatabaseOperations {
   public async setUserMultiplier(userId: string, quizType: string, multiplier: number): Promise<void> {
     if (this.databaseType === 'memory') {
       const multipliers = this.getMultipliersTable();
-      multipliers.set(`${userId}-${quizType}`, Math.floor(multiplier));
+      multipliers.set(`${userId}-${quizType}`, multiplier);
     } else {
       const postgresDB = new PostgresDatabase();
       await postgresDB.setUserMultiplier(userId, quizType, multiplier);
@@ -204,7 +204,7 @@ export class DatabaseService implements DatabaseOperations {
   public async getUserMultiplier(userId: string, quizType: string): Promise<number> {
     if (this.databaseType === 'memory') {
       const value = this.getMultipliersTable().get(`${userId}-${quizType}`);
-      return Math.floor(value !== undefined ? value : 1);
+      return value !== undefined ? value : 1;
     } else {
       const postgresDB = new PostgresDatabase();
       return postgresDB.getUserMultiplier(userId, quizType);

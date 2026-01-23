@@ -260,10 +260,10 @@ sessionRouter.post('/multiplier/:quizType', authenticate, async (req: Request, r
     }
 
     // Validate multiplier value
-    if (typeof multiplier !== 'number' || multiplier <= 0) {
+    if (typeof multiplier !== 'number' || multiplier <= 0 || !Number.isInteger(multiplier)) {
       return res.status(400).json({
         error: {
-          message: 'Invalid multiplier value. Must be a positive number.'
+          message: 'Invalid multiplier value. Must be a positive integer.'
         }
       });
     }

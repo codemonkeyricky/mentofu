@@ -152,10 +152,10 @@ export class ParentController implements IParentController {
         });
       }
 
-      if (typeof multiplier !== 'number' || multiplier < 0 || !Number.isInteger(multiplier)) {
+      if (typeof multiplier !== 'number' || multiplier < 0 || multiplier > 5 || !Number.isInteger(multiplier)) {
         return res.status(400).json({
           error: {
-            message: 'Multiplier must be an integer greater than or equal to 0',
+            message: 'Multiplier must be an integer between 0 and 5',
             code: 'INVALID_MULTIPLIER'
           }
         });

@@ -67,19 +67,19 @@ export default class MultiplierEditor {
                                 <label for="multiplier-${quizType.id}">Multiplier Value</label>
                                 <div class="parent-input-with-slider">
                                     <input type="range" id="multiplier-slider-${quizType.id}"
-                                           class="parent-slider" min="0.1" max="5.0" step="0.1"
+                                           class="parent-slider" min="0" max="5" step="1"
                                            value="${currentMultiplier}">
                                     <input type="number" id="multiplier-${quizType.id}"
                                            class="parent-input parent-input-sm"
-                                           min="0.1" max="5.0" step="0.1" value="${currentMultiplier}">
+                                           min="0" max="5" step="1" value="${currentMultiplier}">
                                 </div>
                                 <div class="parent-slider-labels">
-                                    <span>0.1x</span>
-                                    <span>1.0x</span>
-                                    <span>2.0x</span>
-                                    <span>3.0x</span>
-                                    <span>4.0x</span>
-                                    <span>5.0x</span>
+                                    <span>0x</span>
+                                    <span>1x</span>
+                                    <span>2x</span>
+                                    <span>3x</span>
+                                    <span>4x</span>
+                                    <span>5x</span>
                                 </div>
                             </div>
 
@@ -121,7 +121,7 @@ export default class MultiplierEditor {
                         <div class="parent-form-group" id="bulk-multiplier-value-group" style="display: none;">
                             <label for="bulk-multiplier-value">Value</label>
                             <input type="number" id="bulk-multiplier-value" class="parent-input"
-                                   min="0.1" max="5.0" step="0.1" value="1.0">
+                                   min="0" max="5" step="1" value="1">
                         </div>
 
                         <div class="parent-form-group">
@@ -224,8 +224,8 @@ export default class MultiplierEditor {
                 const value = action === 'set-all' ?
                     parseFloat(document.getElementById('bulk-multiplier-value').value) : 0;
 
-                if (action === 'set-all' && (isNaN(value) || value < 0.1 || value > 5.0)) {
-                    this.app.showNotification('Please enter a valid multiplier value (0.1-5.0)', 'warning');
+                if (action === 'set-all' && (isNaN(value) || value < 0 || value > 5)) {
+                    this.app.showNotification('Please enter a valid multiplier value (0-5)', 'warning');
                     return;
                 }
 
@@ -237,8 +237,8 @@ export default class MultiplierEditor {
     }
 
     async updateMultiplier(quizType, value, target) {
-        if (isNaN(value) || value < 0.1 || value > 5.0) {
-            this.app.showNotification('Please enter a valid multiplier value (0.1-5.0)', 'warning');
+        if (isNaN(value) || value < 0 || value > 5) {
+            this.app.showNotification('Please enter a valid multiplier value (0-5)', 'warning');
             return;
         }
 
@@ -253,7 +253,7 @@ export default class MultiplierEditor {
 
             if (response.success) {
                 this.app.showNotification(
-                    `${this.getQuizTypeName(quizType)} multiplier updated to x${value.toFixed(1)}`,
+                    `${this.getQuizTypeName(quizType)} multiplier updated to x${value}`,
                     'success'
                 );
 
@@ -280,11 +280,11 @@ export default class MultiplierEditor {
                     break;
                 case 'increase-all':
                     endpoint = '/parent/multipliers/bulk/increase';
-                    body = { target, amount: 0.5 };
+                    body = { target, amount: 1 };
                     break;
                 case 'decrease-all':
                     endpoint = '/parent/multipliers/bulk/decrease';
-                    body = { target, amount: 0.5 };
+                    body = { target, amount: 1 };
                     break;
                 case 'set-all':
                     endpoint = '/parent/multipliers/bulk/set';

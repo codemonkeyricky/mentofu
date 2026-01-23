@@ -147,7 +147,7 @@ export class PostgresDatabase implements DatabaseOperations {
     const scoreId = this.generateUUID();
     await sql`
       INSERT INTO session_scores (id, user_id, session_id, score, total, session_type, multiplier)
-      VALUES (${scoreId}, ${userId}, ${sessionId}, ${score}, ${total}, ${sessionType}, ${Math.floor(multiplier)})
+      VALUES (${scoreId}, ${userId}, ${sessionId}, ${score}, ${total}, ${sessionType}, ${multiplier})
     `;
   }
 
@@ -201,7 +201,7 @@ export class PostgresDatabase implements DatabaseOperations {
   public async setUserMultiplier(userId: string, quizType: string, multiplier: number): Promise<void> {
     await sql`
       INSERT INTO user_multipliers (user_id, quiz_type, multiplier)
-      VALUES (${userId}, ${quizType}, ${Math.floor(multiplier)})
+      VALUES (${userId}, ${quizType}, ${multiplier})
       ON CONFLICT (user_id, quiz_type)
       DO UPDATE SET multiplier = EXCLUDED.multiplier
     `;
@@ -213,14 +213,14 @@ export class PostgresDatabase implements DatabaseOperations {
         SELECT multiplier FROM user_multipliers WHERE user_id = ${userId} AND quiz_type = ${quizType}
       `;
       const postgresResult = this.handlePostgresResult<{ multiplier: number }>(result);
-      if (postgresResult) return Math.floor(postgresResult.multiplier);
+      if (postgresResult) return postgresResult.multiplier;
       
       const category = quizType === 'simple-words' ? 'simple_words' : quizType.startsWith('simple-math') ? 'math' : quizType;
       const categoryResult = await sql`
         SELECT multiplier FROM user_multipliers WHERE user_id = ${userId} AND quiz_type = ${category}
       `;
       const categoryPostgresResult = this.handlePostgresResult<{ multiplier: number }>(categoryResult);
-      if (categoryPostgresResult) return Math.floor(categoryPostgresResult.multiplier);
+      if (categoryPostgresResult) return categoryPostgresResult.multiplier;
       
       return 1;
     } catch (error: any) {

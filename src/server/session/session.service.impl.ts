@@ -81,9 +81,6 @@ class SessionService implements ISessionService {
     this.databaseService = service;
   }
 
-  private getMultiplierCategory(quizType: string): string {
-    return quizType === 'simple-words' ? 'simple_words' : quizType.startsWith('simple-math') ? 'math' : quizType;
-  }
 
   // Helper: Create session with auto-expiry timeout
   private createTimedSession<T>(sessionId: string, data: T, map: Map<string, T>, timeoutMap: Map<string, NodeJS.Timeout>): void {
@@ -111,7 +108,7 @@ class SessionService implements ISessionService {
   private async saveScore(userId: string, sessionId: string, score: number, total: number, quizType: string): Promise<void> {
     if (!this.databaseService) return;
 
-    const multiplier = await this.getUserMultiplier(userId, this.getMultiplierCategory(quizType)).catch(() => 1.0);
+    const multiplier = await this.getUserMultiplier(userId, quizType).catch(() => 1.0);
     await this.databaseService.saveSessionScore(userId, sessionId, score, total, quizType, multiplier);
     await creditService.addEarnedCredits(userId, multiplier * score);
   }
@@ -249,7 +246,7 @@ class SessionService implements ISessionService {
 
     let totalScore = 0;
     const details = await Promise.all(scores.map(async score => {
-      const multiplier = await this.getUserMultiplier(userId, this.getMultiplierCategory(score.sessionType)).catch(() => 1.0);
+      const multiplier = await this.getUserMultiplier(userId, score.sessionType).catch(() => 1.0);
       const weighted = score.score * multiplier;
       totalScore += weighted;
       return { sessionId: score.sessionId, score: score.score, multiplier, weightedScore: weighted, sessionType: score.sessionType };
