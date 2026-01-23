@@ -214,6 +214,14 @@ export class PostgresDatabase implements DatabaseOperations {
       `;
       const postgresResult = this.handlePostgresResult<{ multiplier: number }>(result);
       if (postgresResult) return Math.floor(postgresResult.multiplier);
+      
+      const category = quizType === 'simple-words' ? 'simple_words' : quizType.startsWith('simple-math') ? 'math' : quizType;
+      const categoryResult = await sql`
+        SELECT multiplier FROM user_multipliers WHERE user_id = ${userId} AND quiz_type = ${category}
+      `;
+      const categoryPostgresResult = this.handlePostgresResult<{ multiplier: number }>(categoryResult);
+      if (categoryPostgresResult) return Math.floor(categoryPostgresResult.multiplier);
+      
       return 1;
     } catch (error: any) {
       throw error;
