@@ -227,6 +227,14 @@ export class ParentController implements IParentController {
           });
         }
 
+        if (typeof amount !== 'number' || amount < 0 || !Number.isInteger(amount)) {
+          return res.status(400).json({
+            error: {
+              message: 'Amount must be a non-negative integer',
+              code: 'INVALID_AMOUNT'
+            }
+          });
+        }
 
         const user = await this.getUserByIdOrUsername(userId);
         if (!user) {
@@ -240,9 +248,7 @@ export class ParentController implements IParentController {
 
         const currentEarned = user.earned_credits || 0;
         const currentClaimed = user.claimed_credits || 0;
-        let targetAmount = amount;
-
-        targetAmount = Math.max(0, targetAmount);
+        const targetAmount = Math.max(0, amount);
 
         if (field === 'earned') {
           if (targetAmount < currentEarned) {
