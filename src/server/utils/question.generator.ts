@@ -158,6 +158,44 @@ export function generateFactorsQuestions(count: number = 5): Question[] {
   return questions;
 }
 
+export function generateLCDQuestions(count: number = 10): Question[] {
+  const questions: Question[] = [];
+
+  for (let i = 0; i < count; i++) {
+    let num1, num2, lcd;
+
+    // Generate numbers until LCM is <= 100
+    do {
+      // Generate first number between 2-20
+      num1 = Math.floor(Math.random() * 19) + 2;
+
+      // Generate second number between 2-20
+      // Ensure one is < 10 if the other is >= 10
+      num2 = num1 >= 10
+        ? Math.floor(Math.random() * 9) + 2
+        : Math.floor(Math.random() * 19) + 2;
+
+      // Calculate least common multiple (LCM), which equals LCD
+      lcd = (num1 * num2) / gcd(num1, num2);
+    } while (lcd > 100);
+
+    // Create question string
+    const question = `Find LCM of ${num1} and ${num2}`;
+
+    questions.push({
+      question,
+      answer: lcd
+    });
+  }
+
+  return questions;
+}
+
+// Helper function for GCD calculation
+function gcd(a: number, b: number): number {
+  return b === 0 ? a : gcd(b, a % b);
+}
+
 export function generateFractionComparisonQuestions(count: number = 10): Question[] {
   const questions: Question[] = [];
 

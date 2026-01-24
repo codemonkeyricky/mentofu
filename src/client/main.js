@@ -708,6 +708,7 @@ export class MathMasterPro {
             'simple-math-3': 'Fraction Comparison Quiz',
             'simple-math-4': 'BODMAS Quiz',
             'simple-math-5': 'Factors Quiz',
+            'simple-math-6': 'LCD Quiz',
             'simple-words': 'Simple Words Quiz',
             'math': 'Math Quiz', // fallback for old data
             'simple_words': 'Simple Words Quiz' // fallback for old data
@@ -860,6 +861,7 @@ export class MathMasterPro {
                 this.fetchMultiplier('simple-math-3'),
                 this.fetchMultiplier('simple-math-4'),
                 this.fetchMultiplier('simple-math-5'),
+                this.fetchMultiplier('simple-math-6'),
                 this.fetchMultiplier('simple-words')
             ]);
 
@@ -872,9 +874,9 @@ export class MathMasterPro {
     }
 
     updateQuizCardBadges(multipliers) {
-        // Expecting array of 6 multipliers in this order:
-        // [simple-math, simple-math-2, simple-math-3, simple-math-4, simple-math-5, simple-words]
-        const [simpleMath1, simpleMath2, simpleMath3, simpleMath4, simpleMath5, simpleWords] = multipliers;
+        // Expecting array of 7 multipliers in this order:
+        // [simple-math, simple-math-2, simple-math-3, simple-math-4, simple-math-5, simple-math-6, simple-words]
+        const [simpleMath1, simpleMath2, simpleMath3, simpleMath4, simpleMath5, simpleMath6, simpleWords] = multipliers;
 
         // Round multipliers to nearest integer (0 is a valid value)
         const roundedSimpleMath1 = Math.round(simpleMath1);
@@ -902,6 +904,8 @@ export class MathMasterPro {
                 multiplier = roundedSimpleMath4;
             } else if (quizType === 'simple-math-5') {
                 multiplier = roundedSimpleMath5;
+            } else if (quizType === 'simple-math-6') {
+                multiplier = simpleMath6;
             } else if (quizType === 'simple-words') {
                 multiplier = roundedSimpleWords;
             } else {

@@ -4,6 +4,7 @@ import FractionQuiz from './fraction-quiz.js';
 import BODMASQuiz from './bodmas-quiz.js';
 import SpellingQuiz from './spelling-quiz.js';
 import FactorsQuiz from './factors-quiz.js';
+import LCDQuiz from './lcd-quiz.js';
 
 // Main Quiz Manager that coordinates between different quiz types
 export default class QuizManager {
@@ -18,6 +19,7 @@ export default class QuizManager {
         this.bodmasQuiz = new BODMASQuiz(mathMasterPro);
         this.spellingQuiz = new SpellingQuiz(mathMasterPro);
         this.factorsQuiz = new FactorsQuiz(mathMasterPro);
+        this.lcdQuiz = new LCDQuiz(mathMasterPro);
     }
 
     async startQuiz(quizType) {
@@ -34,6 +36,8 @@ export default class QuizManager {
                 return await this.bodmasQuiz.startQuiz();
             case 'simple-math-5':
                 return await this.factorsQuiz.startQuiz();
+            case 'simple-math-6':
+                return await this.lcdQuiz.startQuiz();
             case 'simple-words':
                 return await this.spellingQuiz.startQuiz();
             default:
@@ -54,6 +58,8 @@ export default class QuizManager {
                 return await this.bodmasQuiz.submitAnswers();
             case 'simple-math-5':
                 return await this.factorsQuiz.submitAnswers();
+            case 'simple-math-6':
+                return await this.lcdQuiz.submitAnswers();
             default:
                 console.error('Invalid quiz type for submission:', this.currentQuizType);
                 this.mathMasterPro.showNotification('Invalid quiz type for submission', 'error');
@@ -81,6 +87,8 @@ export default class QuizManager {
                 return this.bodmasQuiz.restartQuiz();
             case 'simple-math-5':
                 return this.factorsQuiz.restartQuiz();
+            case 'simple-math-6':
+                return this.lcdQuiz.restartQuiz();
             case 'simple-words':
                 return this.spellingQuiz.restartQuiz();
             default:

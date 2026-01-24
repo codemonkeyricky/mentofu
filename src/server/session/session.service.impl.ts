@@ -1,6 +1,6 @@
 import { Session, Question, FactorsQuestion } from './session.types';
 import { SessionType } from './interface/session.service.interface';
-import { generateQuestions, generateDivisionQuestions, generateFractionComparisonQuestions, generateBODMASQuestions, generateFactorsQuestions } from '../utils/question.generator';
+import { generateQuestions, generateDivisionQuestions, generateFractionComparisonQuestions, generateBODMASQuestions, generateFactorsQuestions, generateLCDQuestions } from '../utils/question.generator';
 import { generateSimpleWords } from '../utils/simple.words.generator';
 import { SimpleWordsSession } from './simple.words.types';
 import { DatabaseService } from '../database/interface/database.service';
@@ -14,6 +14,7 @@ const questionGenerators: Record<string, (count: number) => Question[]> = {
   'simple-math-3': generateFractionComparisonQuestions,
   'simple-math-4': generateBODMASQuestions,
   'simple-math-5': generateFactorsQuestions,
+  'simple-math-6': generateLCDQuestions,
 };
 
 // Math validation config: maps quiz types to question checks and answer validation
@@ -54,6 +55,10 @@ const mathValidationConfigs: Record<string, MathValidationConfig> = {
         .filter(n => !isNaN(n));
       return userFactors.every(f => (q as any).factors.includes(f)) && userFactors.length === (q as any).factors.length;
     },
+  },
+  'simple-math-6': {
+    isApplicable: (q) => typeof q === 'object' && 'question' in q && typeof q.question === 'string',
+    validate: (q, ua) => String(ua) === String(q.answer),
   },
 };
 
@@ -157,7 +162,7 @@ class SessionService implements ISessionService {
     const session: Session = {
       id: sessionId,
       userId,
-      questions: generator(quizType === 'simple-math-5' ? 5 : 10),
+      questions: generator(quizType === 'simple-math-5' || quizType === 'simple-math-6' ? 5 : 10),
       createdAt: new Date(),
       updatedAt: new Date(),
     };
