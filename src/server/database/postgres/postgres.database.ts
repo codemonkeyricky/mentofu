@@ -1,22 +1,34 @@
 import { User } from '../../auth/auth.types';
 import { sql } from '@vercel/postgres';
 import { DatabaseOperations } from '../interface/database.interface';
+import { generateUUID, handlePostgresResult } from '../utils/database.utils';
+import { databaseLogger, LogLevel } from '../utils/logger';
 
+/**
+ * PostgreSQL database implementation.
+ * Singleton pattern used to reduce instantiation overhead.
+ * @see DatabaseOperations
+ */
 export class PostgresDatabase implements DatabaseOperations {
+  private static instance: PostgresDatabase | null = null;
   private readonly databaseType: 'vercel-postgres' = 'vercel-postgres';
 
-  private handlePostgresResult<T>(result: any): T {
-    return result.rows && result.rows.length > 0 ? result.rows[0] as T : null as T;
+  /**
+   * Returns the singleton instance of PostgresDatabase.
+   * @returns The singleton PostgresDatabase instance
+   */
+  public static getInstance(): PostgresDatabase {
+    if (!PostgresDatabase.instance) {
+      PostgresDatabase.instance = new PostgresDatabase();
+    }
+    return PostgresDatabase.instance;
   }
 
-  private generateUUID(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  }
-
+  /**
+   * Initializes the database schema and tables.
+   * Creates all necessary tables if they don't exist.
+   * @throws {Error} If database initialization fails
+   */
   public async initVercelPostgres(): Promise<void> {
     try {
       await sql`
@@ -100,24 +112,35 @@ export class PostgresDatabase implements DatabaseOperations {
     }
   }
 
+  /**
+   * Creates the admin user if it doesn't exist.
+   * Uses a password hash from environment variable if available.
+   * @throws {Error} If admin user creation fails
+   */
   private async createAdminUserIfNotExists(): Promise<void> {
     try {
       const result = await sql`SELECT id, is_admin FROM users WHERE username = 'parent'`;
       if (result.rows.length === 0) {
-        console.log('Creating hardcoded parent user: parent:admin2');
+        const adminPassword = process.env.ADMIN_PASSWORD_HASH;
+        if (!adminPassword) {
+          throw new Error('ADMIN_PASSWORD_HASH environment variable is not configured');
+        }
+
+        databaseLogger.info('Creating admin user: parent');
         await sql`
           INSERT INTO users (id, username, password_hash, is_admin)
-          VALUES ('parent-user-id', 'parent', \$2b\$10\$ZahMR5.ug6j/ELTQ947Izu76AE.si3OOlY/tzD9VMs0oDeYSI7g.i, true)
+          VALUES ('parent-user-id', 'parent', ${adminPassword}, true)
         `;
       } else {
         const user = result.rows[0];
         if (!user.is_admin) {
-          console.log('Updating existing parent user to have admin privileges');
+          databaseLogger.info('Updating existing parent user to have admin privileges');
           await sql`UPDATE users SET is_admin = true WHERE username = 'parent'`;
         }
       }
     } catch (error) {
-      console.error('Error creating parent user in PostgreSQL:', error);
+      databaseLogger.error('Error creating parent user in PostgreSQL', { error });
+      throw error;
     }
   }
 
@@ -132,7 +155,7 @@ export class PostgresDatabase implements DatabaseOperations {
         SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isParent"
         FROM users WHERE id = ${user.id}
       `;
-      return this.handlePostgresResult<User>(result);
+      return handlePostgresResult<User>(result);
     } catch (error: any) {
       if (error.message.includes('duplicate key') || error.code === '23505') {
         throw new Error('User already exists');
@@ -147,7 +170,7 @@ export class PostgresDatabase implements DatabaseOperations {
       SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isParent"
       FROM users WHERE username = ${username}
     `;
-    return this.handlePostgresResult<User>(result);
+    return handlePostgresResult<User>(result);
   }
 
   public async findUserById(userId: string): Promise<User | null> {
@@ -156,7 +179,7 @@ export class PostgresDatabase implements DatabaseOperations {
       SELECT id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isParent"
       FROM users WHERE id = ${userId}
     `;
-    return this.handlePostgresResult<User>(result);
+    return handlePostgresResult<User>(result);
   }
 
   public async saveSession(session: any, quizType: string): Promise<void> {
@@ -229,7 +252,7 @@ export class PostgresDatabase implements DatabaseOperations {
     const session = sessionResult.rows[0];
 
     // Create score record
-    const scoreId = this.generateUUID();
+    const scoreId = generateUUID();
     await sql`
       INSERT INTO session_scores (id, user_id, session_id, score, total, session_type, multiplier)
       VALUES (${scoreId}, ${session.user_id}, ${sessionId}, ${score}, ${total}, ${session.quiz_type}, ${multiplier})
@@ -238,7 +261,7 @@ export class PostgresDatabase implements DatabaseOperations {
 
   public async saveSessionScore(userId: string, sessionId: string, score: number, total: number, sessionType: string, multiplier: number = 1.0): Promise<void> {
     await this.initVercelPostgres();
-    const scoreId = this.generateUUID();
+    const scoreId = generateUUID();
     await sql`
       INSERT INTO session_scores (id, user_id, session_id, score, total, session_type, multiplier)
       VALUES (${scoreId}, ${userId}, ${sessionId}, ${score}, ${total}, ${sessionType}, ${multiplier})
@@ -250,7 +273,7 @@ export class PostgresDatabase implements DatabaseOperations {
     const result = await sql`
       SELECT score, total, multiplier FROM session_scores WHERE session_id = ${sessionId}
     `;
-    return this.handlePostgresResult<{ score: number, total: number, multiplier?: number }>(result);
+    return handlePostgresResult<{ score: number, total: number, multiplier?: number }>(result);
   }
 
   public async getUserSessionScores(userId: string): Promise<Array<{ sessionId: string, score: number, total: number, sessionType: string, completedAt: Date, multiplier?: number }>> {
@@ -311,14 +334,14 @@ export class PostgresDatabase implements DatabaseOperations {
       const result = await sql`
         SELECT multiplier FROM user_multipliers WHERE user_id = ${userId} AND quiz_type = ${quizType}
       `;
-      const postgresResult = this.handlePostgresResult<{ multiplier: number }>(result);
+      const postgresResult = handlePostgresResult<{ multiplier: number }>(result);
       if (postgresResult) return postgresResult.multiplier;
 
       const category = quizType === 'simple-words' ? 'simple_words' : quizType.startsWith('simple-math') ? 'math' : quizType;
       const categoryResult = await sql`
         SELECT multiplier FROM user_multipliers WHERE user_id = ${userId} AND quiz_type = ${category}
       `;
-      const categoryPostgresResult = this.handlePostgresResult<{ multiplier: number }>(categoryResult);
+      const categoryPostgresResult = handlePostgresResult<{ multiplier: number }>(categoryResult);
       if (categoryPostgresResult) return categoryPostgresResult.multiplier;
 
       return 1;
@@ -336,7 +359,7 @@ export class PostgresDatabase implements DatabaseOperations {
   public async getEarnedCredits(userId: string): Promise<number> {
     await this.initVercelPostgres();
     const result = await sql`SELECT earned_credits FROM users WHERE id = ${userId}`;
-    const postgresResult = this.handlePostgresResult<{ earned_credits: number }>(result);
+    const postgresResult = handlePostgresResult<{ earned_credits: number }>(result);
     return postgresResult?.earned_credits || 0;
   }
 
@@ -349,7 +372,7 @@ export class PostgresDatabase implements DatabaseOperations {
   public async getClaimedCredits(userId: string): Promise<number> {
     await this.initVercelPostgres();
     const result = await sql`SELECT claimed_credits FROM users WHERE id = ${userId}`;
-    const postgresResult = this.handlePostgresResult<{ claimed_credits: number }>(result);
+    const postgresResult = handlePostgresResult<{ claimed_credits: number }>(result);
     return postgresResult?.claimed_credits || 0;
   }
 
