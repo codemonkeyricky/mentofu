@@ -5,6 +5,7 @@ import BODMASQuiz from './bodmas-quiz.js';
 import SpellingQuiz from './spelling-quiz.js';
 import FactorsQuiz from './factors-quiz.js';
 import LCDQuiz from './lcd-quiz.js';
+import AdditionTestQuiz from './addition-test.js';
 
 // Main Quiz Manager that coordinates between different quiz types
 export default class QuizManager {
@@ -20,6 +21,7 @@ export default class QuizManager {
         this.spellingQuiz = new SpellingQuiz(mathMasterPro);
         this.factorsQuiz = new FactorsQuiz(mathMasterPro);
         this.lcdQuiz = new LCDQuiz(mathMasterPro);
+        this.additionTestQuiz = new AdditionTestQuiz(mathMasterPro);
     }
 
     async startQuiz(quizType) {
@@ -40,6 +42,8 @@ export default class QuizManager {
                 return await this.lcdQuiz.startQuiz();
             case 'simple-words':
                 return await this.spellingQuiz.startQuiz();
+            case 'addition-test':
+                return await this.additionTestQuiz.startQuiz();
             default:
                 console.error('Invalid quiz type:', quizType);
                 this.mathMasterPro.showNotification('Invalid quiz type selected', 'error');
@@ -60,6 +64,8 @@ export default class QuizManager {
                 return await this.factorsQuiz.submitAnswers();
             case 'simple-math-6':
                 return await this.lcdQuiz.submitAnswers();
+            case 'addition-test':
+                return await this.additionTestQuiz.submitAnswers();
             default:
                 console.error('Invalid quiz type for submission:', this.currentQuizType);
                 this.mathMasterPro.showNotification('Invalid quiz type for submission', 'error');
@@ -91,6 +97,8 @@ export default class QuizManager {
                 return this.lcdQuiz.restartQuiz();
             case 'simple-words':
                 return this.spellingQuiz.restartQuiz();
+            case 'addition-test':
+                return this.additionTestQuiz.restartQuiz();
             default:
                 console.error('Invalid quiz type for restart:', this.currentQuizType);
                 this.mathMasterPro.showNotification('Invalid quiz type for restart', 'error');

@@ -214,11 +214,17 @@ const quizNames = {
 this.fetchMultiplier('your-quiz-type'),
 
 // Update updateQuizCardBadges method
-const [simpleMath1, simpleMath2, simpleMath3, simpleMath4, simpleMath5, simpleMath6, simpleWords, yourQuiz] = multipliers;
+const [simpleMath1, simpleMath2, simpleMath3, simpleMath4, simpleMath5, simpleMath6, simpleWords, additionTest, yourQuiz] = multipliers;
+
+// Add multiplier assignments
+const roundedSimpleMath6 = Math.round(simpleMath6);
+const roundedAdditionTest = Math.round(additionTest);
 
 // Add multiplier assignment
 else if (quizType === 'your-quiz-type') {
     multiplier = yourQuiz;
+} else if (quizType === 'addition-test') {
+    multiplier = roundedAdditionTest;
 }
 ```
 
@@ -266,6 +272,7 @@ Add routes in `src/server/session/session.controller.ts`:
 const quizTypes = [
     // ... existing quiz types
     'your-quiz-type',
+    'addition-test'
 ];
 const quizTypePattern = `:quizType(${quizTypes.join('|')})`;
 
@@ -335,6 +342,73 @@ sessionRouter.post('/your-quiz-type', authenticate, async (req: Request, res: Re
         });
     }
 });
+
+// GET /session/addition-test - Create addition test session
+sessionRouter.get('/addition-test', authenticate, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+
+        const session = await sessionService.createQuizSession(user.userId, 'addition-test');
+
+        if ('words' in session) {
+            res.status(200).json({
+                sessionId: session.id,
+                words: (session as SimpleWordsSession).words
+            });
+        } else {
+            res.status(200).json({
+                sessionId: session.id,
+                questions: (session as Session).questions
+            });
+        }
+    } catch (error) {
+        console.error('Error creating addition test session:', error);
+        res.status(500).json({
+            error: {
+                message: 'Failed to create addition test session'
+            }
+        });
+    }
+});
+
+// POST /session/addition-test - Validate addition test answers
+sessionRouter.post('/addition-test', authenticate, async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+        const { sessionId, answers } = req.body;
+
+        if (!sessionId) {
+            return res.status(400).json({
+                error: { message: 'Session ID is required', code: 'MISSING_SESSION_ID' }
+            });
+        }
+
+        if (!answers || !Array.isArray(answers)) {
+            return res.status(400).json({
+                error: { message: 'Answers array is required', code: 'MISSING_ANSWERS' }
+            });
+        }
+
+        const result = await sessionService.validateQuizAnswers(
+            sessionId,
+            user.userId,
+            answers,
+            'addition-test'
+        );
+
+        res.status(200).json({
+            score: result.score,
+            total: result.total
+        });
+    } catch (error: any) {
+        // Handle errors
+        res.status(500).json({
+            error: {
+                message: 'Failed to process addition test answers'
+            }
+        });
+    }
+});
 ```
 
 ### 2.3 Session Service
@@ -373,14 +447,16 @@ const _VALID_QUIZ_TYPES = [
     'simple-math-3',
     'simple-math-4',
     'simple-math-5',
+    'simple-math-6',
     'your-quiz-type', // Add new quiz type
-    'simple-words'
+    'simple-words',
+    'addition-test' // Add new quiz type
 ];
 
 // Update error message
 return res.status(400).json({
     error: {
-        message: 'Invalid quiz type. Must be one of: ...',
+        message: 'Invalid quiz type. Must be one of: simple-math, simple-math-2, simple-math-3, simple-math-4, simple-math-5, simple-math-6, simple-words, addition-test',
         code: 'INVALID_QUIZ_TYPE'
     }
 });

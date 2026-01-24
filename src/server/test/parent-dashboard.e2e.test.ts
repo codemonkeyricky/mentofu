@@ -351,7 +351,7 @@ describe('Parent Dashboard E2E Test', () => {
         })
         .expect(400);
 
-      expect(invalidQuizResponse.body.error).toHaveProperty('message', 'Invalid quiz type. Must be one of: simple-math, simple-math-2, simple-math-3, simple-math-4, simple-math-5, simple-words');
+      expect(invalidQuizResponse.body.error).toHaveProperty('message', 'Invalid quiz type. Must be one of: simple-math, simple-math-2, simple-math-3, simple-math-4, simple-math-5, simple-math-6, simple-words, addition-test');
     });
   });
 

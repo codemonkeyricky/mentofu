@@ -1,6 +1,7 @@
 import { Session, Question, FactorsQuestion } from './session.types';
 import { SessionType } from './interface/session.service.interface';
 import { generateQuestions, generateDivisionQuestions, generateFractionComparisonQuestions, generateBODMASQuestions, generateFactorsQuestions, generateLCDQuestions } from '../utils/question.generator';
+import { generateAdditionTestQuestions } from '../utils/addition-test.generator';
 import { generateSimpleWords } from '../utils/simple.words.generator';
 import { SimpleWordsSession } from './simple.words.types';
 import { DatabaseService } from '../database/interface/database.service';
@@ -15,6 +16,7 @@ const questionGenerators: Record<string, (count: number) => Question[]> = {
   'simple-math-4': generateBODMASQuestions,
   'simple-math-5': generateFactorsQuestions,
   'simple-math-6': generateLCDQuestions,
+  'addition-test': generateAdditionTestQuestions,
 };
 
 // Math validation config: maps quiz types to question checks and answer validation
@@ -57,6 +59,10 @@ const mathValidationConfigs: Record<string, MathValidationConfig> = {
     },
   },
   'simple-math-6': {
+    isApplicable: (q) => typeof q === 'object' && 'question' in q && typeof q.question === 'string',
+    validate: (q, ua) => String(ua) === String(q.answer),
+  },
+  'addition-test': {
     isApplicable: (q) => typeof q === 'object' && 'question' in q && typeof q.question === 'string',
     validate: (q, ua) => String(ua) === String(q.answer),
   },

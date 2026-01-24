@@ -25,7 +25,7 @@ All endpoints require:
 ```
 
 **Request Validation**:
-- `quizType` must be one of: `simple-math`, `simple-math-2`, `simple-math-3`, `simple-math-4`, `simple-math-5`, `simple-words`
+- `quizType` must be one of: `simple-math`, `simple-math-2`, `simple-math-3`, `simple-math-4`, `simple-math-5`, `simple-math-6`, `simple-words`, `addition-test`
 - `multiplier` must be an integer ≥ 0
 
 **Response**:

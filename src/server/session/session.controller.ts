@@ -14,6 +14,7 @@ const quizTypes = [
   'simple-math-5',
   'simple-math-6',
   'simple-words',
+  'addition-test',
 ];
 const quizTypePattern = `:quizType(${quizTypes.join('|')})`;
 
@@ -210,7 +211,8 @@ sessionRouter.get('/multiplier/:quizType', authenticate, async (req: Request, re
       'simple-math-4',
       'simple-math-5',
       'simple-math-6',
-      'simple-words'
+      'simple-words',
+      'addition-test'
     ];
     if (!quizTypes.includes(quizType)) {
       return res.status(400).json({
@@ -252,7 +254,8 @@ sessionRouter.post('/multiplier/:quizType', authenticate, async (req: Request, r
       'simple-math-4',
       'simple-math-5',
       'simple-math-6',
-      'simple-words'
+      'simple-words',
+      'addition-test'
     ];
     if (!quizTypes.includes(quizType)) {
       return res.status(400).json({
@@ -357,6 +360,81 @@ sessionRouter.post('/simple-math-6', authenticate, async (req: Request, res: Res
     res.status(500).json({
       error: {
         message: 'Failed to process LCD quiz answers'
+      }
+    });
+  }
+});
+
+// GET /session/addition-test - Create addition test quiz session
+sessionRouter.get('/addition-test', authenticate, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+
+    const session = await sessionService.createQuizSession(user.userId, 'addition-test');
+
+    if ('words' in session) {
+      res.status(200).json({
+        sessionId: session.id,
+        words: (session as any).words
+      });
+    } else {
+      res.status(200).json({
+        sessionId: session.id,
+        questions: (session as any).questions
+      });
+    }
+  } catch (error) {
+    console.error('Error creating addition test session:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to create addition test session'
+      }
+    });
+  }
+});
+
+// POST /session/addition-test - Validate addition test answers
+sessionRouter.post('/addition-test', authenticate, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { sessionId, answers } = req.body;
+
+    // Validate input
+    if (!sessionId) {
+      return res.status(400).json({
+        error: { message: 'Session ID is required', code: 'MISSING_SESSION_ID' }
+      });
+    }
+
+    if (!answers || !Array.isArray(answers)) {
+      return res.status(400).json({
+        error: { message: 'Answers array is required', code: 'MISSING_ANSWERS' }
+      });
+    }
+
+    const result = await sessionService.validateQuizAnswers(sessionId, user.userId, answers, 'addition-test');
+
+    res.status(200).json({
+      score: result.score,
+      total: result.total
+    });
+  } catch (error: any) {
+    if (error.message === 'Session not found') {
+      return res.status(404).json({
+        error: { message: 'Session not found', code: 'SESSION_NOT_FOUND' }
+      });
+    }
+
+    if (error.message === 'Unauthorized access to session') {
+      return res.status(403).json({
+        error: { message: 'Unauthorized access to session', code: 'UNAUTHORIZED_ACCESS' }
+      });
+    }
+
+    console.error('Error processing addition test answers:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to process addition test answers'
       }
     });
   }

@@ -710,6 +710,7 @@ export class MathMasterPro {
             'simple-math-5': 'Factors Quiz',
             'simple-math-6': 'LCD Quiz',
             'simple-words': 'Simple Words Quiz',
+            'addition-test': 'Addition Test',
             'math': 'Math Quiz', // fallback for old data
             'simple_words': 'Simple Words Quiz' // fallback for old data
         };
@@ -862,7 +863,8 @@ export class MathMasterPro {
                 this.fetchMultiplier('simple-math-4'),
                 this.fetchMultiplier('simple-math-5'),
                 this.fetchMultiplier('simple-math-6'),
-                this.fetchMultiplier('simple-words')
+                this.fetchMultiplier('simple-words'),
+                this.fetchMultiplier('addition-test')
             ]);
 
             // Return array of multipliers in the same order as fetched
@@ -874,9 +876,9 @@ export class MathMasterPro {
     }
 
     updateQuizCardBadges(multipliers) {
-        // Expecting array of 7 multipliers in this order:
-        // [simple-math, simple-math-2, simple-math-3, simple-math-4, simple-math-5, simple-math-6, simple-words]
-        const [simpleMath1, simpleMath2, simpleMath3, simpleMath4, simpleMath5, simpleMath6, simpleWords] = multipliers;
+        // Expecting array of 8 multipliers in this order:
+        // [simple-math, simple-math-2, simple-math-3, simple-math-4, simple-math-5, simple-math-6, simple-words, addition-test]
+        const [simpleMath1, simpleMath2, simpleMath3, simpleMath4, simpleMath5, simpleMath6, simpleWords, additionTest] = multipliers;
 
         // Round multipliers to nearest integer (0 is a valid value)
         const roundedSimpleMath1 = Math.round(simpleMath1);
@@ -884,7 +886,9 @@ export class MathMasterPro {
         const roundedSimpleMath3 = Math.round(simpleMath3);
         const roundedSimpleMath4 = Math.round(simpleMath4);
         const roundedSimpleMath5 = Math.round(simpleMath5);
+        const roundedSimpleMath6 = Math.round(simpleMath6);
         const roundedSimpleWords = Math.round(simpleWords);
+        const roundedAdditionTest = Math.round(additionTest);
 
         // Get all quiz cards
         const quizCards = document.querySelectorAll('.quiz-card[data-quiz-type]');
@@ -905,9 +909,11 @@ export class MathMasterPro {
             } else if (quizType === 'simple-math-5') {
                 multiplier = roundedSimpleMath5;
             } else if (quizType === 'simple-math-6') {
-                multiplier = simpleMath6;
+                multiplier = roundedSimpleMath6;
             } else if (quizType === 'simple-words') {
                 multiplier = roundedSimpleWords;
+            } else if (quizType === 'addition-test') {
+                multiplier = roundedAdditionTest;
             } else {
                 multiplier = 1; // Default for unknown types
             }
