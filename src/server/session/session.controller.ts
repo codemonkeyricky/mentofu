@@ -13,6 +13,7 @@ const quizTypes = [
   'simple-math-4',
   'simple-math-5',
   'simple-math-6',
+  'simple-remainder',
   'simple-words',
   'addition-test',
 ];
@@ -211,6 +212,7 @@ sessionRouter.get('/multiplier/:quizType', authenticate, async (req: Request, re
       'simple-math-4',
       'simple-math-5',
       'simple-math-6',
+      'simple-remainder',
       'simple-words',
       'addition-test'
     ];
@@ -254,6 +256,7 @@ sessionRouter.post('/multiplier/:quizType', authenticate, async (req: Request, r
       'simple-math-4',
       'simple-math-5',
       'simple-math-6',
+      'simple-remainder',
       'simple-words',
       'addition-test'
     ];
@@ -435,6 +438,81 @@ sessionRouter.post('/addition-test', authenticate, async (req: Request, res: Res
     res.status(500).json({
       error: {
         message: 'Failed to process addition test answers'
+      }
+    });
+  }
+});
+
+// GET /session/simple-remainder - Create remainder quiz session
+sessionRouter.get('/simple-remainder', authenticate, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+
+    const session = await sessionService.createQuizSession(user.userId, 'simple-remainder');
+
+    if ('words' in session) {
+      res.status(200).json({
+        sessionId: session.id,
+        words: (session as SimpleWordsSession).words
+      });
+    } else {
+      res.status(200).json({
+        sessionId: session.id,
+        questions: (session as Session).questions
+      });
+    }
+  } catch (error) {
+    console.error('Error creating remainder quiz session:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to create remainder quiz session'
+      }
+    });
+  }
+});
+
+// POST /session/simple-remainder - Validate remainder quiz answers
+sessionRouter.post('/simple-remainder', authenticate, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { sessionId, answers } = req.body;
+
+    // Validate input
+    if (!sessionId) {
+      return res.status(400).json({
+        error: { message: 'Session ID is required', code: 'MISSING_SESSION_ID' }
+      });
+    }
+
+    if (!answers || !Array.isArray(answers)) {
+      return res.status(400).json({
+        error: { message: 'Answers array is required', code: 'MISSING_ANSWERS' }
+      });
+    }
+
+    const result = await sessionService.validateQuizAnswers(sessionId, user.userId, answers, 'simple-remainder');
+
+    res.status(200).json({
+      score: result.score,
+      total: result.total
+    });
+  } catch (error: any) {
+    if (error.message === 'Session not found') {
+      return res.status(404).json({
+        error: { message: 'Session not found', code: 'SESSION_NOT_FOUND' }
+      });
+    }
+
+    if (error.message === 'Unauthorized access to session') {
+      return res.status(403).json({
+        error: { message: 'Unauthorized access to session', code: 'UNAUTHORIZED_ACCESS' }
+      });
+    }
+
+    console.error('Error processing remainder quiz answers:', error);
+    res.status(500).json({
+      error: {
+        message: 'Failed to process remainder quiz answers'
       }
     });
   }

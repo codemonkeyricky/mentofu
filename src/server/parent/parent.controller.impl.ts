@@ -17,6 +17,7 @@ export class ParentController implements IParentController {
     'simple-math-4',
     'simple-math-5',
     'simple-math-6',
+    'simple-remainder',
     'simple-words',
     'addition-test'
   ];
@@ -148,7 +149,7 @@ export class ParentController implements IParentController {
       if (!quizType || !this._VALID_QUIZ_TYPES.includes(quizType)) {
         return res.status(400).json({
           error: {
-            message: 'Invalid quiz type. Must be one of: simple-math, simple-math-2, simple-math-3, simple-math-4, simple-math-5, simple-math-6, simple-words, addition-test',
+            message: 'Invalid quiz type. Must be one of: simple-math, simple-math-2, simple-math-3, simple-math-4, simple-math-5, simple-math-6, simple-remainder, simple-words, addition-test',
             code: 'INVALID_QUIZ_TYPE'
           }
         });

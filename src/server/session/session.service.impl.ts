@@ -3,6 +3,7 @@ import { SessionType } from './interface/session.service.interface';
 import { generateQuestions, generateDivisionQuestions, generateFractionComparisonQuestions, generateBODMASQuestions, generateFactorsQuestions, generateLCDQuestions } from '../utils/question.generator';
 import { generateAdditionTestQuestions } from '../utils/addition-test.generator';
 import { generateSimpleWords } from '../utils/simple.words.generator';
+import { generateRemRdQuestions } from '../utils/rem-remainder.generator';
 import { SimpleWordsSession } from './simple.words.types';
 import { DatabaseService } from '../database/interface/database.service';
 import { ISessionService } from './interface/session.service.interface';
@@ -16,6 +17,7 @@ const questionGenerators: Record<string, (count: number) => Question[]> = {
   'simple-math-4': generateBODMASQuestions,
   'simple-math-5': generateFactorsQuestions,
   'simple-math-6': generateLCDQuestions,
+  'simple-remainder': generateRemRdQuestions,
   'addition-test': generateAdditionTestQuestions,
 };
 
@@ -63,6 +65,10 @@ const mathValidationConfigs: Record<string, MathValidationConfig> = {
     validate: (q, ua) => String(ua) === String(q.answer),
   },
   'addition-test': {
+    isApplicable: (q) => typeof q === 'object' && 'question' in q && typeof q.question === 'string',
+    validate: (q, ua) => String(ua) === String(q.answer),
+  },
+  'simple-remainder': {
     isApplicable: (q) => typeof q === 'object' && 'question' in q && typeof q.question === 'string',
     validate: (q, ua) => String(ua) === String(q.answer),
   },
@@ -168,7 +174,7 @@ class SessionService implements ISessionService {
     const session: Session = {
       id: sessionId,
       userId,
-      questions: generator(quizType === 'simple-math-5' || quizType === 'simple-math-6' ? 5 : 10),
+      questions: generator(quizType === 'simple-remainder' || quizType === 'simple-math-5' || quizType === 'simple-math-6' ? 5 : 10),
       createdAt: new Date(),
       updatedAt: new Date(),
     };

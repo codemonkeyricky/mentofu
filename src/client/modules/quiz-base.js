@@ -17,7 +17,9 @@ export default class QuizBase {
             'math-4': { icon: 'fa-calculator', text: 'Start BODMAS Quiz' },
             'math-5': { icon: 'fa-superscript', text: 'Start Factors Quiz' },
             'simple-math-6': { icon: 'fa-equals', text: 'Start LCD Quiz' },
-            'addition-test': { icon: 'fa-plus', text: 'Start Addition Test' }
+            'simple-remainder': { icon: 'fa-divide', text: 'Start Remainder Quiz' },
+            'addition-test': { icon: 'fa-plus', text: 'Start Addition Test' },
+            'simple-words': { icon: 'fa-book', text: 'Start Spelling Quiz' }
         };
 
         const config = buttonConfigs[quizType];
@@ -26,13 +28,14 @@ export default class QuizBase {
 
     resetAllButtons() {
         const buttons = [
-            { btn: this.mathMasterPro.startMathBtn, icon: 'fa-calculator', text: 'Start Math Quiz' },
-            { btn: this.mathMasterPro.startMath2Btn, icon: 'fa-divide', text: 'Start Division Quiz' },
-            { btn: this.mathMasterPro.startMath3Btn, icon: 'fa-chart-pie', text: 'Start Fraction Comparison' },
-            { btn: this.mathMasterPro.startMath4Btn, icon: 'fa-calculator', text: 'Start BODMAS Quiz' },
-            { btn: this.mathMasterPro.startMath5Btn, icon: 'fa-superscript', text: 'Start Factors Quiz' },
-            { btn: this.mathMasterPro.startMath6Btn, icon: 'fa-equals', text: 'Start LCD Quiz' },
-            { btn: this.mathMasterPro.startWordsBtn, icon: 'fa-book', text: 'Start Words Quiz' },
+            { btn: this.mathMasterPro.startMathBtn, icon: 'fa-times', text: 'Start Multiplication Quiz' },
+            { btn: this.mathMasterPro.startMathBtn, icon: 'fa-divide', text: 'Start Remainder Quiz' },
+            { btn: this.mathMasterPro.startMathBtn, icon: 'fa-chart-pie', text: 'Start Fraction Quiz' },
+            { btn: this.mathMasterPro.startMathBtn, icon: 'fa-calculator', text: 'Start BODMAS Quiz' },
+            { btn: this.mathMasterPro.startMathBtn, icon: 'fa-superscript', text: 'Start Factors Quiz' },
+            { btn: this.mathMasterPro.startMathBtn, icon: 'fa-equals', text: 'Start LCD Quiz' },
+            { btn: this.mathMasterPro.startMathBtn, icon: 'fa-book', text: 'Start Spelling Quiz' },
+            { btn: this.mathMasterPro.startMathBtn, icon: 'fa-plus', text: 'Start Addition Test' },
             { btn: this.mathMasterPro.submitBtn, icon: 'fa-paper-plane', text: 'Submit Answers' },
             { btn: this.mathMasterPro.submitWordsBtn, icon: 'fa-paper-plane', text: 'Submit Answers' }
         ];

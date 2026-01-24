@@ -214,7 +214,7 @@ describe('Admin API Integration Tests', () => {
         })
         .expect(400);
 
-      expect(updateResponse.body.error).toHaveProperty('message', 'Invalid quiz type. Must be one of: simple-math, simple-math-2, simple-math-3, simple-math-4, simple-math-5, simple-math-6, simple-words, addition-test');
+      expect(updateResponse.body.error).toHaveProperty('message', 'Invalid quiz type. Must be one of: simple-math, simple-math-2, simple-math-3, simple-math-4, simple-math-5, simple-math-6, simple-remainder, simple-words, addition-test');
     });
 
     it('should reject negative multipliers', async () => {

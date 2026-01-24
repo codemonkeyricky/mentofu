@@ -6,6 +6,7 @@ import SpellingQuiz from './spelling-quiz.js';
 import FactorsQuiz from './factors-quiz.js';
 import LCDQuiz from './lcd-quiz.js';
 import AdditionTestQuiz from './addition-test.js';
+import RemRdQuiz from './rem-remainder-quiz.js';
 
 // Main Quiz Manager that coordinates between different quiz types
 export default class QuizManager {
@@ -22,12 +23,15 @@ export default class QuizManager {
         this.factorsQuiz = new FactorsQuiz(mathMasterPro);
         this.lcdQuiz = new LCDQuiz(mathMasterPro);
         this.additionTestQuiz = new AdditionTestQuiz(mathMasterPro);
+        this.remRdQuiz = new RemRdQuiz(mathMasterPro);
     }
 
     async startQuiz(quizType) {
         this.currentQuizType = quizType;
 
         switch (quizType) {
+            case 'simple-remainder':
+                return await this.remRdQuiz.startQuiz();
             case 'simple-math':
                 return await this.mathQuiz.startQuiz();
             case 'simple-math-2':
@@ -52,6 +56,8 @@ export default class QuizManager {
 
     async submitAnswers() {
         switch (this.currentQuizType) {
+            case 'simple-remainder':
+                return await this.remRdQuiz.submitAnswers();
             case 'simple-math':
                 return await this.mathQuiz.submitAnswers();
             case 'simple-math-2':

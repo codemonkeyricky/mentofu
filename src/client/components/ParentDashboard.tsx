@@ -312,7 +312,8 @@ const ParentDashboard: React.FC = () => {
                                          quizType === 'simple-math-3' ? 'Fraction Comparison' :
                                          quizType === 'simple-math-4' ? 'BODMAS' :
                                          quizType === 'simple-math-5' ? 'Factors' :
-                                         quizType === 'simple-math-6' ? 'LCM' : quizType;
+                                         quizType === 'simple-math-6' ? 'LCM' :
+                                         quizType === 'simple-remainder' ? 'Remainder' : quizType;
                         const isEditing = editingMultiplier?.userId === user.id && editingMultiplier?.quizType === quizType;
 
                         return (

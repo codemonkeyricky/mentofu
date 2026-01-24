@@ -25,7 +25,7 @@ All endpoints require:
 ```
 
 **Request Validation**:
-- `quizType` must be one of: `simple-math`, `simple-math-2`, `simple-math-3`, `simple-math-4`, `simple-math-5`, `simple-math-6`, `simple-words`, `addition-test`
+- `quizType` must be one of: `simple-math`, `simple-math-2`, `simple-math-3`, `simple-math-4`, `simple-math-5`, `simple-math-6`, `simple-remainder`, `simple-words`, `addition-test`
 - `multiplier` must be an integer ≥ 0
 
 **Response**:
@@ -102,7 +102,10 @@ All endpoints require:
       "simple-math-3": "number",
       "simple-math-4": "number",
       "simple-math-5": "number",
-      "simple-words": "number"
+      "simple-math-6": "number",
+      "simple-remainder": "number",
+      "simple-words": "number",
+      "addition-test": "number"
     }
   }
 ]
@@ -126,7 +129,10 @@ All endpoints require:
     "simple-math-3": "number",
     "simple-math-4": "number",
     "simple-math-5": "number",
-    "simple-words": "number"
+    "simple-math-6": "number",
+    "simple-remainder": "number",
+    "simple-words": "number",
+    "addition-test": "number"
   }
 }
 ```
@@ -157,7 +163,10 @@ The following quiz types are supported for multiplier updates:
 - `simple-math-3`
 - `simple-math-4`
 - `simple-math-5`
+- `simple-math-6`
+- `simple-remainder`
 - `simple-words`
+- `addition-test`
 
 ## Data Structures
 
