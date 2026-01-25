@@ -2,58 +2,63 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Parent Dashboard', () => {
   test('should login as parent user and load parent dashboard', async ({ page }) => {
-    // Navigate to the application
+    // Navigate to the app
     await page.goto('http://localhost:4000/');
 
-    // Simulate parent login via localStorage (same approach as other tests)
-    await page.evaluate(() => {
-      localStorage.setItem('token', 'test-parent-token-123');
-      localStorage.setItem('user', JSON.stringify({
-        username: 'parent',
-        isParent: true,
-        id: 'parent-user-id-123'
-      }));
-    });
+    // Wait for auth screen to be visible
+    await expect(page.getByRole('button', { name: 'Login' })).toBeVisible();
 
-    // Instead of navigating to /parent-dashboard, we need to trigger the app's auth check
-    // This will cause the app to detect the authenticated parent user and show the parent dashboard
-    await page.reload();
+    // Click on Login button
+    await page.getByRole('button', { name: 'Login' }).click();
 
-    // Wait for the parent dashboard screen to be visible (regardless of active state)
-    await page.waitForSelector('#parent-dashboard-screen', { timeout: 10000 });
+    // Wait for login form to appear
+    await expect(page.getByRole('heading', { name: 'Welcome Back' })).toBeVisible();
+
+    // Login as parent user
+    await page.fill('#login-username', 'parent');
+    await page.fill('#login-password', 'admin2');
+    await page.click('#login-form button[type="submit"]');
+
+    // Wait for parent dashboard to load (parent users go directly to parent dashboard)
+    await page.waitForSelector('#parent-dashboard-screen.active', { timeout: 10000 });
 
     // Check that the parent dashboard screen is displayed
     const parentDashboardScreen = page.locator('#parent-dashboard-screen');
     await expect(parentDashboardScreen).toBeVisible({ timeout: 5000 });
 
-    // Check for parent dashboard heading
-    const dashboardHeading = page.getByRole('heading', { name: 'Parent Dashboard' });
-    await expect(dashboardHeading).toBeVisible({ timeout: 5000 });
+    // Check for parent dashboard heading - use more specific selector
+    // The parent dashboard has multiple h2 elements, so we need to find the main one
+    const dashboardHeading = page.locator('#parent-dashboard-screen.active .card-header h2');
+    await expect(dashboardHeading).toContainText('Parent Dashboard');
 
     console.log('Parent dashboard loaded successfully');
   });
 
   test('should verify parent dashboard React component loads', async ({ page }) => {
-    // Simulate parent login via localStorage
+    // Login as parent user
     await page.goto('http://localhost:4000/');
-    await page.evaluate(() => {
-      localStorage.setItem('token', 'test-parent-token-456');
-      localStorage.setItem('user', JSON.stringify({
-        username: 'parent',
-        isParent: true,
-        id: 'parent-user-id-456'
-      }));
-    });
 
-    // Trigger app auth check to show parent dashboard
-    await page.reload();
+    // Wait for auth screen to be visible
+    await expect(page.getByRole('button', { name: 'Login' })).toBeVisible();
 
-    // Wait for parent dashboard screen to be visible (regardless of active state)
-    await page.waitForSelector('#parent-dashboard-screen', { timeout: 10000 });
+    // Click on Login button
+    await page.getByRole('button', { name: 'Login' }).click();
 
-    // Check for parent dashboard heading
-    const dashboardHeading = page.getByRole('heading', { name: 'Parent Dashboard' });
-    await expect(dashboardHeading).toBeVisible({ timeout: 5000 });
+    // Wait for login form to appear
+    await expect(page.getByRole('heading', { name: 'Welcome Back' })).toBeVisible();
+
+    // Login as parent user
+    await page.fill('#login-username', 'parent');
+    await page.fill('#login-password', 'admin2');
+    await page.click('#login-form button[type="submit"]');
+
+    // Wait for parent dashboard to load
+    await page.waitForSelector('#parent-dashboard-screen.active', { timeout: 10000 });
+
+    // Check for parent dashboard heading - use more specific selector
+    // The parent dashboard has multiple h2 elements, so we need to find the main one
+    const dashboardHeading = page.locator('#parent-dashboard-screen.active .card-header h2');
+    await expect(dashboardHeading).toContainText('Parent Dashboard');
 
     console.log('Parent dashboard heading found - component rendering verified');
 

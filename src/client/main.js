@@ -121,7 +121,8 @@ export class MathMasterPro {
             e.preventDefault();
             const username = document.getElementById('register-username').value;
             const password = document.getElementById('register-password').value;
-            await this.registerUser(username, password);
+            const isParent = document.getElementById('register-is-parent')?.checked || false;
+            await this.registerUser(username, password, isParent);
         });
 
         // Start token renewal check
