@@ -167,16 +167,6 @@ export class ParentController implements IParentController {
 
       await this.databaseService.setUserMultiplier(user.id, quizType, multiplier);
 
-      let category = quizType;
-      if (quizType.startsWith('simple-math')) {
-        category = 'math';
-      } else if (quizType === 'simple-words') {
-        category = 'simple_words';
-      }
-      if (category !== quizType) {
-        await this.databaseService.setUserMultiplier(user.id, category, multiplier);
-      }
-
       res.json({
         message: 'Multiplier updated successfully',
         userId: user.id,
