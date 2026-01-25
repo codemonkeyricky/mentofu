@@ -1,27 +1,18 @@
 import React from 'react';
 import { ParentDashboardUser } from '../types/index';
 
-// Use global React if available (for module consistency in browser)
-const ReactInstance = window.React && window.React.useState ? window.React : React;
-
 const ParentDashboard: React.FC = () => {
-  // Safety check for React hooks
-  if (typeof ReactInstance.useState !== 'function') {
-    throw new Error('ReactInstance.useState is not a function. React may not be loaded correctly.');
-  }
+  const [users, setUsers] = React.useState<ParentDashboardUser[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [editingMultiplier, setEditingMultiplier] = React.useState<{userId: string, quizType: string, value: number} | null>(null);
+  const [updateLoading, setUpdateLoading] = React.useState(false);
+  const [editingCredits, setEditingCredits] = React.useState<{userId: string, field: 'earned' | 'claimed', amount: number} | null>(null);
+  const [creditAmount, setCreditAmount] = React.useState<string>('0');
 
-  const [users, setUsers] = ReactInstance.useState<ParentDashboardUser[]>([]);
-  const [loading, setLoading] = ReactInstance.useState(true);
-  const [error, setError] = ReactInstance.useState<string | null>(null);
-  const [editingMultiplier, setEditingMultiplier] = ReactInstance.useState<{userId: string, quizType: string, value: number} | null>(null);
-  const [updateLoading, setUpdateLoading] = ReactInstance.useState(false);
-  const [editingCredits, setEditingCredits] = ReactInstance.useState<{userId: string, field: 'earned' | 'claimed', amount: number} | null>(null);
-  const [creditAmount, setCreditAmount] = ReactInstance.useState<string>('0');
-
-  ReactInstance.useEffect(() => {
+  React.useEffect(() => {
     const fetchUsers = async () => {
       try {
-        // Get token from localStorage
         const token = localStorage.getItem('token');
         if (!token) {
           setError('No authentication token found');
@@ -29,7 +20,6 @@ const ParentDashboard: React.FC = () => {
           return;
         }
 
-        // Fetch real user data from the API
         const response = await fetch('/parent/users', {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -39,7 +29,6 @@ const ParentDashboard: React.FC = () => {
 
         if (!response.ok) {
           if (response.status === 401) {
-            // Redirect to login page if unauthorized
             window.location.href = '/login';
             return;
           }
@@ -47,9 +36,6 @@ const ParentDashboard: React.FC = () => {
         }
 
         const data = await response.json();
-
-        // The API returns { users: [...] } with snake_case fields, but our component expects them
-        // We'll transform the data to match our TypeScript interface
         const transformedUsers: ParentDashboardUser[] = data.users.map((user: any) => ({
           id: user.id,
           username: user.username,
@@ -73,15 +59,12 @@ const ParentDashboard: React.FC = () => {
   const updateMultiplier = async (userId: string, quizType: string, multiplier: number) => {
     try {
       setUpdateLoading(true);
-
-      // Get token from localStorage
       const token = localStorage.getItem('token');
       if (!token) {
         alert('No authentication token found. Please log in again.');
         return;
       }
 
-      // Update local state optimistically
       setUsers((prevUsers: ParentDashboardUser[]) =>
         prevUsers.map((user: ParentDashboardUser) => {
           if (user.id === userId) {
@@ -97,7 +80,6 @@ const ParentDashboard: React.FC = () => {
         })
       );
 
-      // Make API request
       const response = await fetch(`/parent/users/${userId}/multiplier`, {
         method: 'PATCH',
         headers: {
@@ -112,13 +94,9 @@ const ParentDashboard: React.FC = () => {
         throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
       }
 
-      // Clear editing state
       setEditingMultiplier(null);
-
     } catch (err: any) {
       console.error('Error updating multiplier:', err);
-
-      // Revert optimistic update on error
       setUsers((prevUsers: ParentDashboardUser[]) =>
         prevUsers.map((user: ParentDashboardUser) => {
           if (user.id === userId) {
@@ -133,87 +111,23 @@ const ParentDashboard: React.FC = () => {
           return user;
         })
       );
-
       alert(`Failed to update multiplier: ${err.message}`);
     } finally {
       setUpdateLoading(false);
     }
   };
 
-  const startEditing = (userId: string, quizType: string, currentValue: number) => {
-    setEditingMultiplier({ userId, quizType, value: currentValue });
-  };
-
-  const cancelEditing = () => {
-    setEditingMultiplier(null);
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('No authentication token found');
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch('/parent/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          window.location.href = '/login';
-          return;
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      const transformedUsers: ParentDashboardUser[] = data.users.map((user: any) => ({
-        id: user.id,
-        username: user.username,
-        earned_credits: user.earnedCredits || 0,
-        claimed_credits: user.claimedCredits || 0,
-        multipliers: user.multipliers || {}
-      }));
-
-      setUsers(transformedUsers);
-      setLoading(false);
-    } catch (err) {
-      console.error('Error fetching users:', err);
-      setError('Failed to load user data');
-      setLoading(false);
-    }
-  };
-
-  const handleSave = () => {
-    if (editingMultiplier) {
-      updateMultiplier(editingMultiplier.userId, editingMultiplier.quizType, editingMultiplier.value);
-    }
-  };
-
   const updateCredits = async (userId: string, field: 'earned' | 'claimed', amount: number) => {
     try {
       setUpdateLoading(true);
-
       const token = localStorage.getItem('token');
       if (!token) {
         alert('No authentication token found. Please log in again.');
         return;
       }
 
-      const amountValue = amount;
-      if (amountValue < 0) {
-        alert('Please enter a non-negative amount');
-        return;
-      }
-      if (!Number.isInteger(amountValue)) {
-        alert('Please enter an integer value');
+      if (amount < 0 || !Number.isInteger(amount)) {
+        alert('Please enter a non-negative integer value');
         return;
       }
 
@@ -223,10 +137,7 @@ const ParentDashboard: React.FC = () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          field,
-          amount: amountValue
-        })
+        body: JSON.stringify({ field, amount })
       });
 
       if (!response.ok) {
@@ -235,10 +146,8 @@ const ParentDashboard: React.FC = () => {
       }
 
       await fetchUsers();
-
       setEditingCredits(null);
       setCreditAmount('0');
-
     } catch (err: any) {
       console.error('Error updating credits:', err);
       alert(`Failed to update credits: ${err.message}`);
@@ -247,14 +156,14 @@ const ParentDashboard: React.FC = () => {
     }
   };
 
-  const startEditingCredits = (userId: string, field: 'earned' | 'claimed') => {
-    setEditingCredits({ userId, field, amount: 0 });
-    setCreditAmount('0');
-  };
-
-  const cancelEditingCredits = () => {
-    setEditingCredits(null);
-    setCreditAmount('0');
+  const quizTypeNames: Record<string, string> = {
+    'simple-math': 'Multiplication',
+    'simple-math-2': 'Division',
+    'simple-math-3': 'Fraction Comparison',
+    'simple-math-4': 'BODMAS',
+    'simple-math-5': 'Factors',
+    'simple-math-6': 'LCM',
+    'simple-remainder': 'Remainder'
   };
 
   if (loading) {
@@ -307,13 +216,7 @@ const ParentDashboard: React.FC = () => {
                   <td>
                     <div className="multiplier-list">
                       {user.multipliers && Object.entries(user.multipliers).map(([quizType, multiplier]) => {
-                        const quizName = quizType === 'simple-math' ? 'Multiplication' :
-                                         quizType === 'simple-math-2' ? 'Division' :
-                                         quizType === 'simple-math-3' ? 'Fraction Comparison' :
-                                         quizType === 'simple-math-4' ? 'BODMAS' :
-                                         quizType === 'simple-math-5' ? 'Factors' :
-                                         quizType === 'simple-math-6' ? 'LCM' :
-                                         quizType === 'simple-remainder' ? 'Remainder' : quizType;
+                        const quizName = quizTypeNames[quizType] || quizType;
                         const isEditing = editingMultiplier?.userId === user.id && editingMultiplier?.quizType === quizType;
 
                         return (
@@ -335,14 +238,14 @@ const ParentDashboard: React.FC = () => {
                                 />
                                 <div className="multiplier-actions">
                                   <button
-                                    onClick={handleSave}
+                                    onClick={() => updateMultiplier(user.id, quizType, editingMultiplier.value)}
                                     disabled={updateLoading}
                                     className="btn btn-sm btn-success"
                                   >
                                     {updateLoading ? 'Saving...' : 'Save'}
                                   </button>
                                   <button
-                                    onClick={cancelEditing}
+                                    onClick={() => setEditingMultiplier(null)}
                                     disabled={updateLoading}
                                     className="btn btn-sm btn-outline"
                                   >
@@ -355,7 +258,7 @@ const ParentDashboard: React.FC = () => {
                                 <span className="quiz-type-label">{quizName}: </span>
                                 <span className="multiplier-value">{multiplier}</span>
                                 <button
-                                  onClick={() => startEditing(user.id, quizType, multiplier)}
+                                  onClick={() => setEditingMultiplier({ userId: user.id, quizType, value: multiplier })}
                                   className="btn btn-sm btn-outline edit-btn"
                                 >
                                   Edit
@@ -367,55 +270,64 @@ const ParentDashboard: React.FC = () => {
                       })}
                     </div>
                   </td>
-                    <td>
-                      {editingCredits?.userId === user.id && (editingCredits?.field === 'earned' || editingCredits?.field === 'claimed') ? (
-                       <div className="credit-edit">
-                         <div className="credit-edit-row">
-                           <span className="credit-label">Set {editingCredits?.field === 'earned' ? 'Earned' : 'Claimed'} Credits:</span>
-                           <input
-                             type="number"
-                             min="0"
-                             step="1"
-                             value={creditAmount}
-                             onChange={(e) => setCreditAmount(e.target.value)}
-                             disabled={updateLoading}
-                             className="credit-amount-input"
-                           />
-                           <button
-                             onClick={() => updateCredits(user.id, editingCredits!.field, Number(creditAmount) || 0)}
-                             disabled={updateLoading || Number(creditAmount) < 0}
-                             className="btn btn-sm btn-success"
-                           >
-                             {updateLoading ? 'Saving...' : 'Save'}
-                           </button>
-                           <button
-                             onClick={cancelEditingCredits}
-                             disabled={updateLoading}
-                             className="btn btn-sm btn-outline"
-                           >
-                             Cancel
-                           </button>
-                         </div>
-                       </div>
-                     ) : (
-                       <div className="user-actions">
-                         <button
-                           onClick={() => startEditingCredits(user.id, 'earned')}
-                           className="btn btn-sm btn-outline"
-                           title="Set Earned Credits"
-                         >
-                           Earned Credits
-                         </button>
-                         <button
-                           onClick={() => startEditingCredits(user.id, 'claimed')}
-                           className="btn btn-sm btn-outline"
-                           title="Set Claimed Credits"
-                         >
-                           Claimed Credits
-                         </button>
-                       </div>
-                     )}
-                   </td>
+                  <td>
+                    {editingCredits?.userId === user.id && (editingCredits?.field === 'earned' || editingCredits?.field === 'claimed') ? (
+                      <div className="credit-edit">
+                        <div className="credit-edit-row">
+                          <span className="credit-label">Set {editingCredits?.field === 'earned' ? 'Earned' : 'Claimed'} Credits:</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={creditAmount}
+                            onChange={(e) => setCreditAmount(e.target.value)}
+                            disabled={updateLoading}
+                            className="credit-amount-input"
+                          />
+                          <button
+                            onClick={() => updateCredits(user.id, editingCredits!.field, Number(creditAmount) || 0)}
+                            disabled={updateLoading || Number(creditAmount) < 0}
+                            className="btn btn-sm btn-success"
+                          >
+                            {updateLoading ? 'Saving...' : 'Save'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingCredits(null);
+                              setCreditAmount('0');
+                            }}
+                            disabled={updateLoading}
+                            className="btn btn-sm btn-outline"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="user-actions">
+                        <button
+                          onClick={() => {
+                            setEditingCredits({ userId: user.id, field: 'earned', amount: 0 });
+                            setCreditAmount('0');
+                          }}
+                          className="btn btn-sm btn-outline"
+                          title="Set Earned Credits"
+                        >
+                          Earned Credits
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingCredits({ userId: user.id, field: 'claimed', amount: 0 });
+                            setCreditAmount('0');
+                          }}
+                          className="btn btn-sm btn-outline"
+                          title="Set Claimed Credits"
+                        >
+                          Claimed Credits
+                        </button>
+                      </div>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
