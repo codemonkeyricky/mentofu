@@ -9,62 +9,65 @@ const ParentDashboard: React.FC = () => {
   const [updateLoading, setUpdateLoading] = React.useState(false);
   const [editingCredits, setEditingCredits] = React.useState<{userId: string, field: 'earned' | 'claimed', amount: number} | null>(null);
   const [creditAmount, setCreditAmount] = React.useState<string>('0');
+  const [notification, setNotification] = React.useState<{type: 'success' | 'error', message: string} | null>(null);
 
-  React.useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setError('No authentication token found');
-          setLoading(false);
+  const fetchUsers = React.useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('No authentication token found');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch('/parent/users', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
           return;
         }
-
-        const response = await fetch('/parent/users', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            window.location.href = '/login';
-            return;
-          }
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        const transformedUsers: ParentDashboardUser[] = data.users.map((user: any) => ({
-          id: user.id,
-          username: user.username,
-          earned_credits: user.earnedCredits || 0,
-          claimed_credits: user.claimedCredits || 0,
-          multipliers: user.multipliers || {}
-        }));
-
-        setUsers(transformedUsers);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching users:', err);
-        setError('Failed to load user data');
-        setLoading(false);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
 
-    fetchUsers();
+      const data = await response.json();
+      const transformedUsers: ParentDashboardUser[] = data.users.map((user: any) => ({
+        id: user.id,
+        username: user.username,
+        earned_credits: user.earnedCredits || 0,
+        claimed_credits: user.claimedCredits || 0,
+        multipliers: user.multipliers || {}
+      }));
+
+      setUsers(transformedUsers);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      setError('Failed to load user data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  React.useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const updateMultiplier = async (userId: string, quizType: string, multiplier: number) => {
     try {
       setUpdateLoading(true);
       const token = localStorage.getItem('token');
       if (!token) {
-        alert('No authentication token found. Please log in again.');
+        setNotification({ type: 'error', message: 'No authentication token found. Please log in again.' });
         return;
       }
 
+      const previousValue = editingMultiplier?.value;
       setUsers((prevUsers: ParentDashboardUser[]) =>
         prevUsers.map((user: ParentDashboardUser) => {
           if (user.id === userId) {
@@ -80,6 +83,9 @@ const ParentDashboard: React.FC = () => {
         })
       );
 
+      setNotification({ type: 'success', message: 'Multiplier updated successfully' });
+      setEditingMultiplier(null);
+
       const response = await fetch(`/parent/users/${userId}/multiplier`, {
         method: 'PATCH',
         headers: {
@@ -93,8 +99,6 @@ const ParentDashboard: React.FC = () => {
         const errorData = await response.json();
         throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
       }
-
-      setEditingMultiplier(null);
     } catch (err: any) {
       console.error('Error updating multiplier:', err);
       setUsers((prevUsers: ParentDashboardUser[]) =>
@@ -104,14 +108,14 @@ const ParentDashboard: React.FC = () => {
               ...user,
               multipliers: {
                 ...user.multipliers,
-                [quizType]: editingMultiplier?.value || 0
+                [quizType]: previousValue || 0
               }
             };
           }
           return user;
         })
       );
-      alert(`Failed to update multiplier: ${err.message}`);
+      setNotification({ type: 'error', message: `Failed to update multiplier: ${err.message}` });
     } finally {
       setUpdateLoading(false);
     }
@@ -122,12 +126,12 @@ const ParentDashboard: React.FC = () => {
       setUpdateLoading(true);
       const token = localStorage.getItem('token');
       if (!token) {
-        alert('No authentication token found. Please log in again.');
+        setNotification({ type: 'error', message: 'No authentication token found. Please log in again.' });
         return;
       }
 
       if (amount < 0 || !Number.isInteger(amount)) {
-        alert('Please enter a non-negative integer value');
+        setNotification({ type: 'error', message: 'Please enter a non-negative integer value' });
         return;
       }
 
@@ -146,11 +150,12 @@ const ParentDashboard: React.FC = () => {
       }
 
       await fetchUsers();
+      setNotification({ type: 'success', message: `Credits ${field} updated successfully` });
       setEditingCredits(null);
       setCreditAmount('0');
     } catch (err: any) {
       console.error('Error updating credits:', err);
-      alert(`Failed to update credits: ${err.message}`);
+      setNotification({ type: 'error', message: `Failed to update credits: ${err.message}` });
     } finally {
       setUpdateLoading(false);
     }
@@ -166,12 +171,41 @@ const ParentDashboard: React.FC = () => {
     'simple-remainder': 'Remainder'
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent, action: () => void) => {
+    if (e.key === 'Enter') {
+      action();
+    }
+  };
+
+  const handleKeyDownCancel = (e: React.KeyboardEvent, action: () => void) => {
+    if (e.key === 'Escape') {
+      action();
+    }
+  };
+
   if (loading) {
-    return <div className="loading">Loading user data...</div>;
+    return (
+      <div className="parent-dashboard-container">
+        <div className="loading">
+          <div className="loading-spinner"></div>
+          <p>Loading user data...</p>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="error">{error}</div>;
+    return (
+      <div className="parent-dashboard-container">
+        <div className="error">
+          <div className="error-icon">⚠️</div>
+          <p>{error}</p>
+          <button onClick={fetchUsers} className="retry-button">
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -179,16 +213,32 @@ const ParentDashboard: React.FC = () => {
       <h1>Parent Dashboard</h1>
       <p>Welcome to the Parent Dashboard. Here you can manage user accounts, view credit information, and adjust multipliers.</p>
 
+      {notification && (
+        <div className={`notification notification-${notification.type}`}>
+          <span className="notification-icon">
+            {notification.type === 'success' ? '✓' : '✕'}
+          </span>
+          <span className="notification-message">{notification.message}</span>
+          <button
+            onClick={() => setNotification(null)}
+            className="notification-close"
+            aria-label="Close notification"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <div className="dashboard-stats">
-        <div className="stat-card">
+        <div className="stat-card" role="stat">
           <h3>Total Users</h3>
           <p>{users.length}</p>
         </div>
-        <div className="stat-card">
+        <div className="stat-card" role="stat">
           <h3>Total Credits Earned</h3>
           <p>{users.reduce((sum, user) => sum + (user.earned_credits || 0), 0)}</p>
         </div>
-        <div className="stat-card">
+        <div className="stat-card" role="stat">
           <h3>Total Credits Claimed</h3>
           <p>{users.reduce((sum, user) => sum + (user.claimed_credits || 0), 0)}</p>
         </div>
@@ -197,14 +247,14 @@ const ParentDashboard: React.FC = () => {
       <div className="dashboard-section">
         <h2>Users</h2>
         <div className="users-table">
-          <table>
+          <table aria-label="Users table">
             <thead>
               <tr>
-                <th>Username</th>
-                <th>Earned Credits</th>
-                <th>Claimed Credits</th>
-                <th>Multipliers</th>
-                <th>Actions</th>
+                <th scope="col">Username</th>
+                <th scope="col">Earned Credits</th>
+                <th scope="col">Claimed Credits</th>
+                <th scope="col">Multipliers</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -223,7 +273,7 @@ const ParentDashboard: React.FC = () => {
                           <div key={quizType} className="multiplier-item">
                             {isEditing ? (
                               <div className="multiplier-edit">
-                                <span className="quiz-type-label">{quizName}: </span>
+                                <span className="quiz-type-label" aria-label={`${quizName} multiplier value`}>{quizName}: </span>
                                 <input
                                   type="number"
                                   min="0"
@@ -235,12 +285,14 @@ const ParentDashboard: React.FC = () => {
                                   })}
                                   disabled={updateLoading}
                                   className="multiplier-input"
+                                  aria-label={`${quizName} multiplier value`}
                                 />
                                 <div className="multiplier-actions">
                                   <button
                                     onClick={() => updateMultiplier(user.id, quizType, editingMultiplier.value)}
                                     disabled={updateLoading}
                                     className="btn btn-sm btn-success"
+                                    aria-label={`Save ${quizName} multiplier`}
                                   >
                                     {updateLoading ? 'Saving...' : 'Save'}
                                   </button>
@@ -248,6 +300,7 @@ const ParentDashboard: React.FC = () => {
                                     onClick={() => setEditingMultiplier(null)}
                                     disabled={updateLoading}
                                     className="btn btn-sm btn-outline"
+                                    aria-label="Cancel editing"
                                   >
                                     Cancel
                                   </button>
@@ -256,10 +309,13 @@ const ParentDashboard: React.FC = () => {
                             ) : (
                               <div className="multiplier-display">
                                 <span className="quiz-type-label">{quizName}: </span>
-                                <span className="multiplier-value">{multiplier}</span>
+                                <span className="multiplier-value" aria-label={`${quizName} multiplier value: ${multiplier}`}>
+                                  {multiplier}
+                                </span>
                                 <button
                                   onClick={() => setEditingMultiplier({ userId: user.id, quizType, value: multiplier })}
                                   className="btn btn-sm btn-outline edit-btn"
+                                  aria-label={`Edit ${quizName} multiplier`}
                                 >
                                   Edit
                                 </button>
@@ -274,7 +330,7 @@ const ParentDashboard: React.FC = () => {
                     {editingCredits?.userId === user.id && (editingCredits?.field === 'earned' || editingCredits?.field === 'claimed') ? (
                       <div className="credit-edit">
                         <div className="credit-edit-row">
-                          <span className="credit-label">Set {editingCredits?.field === 'earned' ? 'Earned' : 'Claimed'} Credits:</span>
+                          <span className="credit-label" aria-label="Set credits field:">{editingCredits?.field === 'earned' ? 'Earned Credits:' : 'Claimed Credits:'}</span>
                           <input
                             type="number"
                             min="0"
@@ -283,11 +339,13 @@ const ParentDashboard: React.FC = () => {
                             onChange={(e) => setCreditAmount(e.target.value)}
                             disabled={updateLoading}
                             className="credit-amount-input"
+                            aria-label={`Set ${editingCredits?.field} credits value`}
                           />
                           <button
                             onClick={() => updateCredits(user.id, editingCredits!.field, Number(creditAmount) || 0)}
                             disabled={updateLoading || Number(creditAmount) < 0}
                             className="btn btn-sm btn-success"
+                            aria-label={`Save ${editingCredits?.field} credits`}
                           >
                             {updateLoading ? 'Saving...' : 'Save'}
                           </button>
@@ -298,6 +356,7 @@ const ParentDashboard: React.FC = () => {
                             }}
                             disabled={updateLoading}
                             className="btn btn-sm btn-outline"
+                            aria-label="Cancel editing credits"
                           >
                             Cancel
                           </button>
@@ -312,6 +371,7 @@ const ParentDashboard: React.FC = () => {
                           }}
                           className="btn btn-sm btn-outline"
                           title="Set Earned Credits"
+                          aria-label="Set user earned credits"
                         >
                           Earned Credits
                         </button>
@@ -322,6 +382,7 @@ const ParentDashboard: React.FC = () => {
                           }}
                           className="btn btn-sm btn-outline"
                           title="Set Claimed Credits"
+                          aria-label="Set user claimed credits"
                         >
                           Claimed Credits
                         </button>
