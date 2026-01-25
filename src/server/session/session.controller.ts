@@ -3,21 +3,11 @@ import { sessionService } from './session.service.impl';
 import { Session } from './session.types';
 import { SimpleWordsSession } from './simple.words.types';
 import { authenticate } from '../middleware/auth.middleware';
+import { QUIZ_TYPES } from './quiz-types.constants';
 
 export const sessionRouter = Router();
 
-const quizTypes = [
-  'simple-math',
-  'simple-math-2',
-  'simple-math-3',
-  'simple-math-4',
-  'simple-math-5',
-  'simple-math-6',
-  'simple-remainder',
-  'simple-words',
-  'addition-test',
-];
-const quizTypePattern = `:quizType(${quizTypes.join('|')})`;
+const quizTypePattern = `:quizType(${QUIZ_TYPES.join('|')})`;
 
 // Create new quiz session
 sessionRouter.get(`/${quizTypePattern}`, authenticate, async (req: Request, res: Response) => {
@@ -205,18 +195,7 @@ sessionRouter.get('/multiplier/:quizType', authenticate, async (req: Request, re
     const user = (req as any).user;
 
     // Validate quiz type - support all quiz types
-    const quizTypes = [
-      'simple-math',
-      'simple-math-2',
-      'simple-math-3',
-      'simple-math-4',
-      'simple-math-5',
-      'simple-math-6',
-      'simple-remainder',
-      'simple-words',
-      'addition-test'
-    ];
-    if (!quizTypes.includes(quizType)) {
+    if (!QUIZ_TYPES.includes(quizType as any)) {
       return res.status(400).json({
         error: {
           message: 'Invalid quiz type'
@@ -249,18 +228,7 @@ sessionRouter.post('/multiplier/:quizType', authenticate, async (req: Request, r
     const user = (req as any).user;
 
     // Validate quiz type - support all quiz types
-    const quizTypes = [
-      'simple-math',
-      'simple-math-2',
-      'simple-math-3',
-      'simple-math-4',
-      'simple-math-5',
-      'simple-math-6',
-      'simple-remainder',
-      'simple-words',
-      'addition-test'
-    ];
-    if (!quizTypes.includes(quizType)) {
+    if (!QUIZ_TYPES.includes(quizType as any)) {
       return res.status(400).json({
         error: {
           message: 'Invalid quiz type'

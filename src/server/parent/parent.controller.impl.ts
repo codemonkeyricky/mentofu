@@ -4,23 +4,14 @@ import { DatabaseService } from '../database/interface/database.service';
 import { authService } from '../auth/auth.service';
 import { User } from '../auth/auth.types';
 import { IParentController } from './interface/parent.controller.interface';
+import { QUIZ_TYPES } from '../session/quiz-types.constants';
 
 export class ParentController implements IParentController {
   private router: Router;
   private databaseService: DatabaseService;
   private authService: typeof authService;
 
-  private readonly _VALID_QUIZ_TYPES: string[] = [
-    'simple-math',
-    'simple-math-2',
-    'simple-math-3',
-    'simple-math-4',
-    'simple-math-5',
-    'simple-math-6',
-    'simple-remainder',
-    'simple-words',
-    'addition-test'
-  ];
+  private readonly _VALID_QUIZ_TYPES: readonly string[] = QUIZ_TYPES;
 
   constructor() {
     this.router = Router();
@@ -483,7 +474,7 @@ export class ParentController implements IParentController {
     return this.router;
   }
 
-  public get validQuizTypes(): string[] {
+  public get validQuizTypes(): readonly string[] {
     return this._VALID_QUIZ_TYPES;
   }
 }

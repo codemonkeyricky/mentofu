@@ -13,5 +13,5 @@ export interface IParentController {
 
   getUser(req: Request<any, any, any, any, any>, res: Response<any, any>): Promise<any>;
 
-  get validQuizTypes(): string[];
+  get validQuizTypes(): readonly string[];
 }

@@ -8,6 +8,7 @@ import { SimpleWordsSession } from './simple.words.types';
 import { DatabaseService } from '../database/interface/database.service';
 import { ISessionService } from './interface/session.service.interface';
 import { creditService } from '../credit/credit.service';
+import { QUIZ_TYPES } from './quiz-types.constants';
 
 // Type-safe question generator mapping
 const questionGenerators: Record<string, (count: number) => Question[]> = {
@@ -28,20 +29,15 @@ type MathValidationConfig = {
 };
 
 const mathValidationConfigs: Record<string, MathValidationConfig> = {
-  'simple-math': {
-    isApplicable: (q) => typeof q === 'object' && 'question' in q && typeof q.question === 'string',
-    validate: (q, ua) => String(ua) === String(q.answer),
-  },
-  'simple-math-2': {
-    isApplicable: (q) => typeof q === 'object' && 'question' in q && typeof q.question === 'string',
-    validate: (q, ua) => String(ua) === String(q.answer),
-  },
+  ...QUIZ_TYPES.reduce((acc, type) => ({
+    ...acc,
+    [type]: {
+      isApplicable: (q) => typeof q === 'object' && 'question' in q && typeof q.question === 'string',
+      validate: (q, ua) => String(ua) === String(q.answer),
+    },
+  }), {} as Record<string, MathValidationConfig>),
   'simple-math-3': {
     isApplicable: (q) => typeof q === 'object' && 'question' in q && Array.isArray(q.question),
-    validate: (q, ua) => String(ua) === String(q.answer),
-  },
-  'simple-math-4': {
-    isApplicable: (q) => typeof q === 'object' && 'question' in q && typeof q.question === 'string',
     validate: (q, ua) => String(ua) === String(q.answer),
   },
   'simple-math-5': {
@@ -59,18 +55,6 @@ const mathValidationConfigs: Record<string, MathValidationConfig> = {
         .filter(n => !isNaN(n));
       return userFactors.every(f => (q as any).factors.includes(f)) && userFactors.length === (q as any).factors.length;
     },
-  },
-  'simple-math-6': {
-    isApplicable: (q) => typeof q === 'object' && 'question' in q && typeof q.question === 'string',
-    validate: (q, ua) => String(ua) === String(q.answer),
-  },
-  'addition-test': {
-    isApplicable: (q) => typeof q === 'object' && 'question' in q && typeof q.question === 'string',
-    validate: (q, ua) => String(ua) === String(q.answer),
-  },
-  'simple-remainder': {
-    isApplicable: (q) => typeof q === 'object' && 'question' in q && typeof q.question === 'string',
-    validate: (q, ua) => String(ua) === String(q.answer),
   },
 };
 
