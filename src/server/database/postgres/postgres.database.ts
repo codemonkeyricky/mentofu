@@ -39,7 +39,8 @@ export class PostgresDatabase implements DatabaseOperations {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           earned_credits INTEGER DEFAULT 0,
           claimed_credits INTEGER DEFAULT 0,
-          is_admin BOOLEAN DEFAULT FALSE
+          is_admin BOOLEAN DEFAULT FALSE,
+          parent_id TEXT
         )
       `;
 
@@ -54,6 +55,9 @@ export class PostgresDatabase implements DatabaseOperations {
             END IF;
             IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='is_admin') THEN
                 ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='parent_id') THEN
+                ALTER TABLE users ADD COLUMN parent_id TEXT;
             END IF;
         END $$;
       `;
@@ -71,6 +75,7 @@ export class PostgresDatabase implements DatabaseOperations {
       `;
 
       await sql`CREATE INDEX IF NOT EXISTS idx_sessions_id_completed ON sessions(id, completed)`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_users_parent_id ON users(parent_id)`;
 
       await sql`
         CREATE TABLE IF NOT EXISTS session_scores (
@@ -118,16 +123,19 @@ export class PostgresDatabase implements DatabaseOperations {
    * @throws {Error} If admin user creation fails
    */
   private async createAdminUserIfNotExists(): Promise<void> {
+    const client = await sql.connect();
     try {
-      const result = await sql`SELECT id, is_admin FROM users WHERE username = 'parent'`;
+      await client.sql`BEGIN`;
+      const result = await client.sql`SELECT id, is_admin FROM users WHERE username = 'parent'`;
       if (result.rows.length === 0) {
         const adminPassword = process.env.ADMIN_PASSWORD_HASH;
         if (!adminPassword) {
+          await client.sql`ROLLBACK`;
           throw new Error('ADMIN_PASSWORD_HASH environment variable is not configured');
         }
 
         databaseLogger.info('Creating admin user: parent');
-        await sql`
+        await client.sql`
           INSERT INTO users (id, username, password_hash, is_admin)
           VALUES ('parent-user-id', 'parent', ${adminPassword}, true)
         `;
@@ -135,12 +143,16 @@ export class PostgresDatabase implements DatabaseOperations {
         const user = result.rows[0];
         if (!user.is_admin) {
           databaseLogger.info('Updating existing parent user to have admin privileges');
-          await sql`UPDATE users SET is_admin = true WHERE username = 'parent'`;
+          await client.sql`UPDATE users SET is_admin = true WHERE username = 'parent'`;
         }
       }
+      await client.sql`COMMIT`;
     } catch (error) {
+      await client.sql`ROLLBACK`;
       databaseLogger.error('Error creating parent user in PostgreSQL', { error });
       throw error;
+    } finally {
+      client.release();
     }
   }
 
@@ -384,6 +396,98 @@ export class PostgresDatabase implements DatabaseOperations {
       claimed_credits: row.claimed_credits,
       isParent: row.isParent
     }));
+  }
+
+  public async createChildAccount(parentId: string, username: string, passwordHash: string): Promise<User> {
+    await this.initVercelPostgres();
+
+    // Use a transaction to ensure atomicity and validate parent
+    const client = await sql.connect();
+    try {
+      await client.sql`BEGIN`;
+
+      // Validate parent exists and is a parent user (is_admin = TRUE)
+      const parentCheck = await client.sql`
+        SELECT id, is_admin FROM users WHERE id = ${parentId}
+      `;
+      if (parentCheck.rows.length === 0) {
+        await client.sql`ROLLBACK`;
+        throw new Error('Parent user not found');
+      }
+      if (!parentCheck.rows[0].is_admin) {
+        await client.sql`ROLLBACK`;
+        throw new Error('User is not a parent');
+      }
+
+      // Insert child account with parent_id included
+      const insertResult = await client.sql`
+        INSERT INTO users (id, username, password_hash, is_admin, parent_id)
+        VALUES (${generateUUID()}, ${username}, ${passwordHash}, FALSE, ${parentId})
+        RETURNING id, username, password_hash as "passwordHash", created_at as "createdAt", earned_credits, claimed_credits, is_admin as "isParent", parent_id
+      `;
+
+      const newUser = handlePostgresResult<User>(insertResult);
+      await client.sql`COMMIT`;
+      return newUser;
+    } catch (error: any) {
+      await client.sql`ROLLBACK`;
+      if (error.message.includes('duplicate key') || error.code === '23505') {
+        throw new Error('User already exists');
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async getChildrenByParent(parentId: string): Promise<Array<{ childId: string, childUsername: string }>> {
+    await this.initVercelPostgres();
+    const result = await sql`
+      SELECT id, username FROM users WHERE parent_id = ${parentId} AND is_admin = FALSE AND parent_id IS NOT NULL
+    `;
+    return result.rows.map((row: any) => ({
+      childId: row.id,
+      childUsername: row.username
+    }));
+  }
+
+  public async updateChildPassword(childId: string, passwordHash: string): Promise<void> {
+    await this.initVercelPostgres();
+    const result = await sql`UPDATE users SET password_hash = ${passwordHash} WHERE id = ${childId}`;
+    if (result.rowCount === 0) throw new Error('User not found');
+  }
+
+  public async updateChildDetails(childId: string, username: string): Promise<void> {
+    await this.initVercelPostgres();
+
+    // Use a transaction to ensure atomicity between SELECT and UPDATE
+    const client = await sql.connect();
+    try {
+      await client.sql`BEGIN`;
+      // Check if username is already taken by another user
+      const checkResult = await client.sql`SELECT id FROM users WHERE username = ${username}`;
+      if (checkResult.rows.length > 0 && checkResult.rows[0].id !== childId) {
+        await client.sql`ROLLBACK`;
+        throw new Error('User already exists');
+      }
+
+      // Update the username
+      const updateResult = await client.sql`UPDATE users SET username = ${username} WHERE id = ${childId}`;
+      if (updateResult.rowCount === 0) {
+        await client.sql`ROLLBACK`;
+        throw new Error('User not found');
+      }
+
+      await client.sql`COMMIT`;
+    } catch (error: any) {
+      await client.sql`ROLLBACK`;
+      if (error.message.includes('duplicate key') || error.code === '23505') {
+        throw new Error('Username already exists');
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   public async close(): Promise<void> {}

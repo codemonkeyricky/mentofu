@@ -8,6 +8,7 @@ import { MemoryDatabase } from '../memory/memory.database';
 export class DatabaseService implements DatabaseOperations {
   private readonly databaseType: 'memory' | 'vercel-postgres';
   private memoryDB: MemoryDatabase | null = null;
+  private postgresDB: PostgresDatabase | null = null;
 
   constructor(databasePath: string = './quiz.db') {
     this.databaseType = process.env.POSTGRES_URL ? 'vercel-postgres' : 'memory';
@@ -21,6 +22,7 @@ export class DatabaseService implements DatabaseOperations {
       }
     } else {
       console.log('Using PostgreSQL database (Vercel)');
+      this.postgresDB = PostgresDatabase.getInstance();
     }
   }
 
@@ -75,8 +77,7 @@ export class DatabaseService implements DatabaseOperations {
         completed: false
       });
     } else {
-      const postgresDB = new PostgresDatabase();
-      await postgresDB.saveSession(session, quizType);
+      await this.postgresDB!.saveSession(session, quizType);
     }
   }
 
@@ -89,8 +90,7 @@ export class DatabaseService implements DatabaseOperations {
       const { quizType, completed, ...sessionData } = session;
       return sessionData;
     } else {
-      const postgresDB = new PostgresDatabase();
-      return postgresDB.getSession(sessionId);
+      return this.postgresDB!.getSession(sessionId);
     }
   }
 
@@ -98,8 +98,7 @@ export class DatabaseService implements DatabaseOperations {
     if (this.databaseType === 'memory') {
       this.getSessionsTable().delete(sessionId);
     } else {
-      const postgresDB = new PostgresDatabase();
-      await postgresDB.deleteSession(sessionId);
+      await this.postgresDB!.deleteSession(sessionId);
     }
   }
 
@@ -116,14 +115,15 @@ export class DatabaseService implements DatabaseOperations {
       // Also save to session_scores table for backward compatibility
       await this.saveSessionScore(session.userId, sessionId, score, total, session.quizType, multiplier);
     } else {
-      const postgresDB = new PostgresDatabase();
-      await postgresDB.markSessionAsCompleted(sessionId, score, total, multiplier);
+      await this.postgresDB!.markSessionAsCompleted(sessionId, score, total, multiplier);
     }
   }
 
   public async initVercelPostgres(): Promise<void> {
-    const postgresDB = new PostgresDatabase();
-    await postgresDB.initVercelPostgres();
+    if (!this.postgresDB) {
+      throw new Error('PostgreSQL database is not initialized. This operation requires POSTGRES_URL environment variable.');
+    }
+    await this.postgresDB.initVercelPostgres();
   }
 
   public async createUser(user: Omit<User, 'createdAt'>): Promise<User> {
@@ -145,8 +145,7 @@ export class DatabaseService implements DatabaseOperations {
       users.set(user.id, newUser);
       return newUser;
     } else {
-      const postgresDB = new PostgresDatabase();
-      return postgresDB.createUser(user);
+      return this.postgresDB!.createUser(user);
     }
   }
 
@@ -158,8 +157,7 @@ export class DatabaseService implements DatabaseOperations {
       }
       return null;
     } else {
-      const postgresDB = new PostgresDatabase();
-      return postgresDB.findUserByUsername(username);
+      return this.postgresDB!.findUserByUsername(username);
     }
   }
 
@@ -167,8 +165,7 @@ export class DatabaseService implements DatabaseOperations {
     if (this.databaseType === 'memory') {
       return this.getUsersTable().get(userId) || null;
     } else {
-      const postgresDB = new PostgresDatabase();
-      return postgresDB.findUserById(userId);
+      return this.postgresDB!.findUserById(userId);
     }
   }
 
@@ -188,8 +185,7 @@ export class DatabaseService implements DatabaseOperations {
         completed_at: new Date()
       });
     } else {
-      const postgresDB = new PostgresDatabase();
-      await postgresDB.saveSessionScore(userId, sessionId, score, total, sessionType, multiplier);
+      await this.postgresDB!.saveSessionScore(userId, sessionId, score, total, sessionType, multiplier);
     }
   }
 
@@ -200,8 +196,7 @@ export class DatabaseService implements DatabaseOperations {
       }
       return null;
     } else {
-      const postgresDB = new PostgresDatabase();
-      return postgresDB.getSessionScore(sessionId);
+      return this.postgresDB!.getSessionScore(sessionId);
     }
   }
 
@@ -223,8 +218,7 @@ export class DatabaseService implements DatabaseOperations {
       }
       return userScores.sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
     } else {
-      const postgresDB = new PostgresDatabase();
-      return postgresDB.getUserSessionScores(userId);
+      return this.postgresDB!.getUserSessionScores(userId);
     }
   }
 
@@ -247,8 +241,7 @@ export class DatabaseService implements DatabaseOperations {
       }
       return history.sort((a, b) => b.completed_at.getTime() - a.completed_at.getTime());
     } else {
-      const postgresDB = new PostgresDatabase();
-      return postgresDB.getUserSessionHistory(userId);
+      return this.postgresDB!.getUserSessionHistory(userId);
     }
   }
 
@@ -257,8 +250,7 @@ export class DatabaseService implements DatabaseOperations {
       const multipliers = this.getMultipliersTable();
       multipliers.set(`${userId}-${quizType}`, multiplier);
     } else {
-      const postgresDB = new PostgresDatabase();
-      await postgresDB.setUserMultiplier(userId, quizType, multiplier);
+      await this.postgresDB!.setUserMultiplier(userId, quizType, multiplier);
     }
   }
 
@@ -267,8 +259,7 @@ export class DatabaseService implements DatabaseOperations {
       const value = this.getMultipliersTable().get(`${userId}-${quizType}`);
       return value !== undefined ? value : 1;
     } else {
-      const postgresDB = new PostgresDatabase();
-      return postgresDB.getUserMultiplier(userId, quizType);
+      return this.postgresDB!.getUserMultiplier(userId, quizType);
     }
   }
 
@@ -279,8 +270,7 @@ export class DatabaseService implements DatabaseOperations {
       if (user) user.earned_credits = (user.earned_credits || 0) + amount;
       else throw new Error('User not found');
     } else {
-      const postgresDB = new PostgresDatabase();
-      await postgresDB.addEarnedCredits(userId, amount);
+      await this.postgresDB!.addEarnedCredits(userId, amount);
     }
   }
 
@@ -288,8 +278,7 @@ export class DatabaseService implements DatabaseOperations {
     if (this.databaseType === 'memory') {
       return this.getUsersTable().get(userId)?.earned_credits || 0;
     } else {
-      const postgresDB = new PostgresDatabase();
-      return postgresDB.getEarnedCredits(userId);
+      return this.postgresDB!.getEarnedCredits(userId);
     }
   }
 
@@ -300,8 +289,7 @@ export class DatabaseService implements DatabaseOperations {
       if (user) user.claimed_credits = (user.claimed_credits || 0) + amount;
       else throw new Error('User not found');
     } else {
-      const postgresDB = new PostgresDatabase();
-      await postgresDB.addClaimedCredits(userId, amount);
+      await this.postgresDB!.addClaimedCredits(userId, amount);
     }
   }
 
@@ -309,8 +297,7 @@ export class DatabaseService implements DatabaseOperations {
     if (this.databaseType === 'memory') {
       return this.getUsersTable().get(userId)?.claimed_credits || 0;
     } else {
-      const postgresDB = new PostgresDatabase();
-      return postgresDB.getClaimedCredits(userId);
+      return this.postgresDB!.getClaimedCredits(userId);
     }
   }
 
@@ -318,8 +305,89 @@ export class DatabaseService implements DatabaseOperations {
     if (this.databaseType === 'memory') {
       return Array.from(this.getUsersTable().values());
     } else {
-      const postgresDB = new PostgresDatabase();
-      return postgresDB.getAllUsers();
+      return this.postgresDB!.getAllUsers();
+    }
+  }
+
+  public async createChildAccount(parentId: string, username: string, passwordHash: string): Promise<User> {
+    if (this.databaseType === 'memory') {
+      return this.memoryDB!.executeInTransaction(async () => {
+        const users = this.getUsersTable();
+
+        // Validate parent exists and is a parent user
+        const parentUser = users.get(parentId);
+        if (!parentUser) {
+          throw new Error('Parent user not found');
+        }
+        if (!parentUser.isParent) {
+          throw new Error('User is not a parent');
+        }
+
+        // Check username uniqueness
+        for (const existingUser of users.values()) {
+          if (existingUser.username === username) throw new Error('User already exists');
+        }
+
+        const newUser: User = {
+          id: this.generateUUID(),
+          username: username,
+          passwordHash: passwordHash,
+          createdAt: new Date(),
+          earned_credits: 0,
+          claimed_credits: 0,
+          isParent: false,
+          is_admin: false,
+          parent_id: parentId
+        };
+        users.set(newUser.id, newUser);
+        this.memoryDB!.createChildRelationship(parentId, newUser.id, username);
+        return newUser;
+      });
+    } else {
+      return this.postgresDB!.createChildAccount(parentId, username, passwordHash);
+    }
+  }
+
+  public async getChildrenByParent(parentId: string): Promise<Array<{ childId: string, childUsername: string }>> {
+    if (this.databaseType === 'memory') {
+      return this.memoryDB!.getChildrenByParent(parentId);
+    } else {
+      return this.postgresDB!.getChildrenByParent(parentId);
+    }
+  }
+
+  public async updateChildPassword(childId: string, passwordHash: string): Promise<void> {
+    if (this.databaseType === 'memory') {
+      const users = this.getUsersTable();
+      const user = users.get(childId);
+      if (user) user.passwordHash = passwordHash;
+      else throw new Error('User not found');
+    } else {
+      await this.postgresDB!.updateChildPassword(childId, passwordHash);
+    }
+  }
+
+  public async updateChildDetails(childId: string, username: string): Promise<void> {
+    if (this.databaseType === 'memory') {
+      return this.memoryDB!.executeInTransaction(async () => {
+        const users = this.getUsersTable();
+        const user = users.get(childId);
+        if (!user) {
+          throw new Error('User not found');
+        }
+
+        // Check username uniqueness
+        for (const existingUser of users.values()) {
+          if (existingUser.username === username && existingUser.id !== childId) {
+            throw new Error('User already exists');
+          }
+        }
+
+        user.username = username;
+        this.memoryDB!.updateChildUsername(childId, username);
+      });
+    } else {
+      await this.postgresDB!.updateChildDetails(childId, username);
     }
   }
 

@@ -6,6 +6,8 @@ export interface User {
   earned_credits?: number;
   claimed_credits?: number;
   isParent?: boolean;
+  parent_id?: string;
+  is_admin?: boolean;
 }
 
 export interface AuthResponse {

@@ -26,4 +26,10 @@ export interface DatabaseOperations {
   addClaimedCredits(userId: string, amount: number): Promise<void>;
   getClaimedCredits(userId: string): Promise<number>;
   getAllUsers(): Promise<User[]>;
+
+  // Child account methods
+  createChildAccount(parentId: string, username: string, passwordHash: string): Promise<User>;
+  getChildrenByParent(parentId: string): Promise<Array<{ childId: string, childUsername: string }>>;
+  updateChildPassword(childId: string, passwordHash: string): Promise<void>;
+  updateChildDetails(childId: string, username: string): Promise<void>;
 }
