@@ -93,6 +93,7 @@ export class MathMasterPro {
             totalQuizzes: 0,
             averageScore: 0
         };
+        this.isClaiming = false;
     }
 
     initEventListeners() {
@@ -760,7 +761,25 @@ export class MathMasterPro {
     }
 
     async claimCredits(credits) {
+        const claimButton = document.getElementById('claim-credits-btn');
+        let buttonWasDisabled = false;
+        let originalButtonHTML = '';
+
         try {
+            // Prevent multiple concurrent claims
+            if (this.isClaiming) {
+                throw new Error('Credit claim already in progress');
+            }
+            this.isClaiming = true;
+
+            // Disable button to prevent multiple clicks
+            if (claimButton) {
+                buttonWasDisabled = claimButton.disabled;
+                originalButtonHTML = claimButton.innerHTML;
+                claimButton.disabled = true;
+                claimButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Claiming...';
+            }
+
             if (!this.currentToken) {
                 throw new Error('User not authenticated');
             }
@@ -799,6 +818,15 @@ export class MathMasterPro {
             console.error('Error claiming credits:', error);
             this.showNotification(`Failed to claim credits: ${error.message}`, 'error');
             throw error;
+        } finally {
+            // Reset claiming flag
+            this.isClaiming = false;
+
+            // Re-enable button and restore original content
+            if (claimButton && !buttonWasDisabled) {
+                claimButton.disabled = false;
+                claimButton.innerHTML = originalButtonHTML;
+            }
         }
     }
 

@@ -293,6 +293,39 @@ export class DatabaseService implements DatabaseOperations {
     }
   }
 
+  public async addClaimedCreditsAtomic(userId: string, amount: number, maxTotalEarned: number, expectedCurrentClaimed?: number): Promise<boolean> {
+    if (this.databaseType === 'memory') {
+      // Use transaction for atomicity in memory database
+      return await this.memoryDB!.executeInTransaction(async () => {
+        const users = this.getUsersTable();
+        const user = users.get(userId);
+        if (!user) return false;
+
+        const currentClaimed = user.claimed_credits || 0;
+        const currentEarned = user.earned_credits || 0;
+
+        // Check expected current claimed if provided
+        if (expectedCurrentClaimed !== undefined && currentClaimed !== expectedCurrentClaimed) {
+          return false;
+        }
+
+        if (currentClaimed + amount > currentEarned) {
+          return false;
+        }
+
+        // Ensure earned credits haven't decreased below validation threshold
+        if (currentEarned < maxTotalEarned) {
+          return false;
+        }
+
+        user.claimed_credits = currentClaimed + amount;
+        return true;
+      });
+    } else {
+      return await this.postgresDB!.addClaimedCreditsAtomic(userId, amount, maxTotalEarned, expectedCurrentClaimed);
+    }
+  }
+
   public async getClaimedCredits(userId: string): Promise<number> {
     if (this.databaseType === 'memory') {
       return this.getUsersTable().get(userId)?.claimed_credits || 0;

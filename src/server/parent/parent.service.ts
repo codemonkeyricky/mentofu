@@ -22,6 +22,49 @@ export class ParentService {
     private authService: any
   ) {}
 
+  private async atomicAddClaimedCredits(
+    userId: string,
+    amount: number,
+    expectedCurrentClaimed?: number
+  ): Promise<void> {
+    // Get current earned credits for validation
+    let currentEarned = await this.databaseService.getEarnedCredits(userId);
+    const maxRetries = 3;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      // Try atomic update
+      const success = await this.databaseService.addClaimedCreditsAtomic(
+        userId,
+        amount,
+        currentEarned,
+        expectedCurrentClaimed
+      );
+
+      if (success) {
+        return; // Success!
+      }
+
+      // Atomic update failed - check if earned credits changed
+      if (attempt < maxRetries - 1) {
+        const newEarned = await this.databaseService.getEarnedCredits(userId);
+        if (newEarned !== currentEarned) {
+          // Earned credits changed, update and retry immediately
+          currentEarned = newEarned;
+          continue;
+        }
+      }
+
+      // Wait with exponential backoff before retry
+      if (attempt < maxRetries - 1) {
+        const delayMs = 50 * Math.pow(2, attempt); // 50ms, 100ms, 200ms
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+
+    // All retries failed
+    throw new Error('Cannot update claimed credits. Validation failed.');
+  }
+
   async login(username: string, password: string): Promise<AuthResponse> {
     const authResponse = await this.authService.login(username, password);
 
@@ -101,7 +144,7 @@ export class ParentService {
         if (targetAmount > finalEarned) {
           throw new Error('Cannot set claimed credits above earned credits');
         }
-        await this.databaseService.addClaimedCredits(user.id, targetAmount - currentClaimed);
+        await this.atomicAddClaimedCredits(user.id, targetAmount - currentClaimed, currentClaimed);
       }
     } else {
       let earnedDelta = 0;
@@ -124,7 +167,7 @@ export class ParentService {
         await this.databaseService.addEarnedCredits(user.id, earnedDelta);
       }
       if (claimedDelta !== 0) {
-        await this.databaseService.addClaimedCredits(user.id, claimedDelta);
+        await this.atomicAddClaimedCredits(user.id, claimedDelta, currentClaimed);
       }
     }
 

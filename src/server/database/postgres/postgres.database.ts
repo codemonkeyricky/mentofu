@@ -358,7 +358,7 @@ export class PostgresDatabase implements DatabaseOperations {
   public async addEarnedCredits(userId: string, amount: number): Promise<void> {
     await this.initVercelPostgres();
     const result = await sql`UPDATE users SET earned_credits = earned_credits + ${amount} WHERE id = ${userId}`;
-    if (result.rowCount === 0) throw new Error('User not found');
+    if ((result.rowCount ?? 0) === 0) throw new Error('User not found');
   }
 
   public async getEarnedCredits(userId: string): Promise<number> {
@@ -371,7 +371,33 @@ export class PostgresDatabase implements DatabaseOperations {
   public async addClaimedCredits(userId: string, amount: number): Promise<void> {
     await this.initVercelPostgres();
     const result = await sql`UPDATE users SET claimed_credits = claimed_credits + ${amount} WHERE id = ${userId}`;
-    if (result.rowCount === 0) throw new Error('User not found');
+    if ((result.rowCount ?? 0) === 0) throw new Error('User not found');
+  }
+
+  public async addClaimedCreditsAtomic(userId: string, amount: number, maxTotalEarned: number, expectedCurrentClaimed?: number): Promise<boolean> {
+    await this.initVercelPostgres();
+    // Atomic update with validation in WHERE clause
+    let query = sql`
+      UPDATE users
+      SET claimed_credits = claimed_credits + ${amount}
+      WHERE id = ${userId}
+        AND claimed_credits + ${amount} <= earned_credits
+        AND earned_credits >= ${maxTotalEarned}
+    `;
+
+    if (expectedCurrentClaimed !== undefined) {
+      query = sql`
+        UPDATE users
+        SET claimed_credits = claimed_credits + ${amount}
+        WHERE id = ${userId}
+          AND claimed_credits = ${expectedCurrentClaimed}
+          AND claimed_credits + ${amount} <= earned_credits
+          AND earned_credits >= ${maxTotalEarned}
+      `;
+    }
+
+    const result = await query;
+    return (result.rowCount ?? 0) > 0;
   }
 
   public async getClaimedCredits(userId: string): Promise<number> {

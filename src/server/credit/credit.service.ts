@@ -39,14 +39,45 @@ export class CreditService implements ICreditService {
       throw new Error('Database service not initialized');
     }
 
-    const totalEarned = await this.getTotalEarned(userId);
-    const currentClaimed = await this.getTotalClaimed(userId);
-
-    if (currentClaimed + amount > totalEarned) {
-      throw new Error('Total claimed credit cannot be larger than total earned credit');
+    // Validate amount is positive
+    if (amount <= 0) {
+      throw new Error('Claim amount must be positive');
     }
 
-    await this.databaseService.addClaimedCredits(userId, amount);
+    let totalEarned = await this.getTotalEarned(userId);
+    const maxRetries = 3;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      // Try atomic update
+      const success = await this.databaseService.addClaimedCreditsAtomic(
+        userId,
+        amount,
+        totalEarned
+      );
+
+      if (success) {
+        return; // Success!
+      }
+
+      // Atomic update failed - check if earned credits changed
+      if (attempt < maxRetries - 1) {
+        const newTotalEarned = await this.getTotalEarned(userId);
+        if (newTotalEarned !== totalEarned) {
+          // Earned credits changed, update and retry immediately
+          totalEarned = newTotalEarned;
+          continue;
+        }
+      }
+
+      // Wait with exponential backoff before retry
+      if (attempt < maxRetries - 1) {
+        const delayMs = 50 * Math.pow(2, attempt); // 50ms, 100ms, 200ms
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+
+    // All retries failed
+    throw new Error('Total claimed credit cannot be larger than total earned credit');
   }
 }
 

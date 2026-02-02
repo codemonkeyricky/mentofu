@@ -33,21 +33,52 @@ describe('CreditService', () => {
 
     it('should add credits when total claimed is within earned limits', async () => {
       mockDatabaseService.getEarnedCredits.mockResolvedValue(50);
-      mockDatabaseService.getClaimedCredits.mockResolvedValue(20);
+      mockDatabaseService.addClaimedCreditsAtomic.mockResolvedValue(true);
 
       await creditService.addClaimedCredits(userId, 30);
 
-      expect(mockDatabaseService.addClaimedCredits).toHaveBeenCalledWith(userId, 30);
+      expect(mockDatabaseService.addClaimedCreditsAtomic).toHaveBeenCalledWith(
+        userId,
+        30,
+        50
+      );
     });
 
     it('should throw an error when trying to claim more than earned', async () => {
       mockDatabaseService.getEarnedCredits.mockResolvedValue(50);
-      mockDatabaseService.getClaimedCredits.mockResolvedValue(40);
+      mockDatabaseService.addClaimedCreditsAtomic.mockResolvedValue(false);
 
       await expect(creditService.addClaimedCredits(userId, 11))
         .rejects.toThrow('Total claimed credit cannot be larger than total earned credit');
-      
-      expect(mockDatabaseService.addClaimedCredits).not.toHaveBeenCalled();
+
+      expect(mockDatabaseService.addClaimedCreditsAtomic).toHaveBeenCalled();
+    });
+
+    it('should retry when earned credits change', async () => {
+      // Simulate earned credits changing between retries
+      mockDatabaseService.getEarnedCredits
+        .mockResolvedValueOnce(50)  // First call
+        .mockResolvedValueOnce(60)  // Second call after first atomic failure
+        .mockResolvedValueOnce(60); // Third call after update
+      mockDatabaseService.addClaimedCreditsAtomic
+        .mockResolvedValueOnce(false) // First attempt fails due to earned mismatch
+        .mockResolvedValueOnce(true); // Second attempt succeeds with updated earned
+
+      await creditService.addClaimedCredits(userId, 30);
+
+      expect(mockDatabaseService.addClaimedCreditsAtomic).toHaveBeenCalledTimes(2);
+      expect(mockDatabaseService.addClaimedCreditsAtomic).toHaveBeenNthCalledWith(
+        1,
+        userId,
+        30,
+        50
+      );
+      expect(mockDatabaseService.addClaimedCreditsAtomic).toHaveBeenNthCalledWith(
+        2,
+        userId,
+        30,
+        60
+      );
     });
   });
 });

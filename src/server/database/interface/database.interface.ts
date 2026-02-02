@@ -24,6 +24,7 @@ export interface DatabaseOperations {
   addEarnedCredits(userId: string, amount: number): Promise<void>;
   getEarnedCredits(userId: string): Promise<number>;
   addClaimedCredits(userId: string, amount: number): Promise<void>;
+  addClaimedCreditsAtomic(userId: string, amount: number, maxTotalEarned: number, expectedCurrentClaimed?: number): Promise<boolean>;
   getClaimedCredits(userId: string): Promise<number>;
   getAllUsers(): Promise<User[]>;
 
