@@ -15,7 +15,7 @@ export default class QuizBase {
             'math-2': { icon: 'fa-divide', text: 'Start Division Quiz' },
             'math-3': { icon: 'fa-chart-pie', text: 'Start Fraction Comparison' },
             'math-4': { icon: 'fa-calculator', text: 'Start BODMAS Quiz' },
-            'math-5': { icon: 'fa-superscript', text: 'Start Factors Quiz' },
+            'simple-math-5': { icon: 'fa-superscript', text: 'Start Factors Quiz' },
             'simple-math-6': { icon: 'fa-equals', text: 'Start LCD Quiz' },
             'simple-remainder': { icon: 'fa-divide', text: 'Start Remainder Quiz' },
             'addition-test': { icon: 'fa-plus', text: 'Start Addition Test' },

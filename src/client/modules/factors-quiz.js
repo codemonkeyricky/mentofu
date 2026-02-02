@@ -9,45 +9,78 @@ export default class FactorsQuiz extends QuizBase {
 
     async startQuiz() {
         try {
+            // Check if user is authenticated
             if (!this.mathMasterPro.currentToken) {
                 this.mathMasterPro.showNotification('Please log in to access quizzes.', 'warning');
                 this.mathMasterPro.showScreen('auth');
                 return;
             }
 
-            // Set quiz type
-            this.currentQuizType = 'math-5';
+            // Reset all buttons to ensure clean state (especially submit button)
+            this.resetAllButtons();
 
-            const numQuestions = 5;
-            this.currentQuestions = Array.from({ length: numQuestions }, () => {
-                // Generate a random number between 2 and 50 (inclusive)
-                const number = Math.floor(Math.random() * 49) + 2; // 2-50
-                return { number, factors: [], answer: null };
-            });
+            // Ensure submit button is enabled
+            if (this.mathMasterPro.submitBtn) {
+                this.mathMasterPro.submitBtn.disabled = false;
+                this.mathMasterPro.submitBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit Answers';
+            }
 
-            // Compute factors for each question
-            this.currentQuestions.forEach(q => {
-                const factors = [];
-                for (let i = 1; i <= q.number; i++) {
-                    if (q.number % i === 0) factors.push(i);
+            // Show loading state with professional animation
+            const button = this.mathMasterPro.startMathBtn;
+            if (button) {
+                button.disabled = true;
+                const originalHTML = button.innerHTML;
+                button.innerHTML = `
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Loading...
+                `;
+                button.setAttribute('data-original-html', originalHTML);
+            }
+
+            this.currentQuizType = 'simple-math-5';
+
+            // Fetch new session from API
+            const response = await fetch('/session/simple-math-5', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.mathMasterPro.currentToken}`
                 }
-                q.factors = factors;
             });
 
-            this.currentUserAnswers = new Array(numQuestions).fill('');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            }
 
+            const data = await response.json();
+            this.currentSessionId = data.sessionId;
+            this.currentQuestions = data.questions;
+            this.currentUserAnswers = new Array(this.currentQuestions.length).fill(null);
+
+            // Show quiz screen with animation
             this.mathMasterPro.showScreen('quiz');
             this.mathMasterPro.screens.quiz.classList.add('slide-in');
 
+            // Render questions with slight delay for smooth transition
             setTimeout(() => {
                 this.renderQuestions();
             }, 300);
+
         } catch (error) {
-            console.error('Error starting factors quiz:', error);
+            console.error('Error starting quiz:', error);
             this.mathMasterPro.showNotification(
                 `Failed to start quiz: ${error.message}. Please try again.`,
                 'error'
             );
+
+            // Reset button states
+            const button = this.mathMasterPro.startMathBtn;
+            if (button) {
+                button.disabled = false;
+                const originalHTML = button.getAttribute('data-original-html');
+                button.innerHTML = originalHTML || this.getDefaultButtonHTML('simple-math-5');
+            }
         }
     }
 
@@ -55,7 +88,7 @@ export default class FactorsQuiz extends QuizBase {
         this.mathMasterPro.questionsContainer.innerHTML = '';
         this.mathMasterPro.questionsContainer.classList.remove('fade-out');
 
-        this.currentQuestions.forEach((q, index) => {
+        this.currentQuestions.forEach((question, index) => {
             const questionCard = document.createElement('div');
             questionCard.className = 'question-card animate__animated animate__fadeIn';
             questionCard.style.animationDelay = `${index * 0.1}s`;
@@ -64,7 +97,7 @@ export default class FactorsQuiz extends QuizBase {
                 <div class="question-container-compact">
                     <div class="question-info">
                         <span class="badge bg-primary me-2">Q${index + 1}</span>
-                        <span class="question-text-main">List all factors of ${q.number}</span>
+                        <span class="question-text-main">${question.question}</span>
                     </div>
                     <div class="answer-wrapper">
                         <input type="text"
@@ -79,56 +112,133 @@ export default class FactorsQuiz extends QuizBase {
             this.mathMasterPro.questionsContainer.appendChild(questionCard);
         });
 
-        // Add event listeners to capture user input
-        setTimeout(() => {
-            const answerInputs = document.querySelectorAll('.answer-input');
-            answerInputs.forEach(input => {
-                input.addEventListener('input', (e) => {
-                    const index = parseInt(e.target.dataset.index);
-                    this.currentUserAnswers[index] = e.target.value;
-                });
+        // Add enhanced event listeners with validation
+        document.querySelectorAll('.answer-input').forEach(input => {
+            input.addEventListener('input', (event) => this.handleAnswerInput(event));
+            input.addEventListener('change', (event) => this.validateAnswerInput(event));
+            input.addEventListener('focus', (event) => {
+                event.target.classList.add('focus');
             });
-        }, 100);
+            input.addEventListener('blur', (event) => {
+                event.target.classList.remove('focus');
+            });
+        });
 
-        this.mathMasterPro.questionsContainer.scrollTop = 0;
+        this.updateProgress();
+        // Focus on first unanswered question after a short delay
+        setTimeout(() => {
+            this.scrollToFirstUnanswered();
+        }, 100);
+    }
+
+    handleAnswerInput(event) {
+        const index = parseInt(event.target.dataset.index);
+        const value = event.target.value;
+
+        // Store the raw string value for factors quiz
+        this.currentUserAnswers[index] = value === '' ? null : value;
+        event.target.classList.toggle('has-value', value !== '');
+
         this.updateProgress();
     }
 
+    validateAnswerInput(event) {
+        const input = event.target;
+        const value = input.value;
+
+        if (value !== '') {
+            // Validate that the input contains only numbers and commas
+            const isValid = /^[\d,\s]+$/.test(value);
+            if (!isValid) {
+                input.classList.add('is-invalid');
+                this.mathMasterPro.showNotification(
+                    'Please enter only numbers separated by commas (e.g., 1,2,3,6)',
+                    'warning'
+                );
+            } else {
+                input.classList.remove('is-invalid');
+            }
+        }
+    }
+
     async submitAnswers() {
-        const hasUnanswered = this.currentUserAnswers.some(a => a === null || a === '' || a === undefined);
+        // Validate all questions are answered
+        let hasUnanswered = this.currentUserAnswers.some(answer => answer === '' || answer === null);
+
         if (hasUnanswered) {
             this.mathMasterPro.showNotification('Please answer all questions before submitting.', 'warning');
+
+            // Add visual feedback for unanswered questions
+            document.querySelectorAll('.answer-input').forEach((input, index) => {
+                if (!this.currentUserAnswers[index] ||
+                    (typeof this.currentUserAnswers[index] === 'string' &&
+                     this.currentUserAnswers[index].trim() === '')) {
+                    input.classList.add('is-invalid');
+                    setTimeout(() => input.classList.remove('is-invalid'), 2000);
+                }
+            });
+
             return;
         }
 
-        let score = 0;
-        this.currentQuestions.forEach((q, idx) => {
-            // Parse the user's input to get an array of numbers
-            const userFactors = this.currentUserAnswers[idx]
-                .split(',')
-                .map(factor => factor.trim())
-                .filter(factor => factor !== '')
-                .map(factor => parseInt(factor))
-                .filter(factor => !isNaN(factor));
-
-            // Check if all factors provided by user are actual factors of the number
-            const allUserFactorsValid = userFactors.every(factor => q.factors.includes(factor));
-
-            // Check if user provided all the actual factors (same length)
-            const allActualFactorsProvided = allUserFactorsValid &&
-                                            userFactors.length === q.factors.length;
-
-            if (allActualFactorsProvided) {
-                score++;
+        try {
+            // Show professional loading state
+            const button = this.mathMasterPro.submitBtn;
+            if (button) {
+                button.disabled = true;
+                button.innerHTML = `
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Processing...
+                `;
             }
-        });
 
-        this.mathMasterPro.screens.quiz.classList.add('fade-out');
-        setTimeout(() => {
-            this.displayResults(score, this.currentQuestions.length, null);
-            this.mathMasterPro.screens.results.classList.add('active', 'slide-in');
-            this.mathMasterPro.screens.quiz.classList.remove('active', 'fade-out');
-        }, 500);
+            // Submit to API
+            const response = await fetch('/session/simple-math-5', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.mathMasterPro.currentToken}`
+                },
+                body: JSON.stringify({
+                    sessionId: this.currentSessionId,
+                    answers: this.currentUserAnswers
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Submission failed with status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            // Show success animation before displaying results
+            this.mathMasterPro.screens.quiz.classList.add('fade-out');
+
+            setTimeout(() => {
+                // Display results with professional presentation
+                this.displayResults(result.score, result.total, result.details);
+
+                // Show results screen with animation
+                this.mathMasterPro.screens.results.classList.add('active', 'slide-in');
+
+                this.mathMasterPro.screens.quiz.classList.remove('active', 'fade-out');
+            }, 500);
+
+        } catch (error) {
+            console.error('Error submitting answers:', error);
+            this.mathMasterPro.showNotification(
+                `Submission failed: ${error.message}. Please try again.`,
+                'error'
+            );
+
+            // Reset button states
+            const button = this.mathMasterPro.submitBtn;
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit Answers';
+            }
+        }
     }
 
     restartQuiz() {
